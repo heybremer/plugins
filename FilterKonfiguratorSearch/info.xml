@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jtlshopplugin>
+    <Name>FilterKonfiguratorSearch</Name>
+    <Description>Filter Konfigurator verisini LiveSearch benzeri JSON endpoint üzerinden sunar.</Description>
+    <Author>Erkut Şahin</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>FilterKonfiguratorSearch</PluginID>
+    <CreateDate>2026-03-12</CreateDate>
+    <Version>1.14.18</Version>
+    <Bootstrap>Plugin\FilterKonfiguratorSearch\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+    <Config>
+        <Setting type="text" initialValue="" sort="1" conf="Y">
+            <Name>Aktif Kategori ID'leri</Name>
+            <Description>Mikro filtrenin sadece belirli kategorilerde görünmesi için kategori ID'lerini virgülle ayırarak yazın (örn: 12,34,56). Tüm kategorilerde göstermek için boş bırakın.</Description>
+            <ValueName>fk_micro_active_categories</ValueName>
+        </Setting>
+    </Config>
+    <Cronjobs>
+        <Cronjob name="FilterKonfigurator Snapshot Refresh" type="FilterKonfiguratorSnapshot" frequency="604800" class="\Plugin\FilterKonfiguratorSearch\Cron\SnapshotCronJob" />
+    </Cronjobs>
+</jtlshopplugin>
+

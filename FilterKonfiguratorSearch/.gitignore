@@ -1,0 +1,6 @@
+.code-review-graph/
+.phpunit.cache/
+vendor/
+scratch/
+.DS_Store
+*.log

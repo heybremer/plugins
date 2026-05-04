@@ -1,0 +1,16 @@
+{
+  "name": "SideLeftFiltre",
+  "label": "SideLeftFiltre",
+  "description": "Sortiert Filterblöcke im linken Sidepanel anhand einer konfigurierbaren ID-Reihenfolge.",
+  "author": "Womosi",
+  "url": "https://womosi.de",
+  "version": "1.0.7",
+  "minShopVersion": "5.2.0",
+  "maxShopVersion": "5.99.99",
+  "requires": [],
+  "bootstrap": "Plugin\\SideLeftFiltre\\Bootstrap",
+  "hooks": [],
+  "adminMenu": [],
+  "dependencies": []
+}
+

@@ -1,0 +1,8 @@
+# vendor/ dizini git'e dahil edilmemeli
+vendor/
+
+# PHPUnit cache
+.phpunit.cache/
+
+# code-review-graph çıktıları (git dışı)
+.code-review-graph/

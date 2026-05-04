@@ -1,0 +1,33 @@
+{
+  "name": "FilterKonfiguratorSearch",
+  "label": "Filter Konfigurator Search",
+  "description": "Fahrzeugtyp, Hersteller, Basisfahrzeug, Modell, Baujahr, Sitz ve Serie için LiveSearch tarzı JSON arama endpoint'i.",
+  "author": "Erkut Sahin",
+  "url": "https://womosi.de",
+  "version": "1.14.18",
+  "minShopVersion": "5.2.0",
+  "maxShopVersion": "5.99.99",
+  "requires": [],
+  "bootstrap": "Plugin\\FilterKonfiguratorSearch\\Bootstrap",
+  "hooks": [],
+  "adminMenu": [],
+  "config": [
+    {
+      "name": "Aktif Kategori ID'leri",
+      "type": "text",
+      "valueName": "fk_micro_active_categories",
+      "initialValue": "",
+      "description": "Mikro filtrenin sadece belirli kategorilerde görünmesi için kategori ID'lerini virgülle ayırarak yazın (örn: 12,34,56). Tüm kategorilerde göstermek için boş bırakın.",
+      "sort": 1
+    },
+    {
+      "name": "PKW 1. Sırada Olan Kategoriler",
+      "type": "text",
+      "valueName": "fk_micro_pkw_first_categories",
+      "initialValue": "",
+      "description": "PKW sekmesinin 1. sırada (ve varsayılan aktif) gözükmesi gereken kategori ID'lerini virgülle ayırarak yazın.",
+      "sort": 2
+    }
+  ],
+  "dependencies": []
+}

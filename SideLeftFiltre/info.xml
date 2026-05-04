@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jtlshopplugin>
+    <Name>SideLeftFiltre</Name>
+    <Description>Sortiert Filterblöcke im linken Sidepanel anhand einer konfigurierbaren ID-Reihenfolge.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>SideLeftFiltre</PluginID>
+    <CreateDate>2026-04-14</CreateDate>
+    <Version>1.0.7</Version>
+    <Bootstrap>Plugin\SideLeftFiltre\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>
+
