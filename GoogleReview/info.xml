@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jtlshopplugin>
+    <Name>GoogleReview</Name>
+    <Description>Google yorumları slider bölümü (anasayfa).</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>GoogleReview</PluginID>
+    <CreateDate>2026-03-25</CreateDate>
+    <Version>1.0.7</Version>
+    <Bootstrap>Plugin\GoogleReview\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>

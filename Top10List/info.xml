@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jtlshopplugin>
+    <Name>Top10List</Name>
+    <Description>3 tabli en cok satilan urun listesi (2 satir, 10 urun).</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>Top10List</PluginID>
+    <CreateDate>2026-03-26</CreateDate>
+    <Version>1.1.9</Version>
+    <Bootstrap>Plugin\Top10List\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>

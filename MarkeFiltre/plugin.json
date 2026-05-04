@@ -1,0 +1,16 @@
+{
+  "name": "MarkeFiltre",
+  "label": "Marke Filtre",
+  "description": "PKW/Wohnmobil Marken-Auswahl (A–Z-Filter) für die Startseite.",
+  "author": "Womosi",
+  "url": "https://womosi.de",
+  "version": "1.1.30",
+  "minShopVersion": "5.2.0",
+  "maxShopVersion": "5.99.99",
+  "requires": [],
+  "bootstrap": "Plugin\\MarkeFiltre\\Bootstrap",
+  "hooks": [],
+  "adminMenu": [],
+  "dependencies": []
+}
+

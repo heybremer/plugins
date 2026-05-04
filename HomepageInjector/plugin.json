@@ -1,0 +1,16 @@
+{
+  "name": "HomepageInjector",
+  "label": "Homepage Injector",
+  "description": "Anasayfa widget sıralama ve konumlandırma yöneticisi (MarkeFiltre/Top10List/CardProduct).",
+  "author": "Womosi",
+  "url": "https://womosi.de",
+  "version": "1.0.0",
+  "minShopVersion": "5.2.0",
+  "maxShopVersion": "5.99.99",
+  "requires": [],
+  "bootstrap": "Plugin\\HomepageInjector\\Bootstrap",
+  "hooks": [],
+  "adminMenu": [],
+  "dependencies": []
+}
+

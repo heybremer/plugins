@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jtlshopplugin>
+    <Name>BannerProduckt</Name>
+    <Description>Anasayfada grid banner bloklari (tasarim resmine gore).</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>BannerProduckt</PluginID>
+    <CreateDate>2026-03-26</CreateDate>
+    <Version>1.0.1</Version>
+    <Bootstrap>Plugin\BannerProduckt\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>

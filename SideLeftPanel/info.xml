@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jtlshopplugin>
+    <Name>SideLeftPanel</Name>
+    <Description>Improves the left sidepanel and dropdown UX (mobile-friendly accordion, better spacing, scrollable dropdowns).</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>SideLeftPanel</PluginID>
+    <CreateDate>2026-04-21</CreateDate>
+    <Version>1.0.6</Version>
+    <Bootstrap>Plugin\SideLeftPanel\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+    <Config>
+        <Setting type="selectbox" initialValue="1" sort="1" conf="Y">
+            <Name>Mobil Accordion Aktif</Name>
+            <Description>Mobil cihazlarda yan panel kutularının accordion şeklinde açılmasını sağlar.</Description>
+            <ValueName>slp_accordion_active</ValueName>
+            <SelectboxOptions>
+                <Option value="1" sort="1">Evet</Option>
+                <Option value="0" sort="2">Hayır</Option>
+            </SelectboxOptions>
+        </Setting>
+        <Setting type="selectbox" initialValue="12px" sort="2" conf="Y">
+            <Name>Cam Efekti (Blur) Şiddeti</Name>
+            <Description>Arka plan bulanıklık seviyesini ayarlar.</Description>
+            <ValueName>slp_glass_blur</ValueName>
+            <SelectboxOptions>
+                <Option value="0px" sort="1">Kapalı</Option>
+                <Option value="4px" sort="2">Hafif</Option>
+                <Option value="12px" sort="3">Normal</Option>
+                <Option value="20px" sort="4">Güçlü</Option>
+            </SelectboxOptions>
+        </Setting>
+        <Setting type="selectbox" initialValue="0.75" sort="3" conf="Y">
+            <Name>Arka Plan Geçirgenliği</Name>
+            <Description>Kutuların arka plan saydamlık seviyesini ayarlar.</Description>
+            <ValueName>slp_glass_opacity</ValueName>
+            <SelectboxOptions>
+                <Option value="0.95" sort="1">Opak (Az saydam)</Option>
+                <Option value="0.75" sort="2">Normal</Option>
+                <Option value="0.50" sort="3">Yüksek (Çok saydam)</Option>
+            </SelectboxOptions>
+        </Setting>
+    </Config>
+</jtlshopplugin>
+

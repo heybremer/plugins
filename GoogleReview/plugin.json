@@ -1,0 +1,17 @@
+{
+  "name": "GoogleReview",
+  "label": "Google Reviews Slider",
+  "description": "Google yorumları slider bölümü",
+  "version": "1.0.7",
+  "minShopVersion": "5.2.0",
+  "maxShopVersion": "5.99.99",
+  "author": "Womosi",
+  "url": "https://womosi.de",
+  "license": "proprietary",
+  "requires": [],
+  "bootstrap": "Plugin\\GoogleReview\\Bootstrap",
+  "hooks": [],
+  "adminMenu": [],
+  "dependencies": []
+}
+

@@ -1,0 +1,15 @@
+{
+  "name": "Produktcard",
+  "label": "Produktcard Modell-Grid",
+  "description": "Startseite: 4er-Grid mit Bild und Link, Verwaltung im Backend",
+  "author": "Erkut Sahin",
+  "url": "https://bremer-sitzbezuege.de",
+  "version": "1.2.7",
+  "minShopVersion": "5.2.0",
+  "maxShopVersion": "5.99.99",
+  "requires": [],
+  "bootstrap": "Plugin\\Produktcard\\Bootstrap",
+  "hooks": [],
+  "adminMenu": [],
+  "dependencies": []
+}

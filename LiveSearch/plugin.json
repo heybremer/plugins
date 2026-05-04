@@ -1,0 +1,15 @@
+{
+  "name": "LiveSearch",
+  "label": "Live-Suche",
+  "description": "Live-Suche (AJAX) für die Kopfzeilen-Suchleiste.",
+  "author": "Erkut Sahin",
+  "url": "https://bremer-sitzbezuege.de",
+  "version": "1.0.13",
+  "minShopVersion": "5.2.0",
+  "maxShopVersion": "5.99.99",
+  "requires": [],
+  "bootstrap": "Plugin\\LiveSearch\\Bootstrap",
+  "hooks": [],
+  "adminMenu": [],
+  "dependencies": []
+}

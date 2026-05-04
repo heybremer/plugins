@@ -1,0 +1,15 @@
+{
+  "name": "FourLayout",
+  "label": "Four Layout",
+  "description": "Anasayfada 4’lü banner kart grid (görsele benzer).",
+  "author": "Womosi",
+  "url": "https://womosi.de",
+  "version": "1.0.4",
+  "minShopVersion": "5.2.0",
+  "maxShopVersion": "5.99.99",
+  "requires": [],
+  "bootstrap": "Plugin\\FourLayout\\Bootstrap",
+  "hooks": [],
+  "adminMenu": [],
+  "dependencies": []
+}

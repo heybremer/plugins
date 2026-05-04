@@ -1,0 +1,149 @@
+/* SideLeftPanel: UX polish for NOVA sidepanel_left + dropdowns */
+
+:root {
+  --slp-radius: 12px;
+  --slp-border: rgba(0, 0, 0, 0.08);
+  --slp-blur: 12px;
+  --slp-opacity: 0.75;
+  --slp-bg: rgba(255, 255, 255, var(--slp-opacity));
+  --slp-bg-soft: rgba(245, 247, 250, calc(var(--slp-opacity) - 0.25));
+  --slp-accent: #007bff;
+  --slp-shadow: 0 12px 32px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --slp-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Keep changes scoped */
+#sidepanel_left.sidepanel-left {
+  contain: layout paint;
+}
+
+/* Mobile: make filter boxes feel like an accordion */
+@media (max-width: 767.98px) {
+  #sidepanel_left .box.box-normal {
+    margin-bottom: 1rem;
+    border: 1px solid var(--slp-border);
+    border-radius: var(--slp-radius);
+    background: var(--slp-bg);
+    backdrop-filter: blur(var(--slp-blur)); /* Glassmorphism */
+    -webkit-backdrop-filter: blur(var(--slp-blur));
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    transition: var(--slp-transition);
+  }
+
+  #sidepanel_left .box.box-normal:active {
+    transform: scale(0.995);
+  }
+
+  #sidepanel_left .box.box-normal .box-normal-link {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem 1.15rem;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.2;
+    text-decoration: none;
+    color: #1a1a1a;
+    background: var(--slp-bg-soft);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    min-height: 48px;
+    transition: var(--slp-transition);
+    position: relative;
+  }
+
+  /* Chevron indicator */
+  #sidepanel_left .box.box-normal .box-normal-link::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    transition: var(--slp-transition);
+    margin-right: 0.25rem;
+    opacity: 0.6;
+  }
+
+  /* Rotate chevron when expanded (Bootstrap adds aria-expanded="true") */
+  #sidepanel_left .box.box-normal .box-normal-link[aria-expanded="true"]::after {
+    transform: rotate(-135deg);
+    opacity: 1;
+  }
+
+  #sidepanel_left .box.box-normal .box-normal-link:focus {
+    outline: none;
+  }
+  #sidepanel_left .box.box-normal .box-normal-link:focus-visible {
+    outline: 2px solid var(--slp-accent);
+    outline-offset: -2px;
+  }
+
+  /* Collapse body spacing and transitions */
+  #sidepanel_left .box.box-normal .collapse,
+  #sidepanel_left .box.box-normal .collapsing {
+    padding: 0.5rem 1rem 1.25rem;
+    transition: var(--slp-transition);
+  }
+
+  /* Better list readability in sidepanel */
+  #sidepanel_left .box.box-normal .nav .nav-link,
+  #sidepanel_left .box.box-normal .dropdown-item {
+    padding: 0.65rem 0.5rem;
+    border-radius: 6px;
+    margin: 0.1rem 0;
+    transition: var(--slp-transition);
+  }
+}
+
+/* Desktop: subtle separators, keep original layout */
+@media (min-width: 768px) {
+  #sidepanel_left .box.box-normal {
+    padding-bottom: 0.5rem;
+  }
+  #sidepanel_left .box.box-normal:not(:last-child) {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.25rem;
+  }
+}
+
+/* Dropdowns inside sidepanel: larger click targets + nicer scrolling */
+#sidepanel_left.dropdown-full-width .dropdown-menu,
+#sidepanel_left .dropdown-menu {
+  border-radius: var(--slp-radius);
+  box-shadow: var(--slp-shadow);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--slp-bg);
+  backdrop-filter: blur(var(--slp-blur));
+  -webkit-backdrop-filter: blur(var(--slp-blur));
+}
+
+#sidepanel_left .dropdown-item {
+  white-space: normal;
+  word-break: break-word;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin: 2px 4px;
+}
+
+#sidepanel_left .dropdown-item:hover,
+#sidepanel_left .dropdown-item:focus {
+  background: rgba(0, 123, 255, 0.06);
+  color: var(--slp-accent);
+}
+
+/* Ensure dropdown menu never overflows viewport height */
+#sidepanel_left .dropdown-menu {
+  max-height: min(65vh, 560px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Reduce layout shift when dropdown opens full-width */
+#sidepanel_left.dropdown-full-width .dropdown-menu {
+  width: 100%;
+}
+

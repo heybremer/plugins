@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jtlshopplugin>
+    <Name>CardProduct</Name>
+    <Description>Anasayfada yönetilebilir urun kartlari gridi gosterir.</Description>
+    <Author>Erkut Sahin</Author>
+    <URL>https://bremer-sitzbezuege.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>CardProduct</PluginID>
+    <CreateDate>2026-03-16</CreateDate>
+    <Version>1.5.0</Version>
+    <Bootstrap>Plugin\CardProduct\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>

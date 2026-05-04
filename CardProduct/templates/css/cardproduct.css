@@ -1,0 +1,323 @@
+.cardproduct-grid-wrap {
+  margin: 28px 0;
+}
+
+.cardproduct-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.cardproduct-item {
+  display: block;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.cardproduct-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.cardproduct-media {
+  width: 100%;
+  aspect-ratio: 16/16;
+  background: #f4f4f4;
+}
+
+.cardproduct-grid-pen {
+  position: relative;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  color: #1a1a1a;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.cardproduct-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.cardproduct-title-texts {
+  flex: 1;
+  min-width: min(100%, 220px);
+}
+
+.cardproduct-heading {
+  margin: 0 0 4px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.cardproduct-subheading {
+  margin: 0;
+  font-size: 0.95rem;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.cardproduct-title-texts .cardproduct-produkttyp-details {
+  margin-top: 10px;
+  max-width: min(100%, 520px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  overflow: hidden;
+}
+
+.cardproduct-produkttyp-summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 10px 36px 10px 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.35;
+  user-select: none;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(0, 0, 0, 0.88);
+  position: relative;
+}
+
+.cardproduct-produkttyp-summary::-webkit-details-marker {
+  display: none;
+}
+
+.cardproduct-produkttyp-summary::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 0.55em;
+  height: 0.55em;
+  margin-top: -0.2em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.5;
+}
+
+.cardproduct-produkttyp-details[open] .cardproduct-produkttyp-summary::after {
+  transform: rotate(-135deg);
+  margin-top: 0.05em;
+}
+
+.cardproduct-produkttyp-panel {
+  padding: 0 12px 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.cardproduct-produkttyp-list {
+  margin: 0;
+  padding: 8px 0 0;
+  list-style: none;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.cardproduct-produkttyp-row {
+  padding: 8px 10px;
+  margin: 0 -6px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.cardproduct-produkttyp-row:hover,
+.cardproduct-produkttyp-row:focus {
+  outline: none;
+  background: rgba(25, 113, 73, 0.08);
+}
+
+.cardproduct-produkttyp-cat {
+  font-weight: 700;
+}
+
+.cardproduct-produkttyp-sep {
+  opacity: 0.45;
+  font-weight: 400;
+}
+
+.cardproduct-produkttyp-pt {
+  font-weight: 500;
+}
+
+.cardproduct-produkttyp-reset {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #197149;
+  background: #fff;
+  border: 1px solid rgba(25, 113, 73, 0.35);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.cardproduct-produkttyp-reset:hover {
+  background: rgba(25, 113, 73, 0.06);
+}
+
+.cardproduct-all-models-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  color: #fff;
+  background: #197149;
+  border-radius: 10px;
+  border: 0;
+  white-space: nowrap;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.cardproduct-all-models-btn:hover {
+  background: #145a3a;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.cardproduct-media img {
+  width: 100%;
+  height: 100%;
+  padding:12px;
+  background: white;
+  object-fit: cover;
+  display: block;
+}
+
+.cardproduct-slider {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.cardproduct-slider-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cardproduct-placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: rgba(0, 0, 0, 0.45);
+  font-weight: 700;
+}
+
+.cardproduct-title {
+  padding: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.cardproduct-thumbs {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px 0;
+  overflow-x: auto;
+}
+
+.cardproduct-thumb {
+  width: 34px;
+  min-width: 75px;
+  height: 75px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  background: #fff;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.cardproduct-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cardproduct-thumb.active {
+  border-color: #197149;
+  box-shadow: 0 0 0 1px #197149 inset;
+}
+
+.cardproduct-load-more-wrap {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  .cardproduct-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .cardproduct-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cardproduct-grid .cardproduct-item--folded:not(.is-visible) {
+    display: none;
+  }
+
+  .cardproduct-load-more-wrap {
+    margin-top: 4px;
+    text-align: center;
+  }
+
+  .cardproduct-load-more-wrap.is-active {
+    display: block;
+  }
+
+  .cardproduct-load-more {
+    width: 100%;
+    /* max-width: 320px; */
+    padding: 12px 18px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-top: 10px;
+    /* color: #197149; */
+    background: #fff;
+    border: 1px solid #000000;
+    /* border-radius: 10px; */
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .cardproduct-load-more:hover {
+    background: #197149;
+    color: #fff;
+  }
+}
+
+@media (max-width: 480px) {
+  .cardproduct-grid {
+    grid-template-columns: 1fr;
+  }
+}

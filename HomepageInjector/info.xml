@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jtlshopplugin>
+    <Name>HomepageInjector</Name>
+    <Description>Anasayfa widget sıralama ve konumlandırma yöneticisi.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.2.0</ShopVersion>
+    <PluginID>HomepageInjector</PluginID>
+    <CreateDate>2026-03-31</CreateDate>
+    <Version>1.0.0</Version>
+    <Bootstrap>Plugin\HomepageInjector\Bootstrap</Bootstrap>
+    <MinShopVersion>5.2.0</MinShopVersion>
+    <MaxShopVersion>5.99.99</MaxShopVersion>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>
+

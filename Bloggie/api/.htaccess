@@ -1,0 +1,4 @@
+# Allow direct PHP access for cron / external tools (some hosts block /plugins/ by default)
+<IfModule mod_authz_core.c>
+    Require all granted
+</IfModule>

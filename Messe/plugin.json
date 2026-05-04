@@ -1,0 +1,16 @@
+{
+  "name": "Messe",
+  "label": "Messe Kalender",
+  "description": "Messe Kalender Seite mit Filter & Event-Details, Verwaltung im Backend",
+  "author": "Womosi",
+  "url": "https://womosi.de",
+  "version": "1.0.18",
+  "minShopVersion": "5.2.0",
+  "maxShopVersion": "5.99.99",
+  "requires": [],
+  "bootstrap": "Plugin\\Messe\\Bootstrap",
+  "hooks": [],
+  "adminMenu": [],
+  "dependencies": []
+}
+

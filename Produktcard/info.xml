@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jtlshopplugin>
+    <Name>Produktcard</Name>
+    <Description>Modellkarten im 4er-Grid mit Bild und Link; Eintraege im Plugin-Backend.</Description>
+    <Author>Erkut Sahin</Author>
+    <URL>https://bremer-sitzbezuege.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>Produktcard</PluginID>
+    <CreateDate>2026-04-08</CreateDate>
+    <Version>1.2.7</Version>
+    <Bootstrap>Plugin\Produktcard\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>

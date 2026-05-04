@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jtlshopplugin>
+    <Name>Messe</Name>
+    <Description>Messe Kalender als eigene Seite, Events im Plugin-Backend verwaltbar.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>Messe</PluginID>
+    <CreateDate>2026-04-14</CreateDate>
+    <Version>1.0.18</Version>
+    <Bootstrap>Plugin\Messe\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>
+

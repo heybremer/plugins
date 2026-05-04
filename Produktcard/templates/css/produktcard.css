@@ -1,0 +1,217 @@
+/**
+ * Produktcard — Top10List-Optik; Layout über CSS-Variablen (--pc-*) vom Dashboard.
+ */
+.produktcard-wrap.produktcard-t10-root {
+  width: 100%;
+  margin: 20px auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.produktcard-wrap .aktion-banner.t10-banner {
+  position: relative;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  color: #1a1a1a;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.produktcard-wrap .t10-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+/* Tabs (analog Top10List, scoped) */
+.produktcard-wrap .pc-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.produktcard-wrap .pc-tab-btn {
+  background: transparent;
+  border: none;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #6b7280;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.25s ease, border-color 0.25s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.produktcard-wrap .pc-tab-btn:hover {
+  color: #197149;
+}
+
+.produktcard-wrap .pc-tab-btn.active {
+  color: #197149;
+  border-bottom-color: #197149;
+}
+
+.produktcard-wrap .pc-tab-panel {
+  display: none;
+  padding-top: 14px;
+}
+
+.produktcard-wrap .pc-tab-panel.active {
+  display: block;
+}
+
+.produktcard-wrap .t10-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.produktcard-wrap .produktcard-grid {
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 993px) {
+  .produktcard-wrap .produktcard-grid {
+    grid-template-columns: repeat(var(--pc-cols, 4), 1fr);
+  }
+}
+
+.produktcard-wrap .t10-card.produktcard-card {
+  display: block;
+  text-decoration: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  color: #111827;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.produktcard-wrap .t10-card.produktcard-card:hover {
+  transform: translateY(-2px);
+  border-color: #cfd8d3;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Gleichmäßiger Innenabstand um das Bild; Größe/Zoom über Dashboard */
+.produktcard-wrap .t10-img.produktcard-img-bg {
+  aspect-ratio: var(--pc-aspect, 1 / 1);
+  box-sizing: border-box;
+  background-color: #f3f4f6;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-origin: content-box;
+}
+
+.produktcard-wrap[data-pc-bg-cover="1"] .t10-img.produktcard-img-bg {
+  background-size: cover;
+}
+
+.produktcard-wrap[data-pc-bg-cover="0"] .t10-img.produktcard-img-bg {
+  background-size: calc(var(--pc-bg-pct, 100) * 1%);
+}
+
+.produktcard-wrap .t10-name.produktcard-name {
+  padding: 10px 10px 4px;
+  font-size: 14px;
+  line-height: 1.35;
+  min-height: 46px;
+  font-weight: 600;
+  text-align: left;
+}
+
+@media (max-width: 992px) {
+  .produktcard-wrap .produktcard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .produktcard-wrap .t10-title {
+    font-size: 24px;
+  }
+
+  .produktcard-wrap .pc-tab-btn {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  /* Mobil: erst 4 Karten, Rest per „Weitere Produkte“ */
+  .produktcard-wrap .produktcard-card.produktcard-card--folded:not(.is-visible) {
+    display: none;
+  }
+}
+
+/* Desktop/Tablet breit: alles sichtbar, Button aus */
+@media (min-width: 769px) {
+  .produktcard-wrap .produktcard-load-more-wrap {
+    display: none !important;
+  }
+}
+
+.produktcard-load-more-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.produktcard-load-more-btn {
+  border: 1px solid #197149;
+  background: #fff;
+  color: #197149;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.produktcard-load-more-btn:hover {
+  background: #197149;
+  color: #fff;
+}
+
+.produktcard-all-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.produktcard-all-btn {
+  display: inline-block;
+  text-decoration: none;
+  border: 1px solid #cccccc;
+  background: #ffffff;
+  color: #232121;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 17px;
+  font-weight: 800;
+  transition: filter 0.2s ease;
+}
+
+.produktcard-all-btn:hover {
+  filter: brightness(1.05);
+}
+
+@media (max-width: 520px) {
+  .produktcard-wrap .produktcard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .produktcard-wrap .aktion-banner.t10-banner {
+    padding: 16px;
+  }
+}
