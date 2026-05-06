@@ -8,7 +8,7 @@
     <ShopVersion>5.6.0</ShopVersion>
     <PluginID>ActionProduct</PluginID>
     <CreateDate>2026-03-25</CreateDate>
-    <Version>1.3.15</Version>
+    <Version>1.3.16</Version>
     <Bootstrap>Plugin\ActionProduct\Bootstrap</Bootstrap>
     <Install>
         <empty></empty>

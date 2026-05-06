@@ -1,0 +1,10 @@
+---
+description: Project overview
+alwaysApply: true
+---
+
+Use code-review-graph MCP before reading many files.
+Always read AGENTS.md, PROJECT_MAP.md, and PROJECT_GRAPH.md first.
+Do not scan the whole codebase unless explicitly requested.
+Identify the smallest relevant files before editing.
+Make minimal localized changes.

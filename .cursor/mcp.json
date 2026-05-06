@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "code-review-graph": {
+      "command": "C:\\Users\\Bremer\\AppData\\Local\\Programs\\Python\\Python311\\Scripts\\code-review-graph.exe",
+      "args": [
+        "serve",
+        "--repo",
+        "C:\\xampp\\htdocs\\WomosiWeb\\plugins"
+      ],
+      "type": "stdio",
+      "env": {
+        "PYTHONUTF8": "1"
+      }
+    }
+  }
+}

@@ -1,0 +1,5 @@
+# Added by code-review-graph
+.code-review-graph/
+
+# Local archives (plugin folders already in repo)
+*.zip

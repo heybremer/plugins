@@ -8,7 +8,7 @@
     <ShopVersion>5.6.0</ShopVersion>
     <PluginID>FourLayout</PluginID>
     <CreateDate>2026-03-27</CreateDate>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
     <Bootstrap>Plugin\FourLayout\Bootstrap</Bootstrap>
     <Install>
         <empty></empty>

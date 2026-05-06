@@ -1,0 +1,3 @@
+# Dependency trees (if tracked or present without git)
+node_modules/**
+vendor/**

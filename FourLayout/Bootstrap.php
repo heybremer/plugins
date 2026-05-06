@@ -113,10 +113,17 @@ class Bootstrap extends Bootstrapper
      */
     private function isHomepageRequest(): bool
     {
+        $uri   = (string)($_SERVER['REQUEST_URI'] ?? '');
+        $query = (string)(\parse_url($uri, \PHP_URL_QUERY) ?? '');
+
+        // Index-URL mit Suche/Merkmal-Filter ist keine „echte“ Startseite (z. B. ?suche=…&mf=…).
+        if ($query !== '' && \preg_match('/(?:^|&)(suche|mf)=/i', $query) === 1) {
+            return false;
+        }
+
         if (Shop::getPageType() === \PAGE_STARTSEITE) {
             return true;
         }
-        $uri  = (string)($_SERVER['REQUEST_URI'] ?? '');
         $path = (string)(\parse_url($uri, \PHP_URL_PATH) ?? '');
         $path = \rtrim($path, '/');
         $shopUrl = \rtrim((string)Shop::getURL(), '/');

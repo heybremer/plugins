@@ -56,6 +56,18 @@ class LiveSearchController
         return self::MERKMAL_NAME_ALIASES[$k] ?? $t;
     }
 
+    private function slugify(string $text): string
+    {
+        $text = \preg_replace('~[^\pL\d]+~u', '-', $text);
+        $text = \iconv('utf-8', 'us-ascii//TRANSLIT', $text);
+        $text = \preg_replace('~[^-\w]+~', '', $text);
+        $text = \trim($text, '-');
+        $text = \preg_replace('~-+~', '-', $text);
+        $text = \strtolower($text);
+
+        return $text === '' ? 'n-a' : $text;
+    }
+
     public function search(ServerRequestInterface $request, array $args): ResponseInterface
     {
         $queryParams = $request->getQueryParams();
@@ -103,10 +115,12 @@ class LiveSearchController
                 $suggestions = $db->getObjects(
                     "SELECT DISTINCT tmws.cWert
                        FROM tmerkmalwertsprache tmws
+                 INNER JOIN tmerkmalwert mw ON mw.kMerkmalWert = tmws.kMerkmalWert
+                 INNER JOIN tartikelmerkmal am ON am.kMerkmalWert = mw.kMerkmalWert
                       WHERE tmws.kSprache = :langID
                         AND LOWER(tmws.cWert) LIKE LOWER(:term)
                    ORDER BY LENGTH(tmws.cWert) ASC, tmws.cWert ASC
-                      LIMIT 8",
+                       LIMIT 15",
                     ['langID' => $langID, 'term' => '%' . $q . '%']
                 );
 
@@ -348,32 +362,25 @@ class LiveSearchController
             }
         }
 
+        $openNames = [];
         foreach (self::MERKMAL_FLOW_ORDER as $cName) {
-            if (isset($lockedNames[$cName])) {
-                continue;
-            }
-            $cnt = $this->countDistinctMerkmalOnFilteredArticles($db, $langID, $matchedValues, $cName);
-            if ($cnt >= 2) {
-                return $cName;
+            if (!isset($lockedNames[$cName])) {
+                $openNames[] = $cName;
             }
         }
 
-        return null;
-    }
+        if ($openNames === []) {
+            return null;
+        }
 
-    /**
-     * @param array<int, array{cWert: mixed}> $matchedValues
-     */
-    private function countDistinctMerkmalOnFilteredArticles(
-        DbInterface $db,
-        int $langID,
-        array $matchedValues,
-        string $merkmalCName
-    ): int {
-        $params = ['langID' => $langID, 'mname' => $merkmalCName];
+        $params = ['langID' => $langID];
         [$joins, $params] = $this->buildArticleLockJoins($matchedValues, $params);
 
-        $sql = "SELECT COUNT(DISTINCT tmwsM.cWert) AS cnt
+        $nameList = "'" . \implode("','", \array_map(function($n) use ($db) { 
+            return \str_replace("'", "''", $n); 
+        }, $openNames)) . "'";
+
+        $sql = "SELECT msM.cName, COUNT(DISTINCT tmwsM.cWert) AS cnt
                   FROM tartikel a
                   {$joins}
             INNER JOIN tartikelmerkmal tamM
@@ -385,16 +392,29 @@ class LiveSearchController
             INNER JOIN tmerkmalsprache msM
                     ON msM.kMerkmal = mM.kMerkmal
                    AND msM.kSprache = :langID
-                   AND msM.cName    = :mname
+                   AND msM.cName IN ({$nameList})
             INNER JOIN tmerkmalwertsprache tmwsM
                     ON tmwsM.kMerkmalWert = tamM.kMerkmalWert
                    AND tmwsM.kSprache     = :langID
                  WHERE a.nIstVater = 0
-                   AND TRIM(tmwsM.cWert) <> ''";
+                   AND TRIM(tmwsM.cWert) <> ''
+              GROUP BY msM.cName";
 
-        $row = $db->getSingleObject($sql, $params);
+        $rows = $db->getObjects($sql, $params);
+        $counts = [];
+        if (\is_array($rows)) {
+            foreach ($rows as $r) {
+                $counts[$r->cName] = (int)$r->cnt;
+            }
+        }
 
-        return $row !== null ? (int) ($row->cnt ?? 0) : 0;
+        foreach (self::MERKMAL_FLOW_ORDER as $cName) {
+            if (isset($counts[$cName]) && $counts[$cName] >= 2) {
+                return $cName;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -530,7 +550,7 @@ class LiveSearchController
             foreach ($rows as $row) {
                 $serieBase = !empty($row->serieSeo)
                     ? '/' . $row->serieSeo
-                    : '/' . $row->serie . '-Serie';
+                    : '/' . $this->slugify($row->serie) . '-serie';
 
                 $thumbUrl = '';
                 $kid      = (int) ($row->kArtikelSample ?? 0);

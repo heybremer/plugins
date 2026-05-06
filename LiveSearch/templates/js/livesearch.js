@@ -26,28 +26,35 @@
     s.id = 'live-search-kbd-styles';
     s.textContent =
       '.input-group .live-search-combo,.main-search .live-search-combo{flex:1 1 auto;min-width:0;}' +
-      '.live-search-combo{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex:1;min-width:0;max-width:100%;' +
-      'border:1px solid var(--bs-border-color,#ced4da);border-radius:0.375rem;background:var(--bs-body-bg,#fff);' +
-      'padding:4px 8px;min-height:calc(1.5em + 0.75rem + 2px);box-sizing:border-box;}' +
-      '.live-search-combo:focus-within{border-color:var(--bs-warning,#ffc107);box-shadow:0 0 0 0.2rem rgba(255,193,7,.25);}' +
+      '.live-search-combo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;flex:1;min-width:0;max-width:100%;' +
+      'border:1px solid rgba(0,0,0,0.1);border-radius:12px;background:rgba(255,255,255,0.95);backdrop-filter:blur(10px);' +
+      'padding:6px 12px;min-height:48px;box-sizing:border-box;transition:all 0.2s ease;box-shadow:0 2px 8px rgba(0,0,0,0.05);}' +
+      '.live-search-combo:focus-within{border-color:#4a90d9;box-shadow:0 0 0 4px rgba(74,144,217,0.15), 0 4px 12px rgba(0,0,0,0.08);background:#fff;}' +
       '.live-search-combo>.twitter-typeahead{flex:1 1 120px;min-width:80px;position:relative!important;display:block!important;}' +
       '.live-search-combo .twitter-typeahead input.ac_input,.live-search-combo .twitter-typeahead input.tt-input,.live-search-combo .twitter-typeahead input.tt-hint{' +
-      'border:none!important;box-shadow:none!important;outline:none!important;background:transparent!important;}' +
+      'border:none!important;box-shadow:none!important;outline:none!important;background:transparent!important;font-size:1rem;color:#333;}' +
       '.live-search-combo .twitter-typeahead input.tt-input{position:relative!important;}' +
       '.live-search-tags-wrap{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0;min-height:0;max-width:100%;flex:0 1 auto;}' +
-      '.live-search-tag{display:inline-flex;align-items:center;gap:4px;max-width:100%;background:#e8f4fc;border:1px solid #4a90d9;color:#0a3d62;border-radius:999px;padding:3px 4px 3px 10px;font-size:.8125rem;line-height:1.3;}' +
-      '.live-search-tag span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;}' +
-      '.live-search-tag button{border:none;background:transparent;cursor:pointer;padding:0 6px;font-size:1.1rem;line-height:1;color:#555;border-radius:4px;flex-shrink:0;}' +
-      '.live-search-tag button:hover{color:#c00;background:rgba(0,0,0,.06);}' +
+      '.live-search-tag{display:inline-flex;align-items:center;gap:6px;max-width:100%;background:linear-gradient(135deg, #e8f4fc 0%, #d1e9f9 100%);' +
+      'border:1px solid #b3d7f2;color:#0a3d62;border-radius:8px;padding:4px 8px 4px 10px;font-size:0.85rem;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,0.05);transition:transform 0.1s ease;}' +
+      '.live-search-tag:hover{transform:translateY(-1px);}' +
+      '.live-search-tag span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;}' +
+      '.live-search-tag button{border:none;background:transparent;cursor:pointer;padding:0 4px;font-size:1.2rem;line-height:1;color:#5c7c94;border-radius:4px;flex-shrink:0;transition:color 0.2s;}' +
+      '.live-search-tag button:hover{color:#d00;}' +
+      '.live-search-dropdown{display:block;opacity:0;transform:translateY(10px);pointer-events:none;transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);}' +
+      '.live-search-dropdown.open{opacity:1;transform:translateY(0);pointer-events:auto;}' +
       '.live-search-dropdown .live-search-suggest.live-search-active,' +
       '.live-search-dropdown a.live-search-item.live-search-active{' +
-      'background:#e8f4fc!important;outline:2px solid #4a90d9;outline-offset:-2px;}' +
-      '.live-search-dropdown a.live-search-item.live-search-active{color:#111!important;}' +
-      '.live-search-serie-thumb{width:89px;height:auto;object-fit:contain;flex-shrink:0;border-radius:4px;background:#f5f5f5;}' +
-      '.live-search-serie-thumb-ph{width:89px;height:auto;flex-shrink:0;border-radius:4px;background:#eee;}' +
-      '.live-search-hint{padding:10px 14px;background:#f8fafc;border-bottom:1px solid #e8eef5;}' +
-      '.live-search-hint .live-search-hint-title{font-weight:600;font-size:.8125rem;color:#0a3d62;}' +
-      '.live-search-hint .live-search-hint-sub{font-size:.72rem;color:#5a6b7d;margin-top:4px;line-height:1.35;}' +
+      'background:#f0f7ff!important;box-shadow:inset 4px 0 0 #4a90d9;}' +
+      '.live-search-dropdown a.live-search-item.live-search-active{color:#000!important;}' +
+      '.live-search-suggest,.live-search-item{padding:12px 16px!important;}' +
+      '.live-search-serie-thumb{width:60px;height:60px;object-fit:cover;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);}' +
+      '.live-search-serie-thumb-ph{width:60px;height:60px;background:#f0f0f0;border-radius:8px;display:block;}' +
+      '.live-search-hint{padding:12px 16px;background:rgba(232,244,252,0.5);border-bottom:1px solid #e1e9f0;}' +
+      '.live-search-hint .live-search-hint-title{font-weight:700;font-size:0.85rem;color:#0a3d62;text-transform:uppercase;letter-spacing:0.5px;}' +
+      '.live-search-hint .live-search-hint-sub{font-size:0.75rem;color:#5a6b7d;margin-top:2px;}' +
+      '.live-search-loading-spinner{width:18px;height:18px;border:2px solid rgba(74,144,217,0.2);border-top-color:#4a90d9;border-radius:50%;animation:ls-spin 0.6s linear infinite;margin-left:auto;}' +
+      '@keyframes ls-spin{to{transform:rotate(360deg);}}' +
       '.live-search-combo .tt-menu,.live-search-combo .tt-dropdown-menu{display:none!important;' +
       'visibility:hidden!important;pointer-events:none!important;opacity:0!important;height:0!important;overflow:hidden!important;}';
     document.head.appendChild(s);
@@ -116,6 +123,11 @@
         'border-radius:0 0 4px 4px;width:100%;min-width:300px;box-sizing:border-box;';
 
       combo.appendChild(dropdown);
+
+      var spinner = document.createElement('div');
+      spinner.className = 'live-search-loading-spinner';
+      spinner.style.display = 'none';
+      combo.appendChild(spinner);
 
       function updatePos() {
         var w = combo.offsetWidth;
@@ -187,7 +199,12 @@
       }
 
       function closeDropdown() {
-        dropdown.style.display = 'none';
+        dropdown.classList.remove('open');
+        setTimeout(function() {
+          if (!dropdown.classList.contains('open')) {
+            dropdown.style.display = 'none';
+          }
+        }, 300);
         activeIndex = -1;
         var rows = getRows();
         for (var i = 0; i < rows.length; i++) {
@@ -338,6 +355,7 @@
           dropdown.innerHTML =
             '<div style="padding:10px 14px;color:#888;font-size:.875rem">Keine Ergebnisse.</div>';
           dropdown.style.display = 'block';
+          setTimeout(function() { dropdown.classList.add('open'); }, 10);
           updatePos();
           return;
         }
@@ -443,6 +461,7 @@
 
         dropdown.innerHTML = html;
         dropdown.style.display = 'block';
+        setTimeout(function() { dropdown.classList.add('open'); }, 10);
         updatePos();
 
         var suggestEls = dropdown.querySelectorAll('.live-search-suggest');
@@ -493,8 +512,10 @@
         }
 
         dropdown.style.display = 'block';
+        setTimeout(function() { dropdown.classList.add('open'); }, 10);
         dropdown.innerHTML =
           '<div style="padding:10px 14px;color:#888;font-size:.875rem">Suche läuft …</div>';
+        spinner.style.display = 'block';
         updatePos();
 
         timer = setTimeout(function () {
@@ -510,6 +531,7 @@
             })
             .then(function (text) {
               currentController = null;
+              spinner.style.display = 'none';
               var items = [];
               try {
                 items = JSON.parse(text);
@@ -526,6 +548,7 @@
             .catch(function (err) {
               if (err.name === 'AbortError') return;
               currentController = null;
+              spinner.style.display = 'none';
               dropdown.innerHTML =
                 '<div style="padding:10px 14px;color:#c00;font-size:.875rem">Es ist ein Fehler aufgetreten.</div>';
             });

@@ -4,7 +4,7 @@
   "description": "Anasayfada dashboarddan yonetilen urun kart gridi",
   "author": "Erkut Sahin",
   "url": "https://bremer-sitzbezuege.de",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "minShopVersion": "5.2.0",
   "maxShopVersion": "5.99.99",
   "requires": [],
