@@ -39,6 +39,35 @@ class SnapshotService
     }
 
     /**
+     * Entfernt alte Log-Zeilen, damit die Tabellen nicht unbegrenzt wachsen.
+     * Wird vom wöchentlichen Cron aufgerufen.
+     *
+     * @param int $searchLogDays Aufbewahrung für twomosi_fk_search_log (Tage).
+     * @param int $selectionDays Aufbewahrung für twomosi_fk_selection (Tage).
+     */
+    public function pruneLogs(int $searchLogDays = 30, int $selectionDays = 90): void
+    {
+        // Werte sind strikt int → kein Injection-Risiko bei Inline-Verwendung.
+        $searchLogDays = \max(1, $searchLogDays);
+        $selectionDays = \max(1, $selectionDays);
+
+        try {
+            $this->db->executeQuery(
+                'DELETE FROM twomosi_fk_search_log WHERE dCreated < (NOW() - INTERVAL ' . $searchLogDays . ' DAY)'
+            );
+        } catch (\Throwable $e) {
+            // Tabelle fehlt evtl. noch — ignorieren.
+        }
+        try {
+            $this->db->executeQuery(
+                'DELETE FROM twomosi_fk_selection WHERE dCreated < (NOW() - INTERVAL ' . $selectionDays . ' DAY)'
+            );
+        } catch (\Throwable $e) {
+            // ignorieren
+        }
+    }
+
+    /**
      * Compatibility wrapper — calls the 3 PKW steps sequentially.
      */
     public function refreshPkwSnapshots(int $lid): void
@@ -161,59 +190,35 @@ class SnapshotService
      */
     public function refreshPkwHerstellerModell(int $lid): void
     {
+        $params = $this->pkwSnapshotParams($lid);
+        $from   = $this->pkwArticleFromClause();
+
         $this->db->executeQueryPrepared('DELETE FROM twomosi_fk_opt_pkw_hersteller WHERE kSprache = :lid', ['lid' => $lid]);
         $this->db->executeQueryPrepared('DELETE FROM twomosi_fk_opt_pkw_modell WHERE kSprache = :lid', ['lid' => $lid]);
 
-        // 1. PKW Hersteller
         $this->db->executeQueryPrepared(
             "INSERT IGNORE INTO twomosi_fk_opt_pkw_hersteller (kSprache, cHersteller)
              SELECT DISTINCT :lid, TRIM(tmws_her.cWert)
-               FROM tartikel a
-         INNER JOIN tkategorieartikel ka_tree ON ka_tree.kArtikel = a.kArtikel
-         INNER JOIN tkategorie c_tree ON c_tree.kKategorie = ka_tree.kKategorie
-         INNER JOIN tkategorie p_tree ON p_tree.kKategorie = 19
-            AND c_tree.lft BETWEEN p_tree.lft AND p_tree.rght
-         INNER JOIN tartikelmerkmal am_her ON am_her.kArtikel = a.kArtikel
-         INNER JOIN tmerkmalwertsprache tmws_her ON tmws_her.kMerkmalWert = am_her.kMerkmalWert
-                                                AND tmws_her.kSprache = :lid
-         INNER JOIN tmerkmalsprache ms_her ON ms_her.kMerkmal = am_her.kMerkmal
-                                          AND ms_her.kSprache = :lid
-                                          AND ms_her.cName = 'Fahrzeug-Marke'
+               {$from}
+               {$this->merkmalJoinSql('her', "ms_her.cName = 'Fahrzeug-Marke'")}
               WHERE a.nIstVater = 0
-                AND NOT EXISTS (
-                    SELECT 1 FROM tartikelmerkmal am_x
-                    INNER JOIN tmerkmalsprache ms_x ON ms_x.kMerkmal = am_x.kMerkmal
-                                                   AND ms_x.kSprache = :lid
-                                                   AND ms_x.cName = 'Wohnmobil-Aufbauart'
-                    WHERE am_x.kArtikel = a.kArtikel
-                )",
-            ['lid' => $lid]
+                AND TRIM(tmws_her.cWert) <> ''",
+            $params
         );
 
-        // 2. PKW Modell
         $this->db->executeQueryPrepared(
             "INSERT IGNORE INTO twomosi_fk_opt_pkw_modell (kSprache, cHersteller, cModell)
              SELECT DISTINCT :lid, TRIM(tmws_her.cWert), TRIM(tmws_mod.cWert)
-               FROM tartikel a
-         INNER JOIN tkategorieartikel ka_tree ON ka_tree.kArtikel = a.kArtikel
-         INNER JOIN tkategorie c_tree ON c_tree.kKategorie = ka_tree.kKategorie
-         INNER JOIN tkategorie p_tree ON p_tree.kKategorie = 19
-            AND c_tree.lft BETWEEN p_tree.lft AND p_tree.rght
-         INNER JOIN tartikelmerkmal am_her ON am_her.kArtikel = a.kArtikel
-         INNER JOIN tmerkmalwertsprache tmws_her ON tmws_her.kMerkmalWert = am_her.kMerkmalWert
-                                                AND tmws_her.kSprache = :lid
-         INNER JOIN tmerkmalsprache ms_her ON ms_her.kMerkmal = am_her.kMerkmal
-                                          AND ms_her.kSprache = :lid
-                                          AND ms_her.cName = 'Fahrzeug-Marke'
-         INNER JOIN tartikelmerkmal am_mod ON am_mod.kArtikel = a.kArtikel
-         INNER JOIN tmerkmalwertsprache tmws_mod ON tmws_mod.kMerkmalWert = am_mod.kMerkmalWert
-                                                AND tmws_mod.kSprache = :lid
-         INNER JOIN tmerkmalsprache ms_mod ON ms_mod.kMerkmal = am_mod.kMerkmal
-                                          AND ms_mod.kSprache = :lid
-                                          AND ms_mod.cName = 'Fahrzeug-Modell'
-              WHERE a.nIstVater = 0",
-            ['lid' => $lid]
+               {$from}
+               {$this->merkmalJoinSql('her', "ms_her.cName = 'Fahrzeug-Marke'")}
+               {$this->merkmalJoinSql('mod', "ms_mod.cName = 'Fahrzeug-Modell'")}
+              WHERE a.nIstVater = 0
+                AND TRIM(tmws_her.cWert) <> ''
+                AND TRIM(tmws_mod.cWert) <> ''",
+            $params
         );
+
+        $this->touchPkwSnapshotMeta($lid);
     }
 
     /**
@@ -221,38 +226,27 @@ class SnapshotService
      */
     public function refreshPkwBaujahr(int $lid): void
     {
+        $params = $this->pkwSnapshotParams($lid);
+        $from   = $this->pkwArticleFromClause();
+        $bjName = PkwSqlFragments::merkmalNameBaujahr('ms_bj');
+
         $this->db->executeQueryPrepared('DELETE FROM twomosi_fk_opt_pkw_baujahr WHERE kSprache = :lid', ['lid' => $lid]);
 
-        $bjNameSql = PkwSqlFragments::merkmalNameBaujahr('ms_bj');
         $this->db->executeQueryPrepared(
             "INSERT IGNORE INTO twomosi_fk_opt_pkw_baujahr (kSprache, cHersteller, cModell, cBaujahr)
              SELECT DISTINCT :lid, TRIM(tmws_her.cWert), TRIM(tmws_mod.cWert), TRIM(tmws_bj.cWert)
-               FROM tartikel a
-         INNER JOIN tkategorieartikel ka_tree ON ka_tree.kArtikel = a.kArtikel
-         INNER JOIN tkategorie c_tree ON c_tree.kKategorie = ka_tree.kKategorie
-         INNER JOIN tkategorie p_tree ON p_tree.kKategorie = 19
-            AND c_tree.lft BETWEEN p_tree.lft AND p_tree.rght
-         INNER JOIN tartikelmerkmal am_her ON am_her.kArtikel = a.kArtikel
-         INNER JOIN tmerkmalwertsprache tmws_her ON tmws_her.kMerkmalWert = am_her.kMerkmalWert
-                                                AND tmws_her.kSprache = :lid
-         INNER JOIN tmerkmalsprache ms_her ON ms_her.kMerkmal = am_her.kMerkmal
-                                          AND ms_her.kSprache = :lid
-                                          AND ms_her.cName = 'Fahrzeug-Marke'
-         INNER JOIN tartikelmerkmal am_mod ON am_mod.kArtikel = a.kArtikel
-         INNER JOIN tmerkmalwertsprache tmws_mod ON tmws_mod.kMerkmalWert = am_mod.kMerkmalWert
-                                                AND tmws_mod.kSprache = :lid
-         INNER JOIN tmerkmalsprache ms_mod ON ms_mod.kMerkmal = am_mod.kMerkmal
-                                          AND ms_mod.kSprache = :lid
-                                          AND ms_mod.cName = 'Fahrzeug-Modell'
-         INNER JOIN tartikelmerkmal am_bj ON am_bj.kArtikel = a.kArtikel
-         INNER JOIN tmerkmalwertsprache tmws_bj ON tmws_bj.kMerkmalWert = am_bj.kMerkmalWert
-                                                AND tmws_bj.kSprache = :lid
-         INNER JOIN tmerkmalsprache ms_bj ON ms_bj.kMerkmal = am_bj.kMerkmal
-                                          AND ms_bj.kSprache = :lid
-                                          AND {$bjNameSql}
-              WHERE a.nIstVater = 0",
-            ['lid' => $lid]
+               {$from}
+               {$this->merkmalJoinSql('her', "ms_her.cName = 'Fahrzeug-Marke'")}
+               {$this->merkmalJoinSql('mod', "ms_mod.cName = 'Fahrzeug-Modell'")}
+               {$this->merkmalJoinSql('bj', $bjName)}
+              WHERE a.nIstVater = 0
+                AND TRIM(tmws_her.cWert) <> ''
+                AND TRIM(tmws_mod.cWert) <> ''
+                AND TRIM(tmws_bj.cWert) <> ''",
+            $params
         );
+
+        $this->touchPkwSnapshotMeta($lid);
     }
 
     /**
@@ -260,7 +254,11 @@ class SnapshotService
      */
     public function refreshPkwSerie(int $lid): void
     {
-        // Ensure table exists (safe on first run)
+        $params = $this->pkwSnapshotParams($lid);
+        $from   = $this->pkwArticleFromClause();
+        $bjName = PkwSqlFragments::merkmalNameBaujahr('ms_bj');
+        $serMs  = "ms_ser.cName IN ('Serie','kompatible Serien','Familie-Serie')";
+
         $this->db->executeQuery(
             "CREATE TABLE IF NOT EXISTS twomosi_fk_opt_pkw_serie (
                 kID INT AUTO_INCREMENT PRIMARY KEY,
@@ -276,7 +274,6 @@ class SnapshotService
         );
         $this->db->executeQueryPrepared('DELETE FROM twomosi_fk_opt_pkw_serie WHERE kSprache = :lid', ['lid' => $lid]);
 
-        $bjNameSql = PkwSqlFragments::merkmalNameBaujahr('ms_bj');
         $this->db->executeQueryPrepared(
             "INSERT IGNORE INTO twomosi_fk_opt_pkw_serie (kSprache, cHersteller, cModell, cBaujahr, cSerie, cSerieLabel)
              SELECT DISTINCT :lid,
@@ -285,38 +282,91 @@ class SnapshotService
                     TRIM(tmws_bj.cWert),
                     TRIM(tmws_ser.cWert),
                     TRIM(tmws_ser.cWert)
-               FROM tartikel a
-         INNER JOIN tkategorieartikel ka_tree ON ka_tree.kArtikel = a.kArtikel
-         INNER JOIN tkategorie c_tree ON c_tree.kKategorie = ka_tree.kKategorie
-         INNER JOIN tkategorie p_tree ON p_tree.kKategorie = 19
-            AND c_tree.lft BETWEEN p_tree.lft AND p_tree.rght
-         INNER JOIN tartikelmerkmal am_her ON am_her.kArtikel = a.kArtikel
-         INNER JOIN tmerkmalwertsprache tmws_her ON tmws_her.kMerkmalWert = am_her.kMerkmalWert
-                                                AND tmws_her.kSprache = :lid
-         INNER JOIN tmerkmalsprache ms_her ON ms_her.kMerkmal = am_her.kMerkmal
-                                          AND ms_her.kSprache = :lid
-                                          AND ms_her.cName = 'Fahrzeug-Marke'
-         INNER JOIN tartikelmerkmal am_mod ON am_mod.kArtikel = a.kArtikel
-         INNER JOIN tmerkmalwertsprache tmws_mod ON tmws_mod.kMerkmalWert = am_mod.kMerkmalWert
-                                                AND tmws_mod.kSprache = :lid
-         INNER JOIN tmerkmalsprache ms_mod ON ms_mod.kMerkmal = am_mod.kMerkmal
-                                          AND ms_mod.kSprache = :lid
-                                          AND ms_mod.cName = 'Fahrzeug-Modell'
-         INNER JOIN tartikelmerkmal am_bj ON am_bj.kArtikel = a.kArtikel
-         INNER JOIN tmerkmalwertsprache tmws_bj ON tmws_bj.kMerkmalWert = am_bj.kMerkmalWert
-                                                AND tmws_bj.kSprache = :lid
-         INNER JOIN tmerkmalsprache ms_bj ON ms_bj.kMerkmal = am_bj.kMerkmal
-                                          AND ms_bj.kSprache = :lid
-                                          AND {$bjNameSql}
-         INNER JOIN tartikelmerkmal am_ser ON am_ser.kArtikel = a.kArtikel
-         INNER JOIN tmerkmalwertsprache tmws_ser ON tmws_ser.kMerkmalWert = am_ser.kMerkmalWert
-                                                AND tmws_ser.kSprache = :lid
-         INNER JOIN tmerkmalsprache ms_ser ON ms_ser.kMerkmal = am_ser.kMerkmal
-                                          AND ms_ser.kSprache = :lid
-                                          AND ms_ser.cName IN ('Serie', 'kompatible Serien', 'Familie-Serie')
+               {$from}
+               {$this->merkmalJoinSql('her', "ms_her.cName = 'Fahrzeug-Marke'")}
+               {$this->merkmalJoinSql('mod', "ms_mod.cName = 'Fahrzeug-Modell'")}
+               {$this->merkmalJoinSql('bj', $bjName)}
+               {$this->merkmalJoinSql('ser', $serMs)}
               WHERE a.nIstVater = 0
+                AND TRIM(tmws_her.cWert) <> ''
+                AND TRIM(tmws_mod.cWert) <> ''
+                AND TRIM(tmws_bj.cWert) <> ''
                 AND TRIM(tmws_ser.cWert) <> ''",
-            ['lid' => $lid]
+            $params
         );
+
+        $this->touchPkwSnapshotMeta($lid);
+    }
+
+    /**
+     * @return array{lid:int,langID:int}
+     */
+    private function pkwSnapshotParams(int $lid): array
+    {
+        $langID = $lid > 0 ? $lid : 1;
+
+        return ['lid' => $langID, 'langID' => $langID];
+    }
+
+    /** Gleiche PKW-Artikelbasis wie im Live-Konfigurator (Kategorie 19 + Produkttyp + kein WM-Aufbauart). */
+    private function pkwArticleFromClause(): string
+    {
+        return 'FROM tartikel a'
+            . PkwSqlFragments::pkwProdukttypFilter('langID')
+            . PkwSqlFragments::articleNotAufbauart();
+    }
+
+    /**
+     * Korrekter Merkmal-Join (über tmerkmalwert), wie im Repository — nicht über tartikelmerkmal.kMerkmal.
+     */
+    private function merkmalJoinSql(string $alias, string $msNameCondition): string
+    {
+        return " INNER JOIN tartikelmerkmal am_{$alias} ON am_{$alias}.kArtikel = a.kArtikel
+         INNER JOIN tmerkmalwert mw_{$alias} ON mw_{$alias}.kMerkmalWert = am_{$alias}.kMerkmalWert
+         INNER JOIN tmerkmal m_{$alias} ON m_{$alias}.kMerkmal = mw_{$alias}.kMerkmal
+         INNER JOIN tmerkmalsprache ms_{$alias} ON ms_{$alias}.kMerkmal = m_{$alias}.kMerkmal
+              AND ms_{$alias}.kSprache = :langID
+              AND {$msNameCondition}
+         INNER JOIN tmerkmalwertsprache tmws_{$alias} ON tmws_{$alias}.kMerkmalWert = am_{$alias}.kMerkmalWert
+              AND tmws_{$alias}.kSprache = :langID";
+    }
+
+    private function touchPkwSnapshotMeta(int $lid): void
+    {
+        try {
+            $this->db->executeQueryPrepared(
+                'INSERT INTO twomosi_fk_opt_pkw_meta (kSprache, dRefreshed)
+                 VALUES (:lid, NOW())
+                 ON DUPLICATE KEY UPDATE dRefreshed = NOW()',
+                ['lid' => $lid > 0 ? $lid : 1]
+            );
+        } catch (\Throwable $e) {
+            // Meta-Tabelle fehlt evtl. noch.
+        }
+    }
+
+    /**
+     * @return array{hersteller:int,modell:int,baujahr:int,serie:int}
+     */
+    public function getPkwSnapshotCounts(): array
+    {
+        $counts = ['hersteller' => 0, 'modell' => 0, 'baujahr' => 0, 'serie' => 0];
+        $map    = [
+            'hersteller' => 'twomosi_fk_opt_pkw_hersteller',
+            'modell'     => 'twomosi_fk_opt_pkw_modell',
+            'baujahr'    => 'twomosi_fk_opt_pkw_baujahr',
+            'serie'      => 'twomosi_fk_opt_pkw_serie',
+        ];
+
+        foreach ($map as $key => $table) {
+            try {
+                $row = $this->db->getSingleObject("SELECT COUNT(*) AS cnt FROM {$table}");
+                $counts[$key] = isset($row->cnt) ? (int)$row->cnt : 0;
+            } catch (\Throwable $e) {
+                $counts[$key] = 0;
+            }
+        }
+
+        return $counts;
     }
 }

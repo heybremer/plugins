@@ -8,7 +8,7 @@
     <ShopVersion>5.6.0</ShopVersion>
     <PluginID>FilterKonfiguratorSearch</PluginID>
     <CreateDate>2026-03-12</CreateDate>
-    <Version>1.14.18</Version>
+    <Version>1.14.70</Version>
     <Bootstrap>Plugin\FilterKonfiguratorSearch\Bootstrap</Bootstrap>
     <Install>
         <empty></empty>
@@ -18,6 +18,26 @@
             <Name>Aktif Kategori ID'leri</Name>
             <Description>Mikro filtrenin sadece belirli kategorilerde görünmesi için kategori ID'lerini virgülle ayırarak yazın (örn: 12,34,56). Tüm kategorilerde göstermek için boş bırakın.</Description>
             <ValueName>fk_micro_active_categories</ValueName>
+        </Setting>
+        <Setting type="text" initialValue="" sort="2" conf="Y">
+            <Name>PKW 1. Sırada Olan Kategoriler</Name>
+            <Description>PKW sekmesinin 1. sırada (ve varsayılan aktif) gözükmesi gereken kategori ID'lerini virgülle ayırarak yazın.</Description>
+            <ValueName>fk_micro_pkw_first_categories</ValueName>
+        </Setting>
+        <Setting type="checkbox" initialValue="0" sort="3" conf="Y">
+            <Name>Koltuk Fotoğraf Tanıma</Name>
+            <Description>OpenAI ile koltuk fotoğraf tanımayı etkinleştirir.</Description>
+            <ValueName>fk_seat_photo_enabled_v2</ValueName>
+        </Setting>
+        <Setting type="password" initialValue="" sort="4" conf="Y">
+            <Name>OpenAI API Key</Name>
+            <Description>Yalnızca sunucu tarafındaki fotoğraf analizinde kullanılır.</Description>
+            <ValueName>fk_openai_api_key</ValueName>
+        </Setting>
+        <Setting type="text" initialValue="gpt-5.6" sort="5" conf="Y">
+            <Name>OpenAI Vision Model</Name>
+            <Description>Görsel analiz için kullanılacak OpenAI model kimliği.</Description>
+            <ValueName>fk_openai_model</ValueName>
         </Setting>
     </Config>
     <Cronjobs>

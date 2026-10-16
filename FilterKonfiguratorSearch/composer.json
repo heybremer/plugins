@@ -10,7 +10,8 @@
             "Plugin\\FilterKonfiguratorSearch\\": "./",
             "Plugin\\FilterKonfiguratorSearch\\Controller\\": "./src/Controller/",
             "Plugin\\FilterKonfiguratorSearch\\Repository\\": "./src/Repository/",
-            "Plugin\\FilterKonfiguratorSearch\\Query\\": "./src/Query/"
+            "Plugin\\FilterKonfiguratorSearch\\Query\\": "./src/Query/",
+            "Plugin\\FilterKonfiguratorSearch\\Filter\\": "./src/Filter/"
         }
     },
     "autoload-dev": {

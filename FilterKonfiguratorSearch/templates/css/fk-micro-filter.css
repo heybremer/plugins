@@ -99,13 +99,61 @@
   min-width: 0;
 }
 
-.fk-micro-field label {
+.fk-micro-field label,
+.fk-micro-serie-field > label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 0 2px;
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--fk-micro-text-muted);
-  margin-left: 2px;
+}
+
+.fk-micro-serie-field > label {
+  margin-bottom: 6px;
+}
+
+.fk-required {
+  color: #c62828;
+}
+
+.fk-micro-field.is-selected label::after,
+.fk-micro-serie-field.is-selected > label::after {
+  content: "✓";
+  color: var(--fk-micro-accent);
+  font-weight: 900;
+}
+
+/* Nummerierte Schritte (Reihenfolge je Segment über data-step aus JS) */
+.fk-selection-micro .fk-micro-field > label[data-step]::before,
+.fk-selection-micro .fk-micro-serie-field > label[data-step]::before {
+  content: attr(data-step);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(25, 113, 73, 0.1);
+  color: var(--fk-micro-accent);
+  font-size: 11px;
+  letter-spacing: 0;
+  transition: var(--fk-micro-transition);
+}
+
+.fk-selection-micro .is-selected > label[data-step]::before {
+  background: var(--fk-micro-accent);
+  color: #fff;
+}
+
+.fk-micro-field.is-selected .custom-select {
+  border-color: var(--fk-micro-accent);
+  background-color: rgba(25, 113, 73, 0.04);
+  box-shadow: 0 0 0 2px rgba(25, 113, 73, 0.1);
 }
 
 .fk-micro-field .custom-select {
@@ -141,7 +189,11 @@
 .fk-micro-field .custom-select:disabled {
   background-color: rgba(0, 0, 0, 0.03);
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.55;
+}
+
+.fk-micro-field:has(.custom-select:disabled) > label {
+  opacity: 0.55;
 }
 
 .fk-micro-status {
@@ -156,6 +208,49 @@
   border-radius: 999px;
   margin-left: auto;
   box-shadow: 0 2px 10px rgba(204, 255, 0, 0.3);
+}
+
+.fk-micro-required-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(25, 113, 73, 0.06);
+  color: var(--fk-micro-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.fk-micro-progress {
+  position: relative;
+  display: inline-block;
+  width: 72px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(25, 113, 73, 0.15);
+  overflow: hidden;
+}
+
+.fk-micro-progress > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--fk-micro-accent);
+  transition: width 0.35s ease;
+}
+
+.fk-micro-no-result {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(198, 40, 40, 0.1);
+  color: #a11f1f;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .fk-micro-serie-field {
@@ -182,6 +277,16 @@
 
 .fk-micro-status-msg.is-loading {
   border-left-color: #ffc107;
+}
+
+.fk-micro-serie-grid .fk-micro-grid-loading {
+  flex: 1 1 100%;
+  min-width: 100%;
+  justify-content: center;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(204, 255, 0, 0.1), rgba(25, 113, 73, 0.05));
+  border: 1px solid rgba(204, 255, 0, 0.35);
+  border-radius: 12px;
 }
 
 .fk-micro-ai-icon {
@@ -225,9 +330,68 @@
   overflow-x: auto;
   gap: 12px;
   padding: 8px 4px 12px;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
   /* Thin scrollbar for better UX */
   scrollbar-width: thin;
   scrollbar-color: var(--fk-micro-accent) transparent;
+}
+
+.fk-micro-serie-scroller {
+  position: relative;
+}
+
+.fk-micro-serie-nav {
+  position: absolute;
+  top: calc(50% - 6px);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0 0 3px;
+  border: 1px solid rgba(25, 113, 73, 0.25);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--fk-micro-accent);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: var(--fk-micro-transition);
+}
+
+.fk-micro-serie-nav:hover {
+  background: var(--fk-micro-accent);
+  color: #fff;
+}
+
+.fk-micro-serie-nav:focus-visible {
+  outline: 2px solid var(--fk-micro-accent);
+  outline-offset: 2px;
+}
+
+.fk-micro-serie-nav[hidden] {
+  display: none;
+}
+
+.fk-micro-serie-nav--prev {
+  left: -6px;
+}
+
+.fk-micro-serie-nav--next {
+  right: -6px;
+}
+
+@media (hover: none) and (max-width: 480px) {
+  .fk-micro-serie-nav {
+    width: 30px;
+    height: 30px;
+    font-size: 22px;
+  }
 }
 
 .fk-micro-serie-grid::-webkit-scrollbar {
@@ -243,37 +407,88 @@
   border-radius: 10px;
 }
 
+.fk-micro-serie-empty {
+  flex: 1 1 100%;
+  padding: 14px 16px;
+  border: 1px dashed rgba(25, 113, 73, 0.25);
+  border-radius: 12px;
+  background: rgba(25, 113, 73, 0.03);
+  color: var(--fk-micro-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
 .fk-micro-serie-tile {
-  flex: 0 0 140px;
+  position: relative;
+  flex: 0 0 190px;
   background: #fff;
   border: 1px solid var(--fk-micro-border);
   border-radius: 12px;
-  padding: 12px;
+  padding: 10px 10px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  cursor: pointer;
+  scroll-snap-align: start;
   transition: var(--fk-micro-transition);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .fk-micro-serie-tile:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
   border-color: var(--fk-micro-accent);
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
 }
 
+.fk-micro-serie-tile:focus-visible {
+  outline: 3px solid rgba(25, 113, 73, 0.35);
+  outline-offset: 2px;
+}
+
+.fk-micro-serie-tile.is-active {
+  border: 2px solid var(--fk-micro-accent);
+  padding: 9px 9px 11px;
+  box-shadow: 0 0 0 4px rgba(204, 255, 0, 0.35), 0 10px 22px rgba(25, 113, 73, 0.12);
+}
+
+.fk-micro-serie-tile.is-active::after {
+  content: "✓";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--fk-micro-accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
 .fk-micro-serie-tile img {
-  width: 266px;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
   height: auto;
   object-fit: contain;
+  border-radius: 8px;
 }
 
 .fk-micro-serie-name {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   color: var(--fk-micro-text);
   text-align: center;
+}
+
+.fk-micro-serie-tile.is-active .fk-micro-serie-name {
+  color: var(--fk-micro-accent);
 }
 
 /* PKW/WM Toggle logic */
@@ -283,6 +498,36 @@
 
 .fk-selection-micro:not(.fk-micro-is-pkw) .fk-micro-field--pkw {
   display: none !important;
+}
+
+.fk-selection-micro.fk-micro-is-pkw .fk-micro-form--vehicle {
+  order: 2;
+}
+
+.fk-selection-micro.fk-micro-is-pkw .fk-micro-serie-field {
+  order: 3;
+}
+
+.fk-selection-micro:not(.fk-micro-is-pkw) .fk-micro-form--vehicle {
+  margin-top: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px dashed rgba(25, 113, 73, 0.2);
+}
+
+.fk-selection-micro:not(.fk-micro-is-pkw) .fk-micro-form--seat .fk-micro-field {
+  flex: 0 1 360px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fk-micro-serie-grid {
+    scroll-behavior: auto;
+  }
+
+  .fk-micro-serie-tile,
+  .fk-micro-serie-tile:hover {
+    transform: none;
+    transition: none;
+  }
 }
 
 @media (max-width: 768px) {
@@ -295,7 +540,7 @@
   }
 
   .fk-micro-serie-tile {
-    flex: 0 0 120px;
+    flex: 0 0 150px;
   }
 }
 

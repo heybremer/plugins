@@ -6,6 +6,8 @@ namespace Plugin\FilterKonfiguratorSearch\Controller;
 
 use Plugin\FilterKonfiguratorSearch\PluginDatabase;
 use Plugin\FilterKonfiguratorSearch\Repository\FilterKonfiguratorRepository;
+use Plugin\FilterKonfiguratorSearch\Service\SeatRecognitionApiException;
+use Plugin\FilterKonfiguratorSearch\Service\SeatImageRecognitionService;
 use Plugin\FilterKonfiguratorSearch\SeriesMetaRuntime;
 use JTL\DB\DbInterface;
 use JTL\Helpers\Request;
@@ -130,7 +132,39 @@ class FilterKonfiguratorController
                     || \strtolower(\trim((string)($params['fkCustomModell'] ?? ''))) === 'true';
                 $segParam = \strtolower(\trim((string)($params['segment'] ?? '')));
                 $vehicleSeg = ($segParam === 'pkw') ? 'pkw' : '';
-                $options = $this->repo->loadMerkmalOptions($field, $term, $typParam, $herstParam, $basisParam, $modellParam, $baujahrParam, $fkOpts, $vehicleSeg, $serieParam);
+                $sitzParam = \trim((string)($params['sitz'] ?? ''));
+                $options = [];
+                if ($vehicleSeg !== 'pkw'
+                    && $sitzParam !== ''
+                    && $serieParam !== ''
+                    && \in_array($field, ['typ', 'hersteller', 'basis', 'modell'], true)
+                ) {
+                    $options = $this->repo->loadWmVehicleOptionsForSeatSeries(
+                        $field,
+                        $sitzParam,
+                        $serieParam,
+                        $typParam,
+                        $herstParam,
+                        $basisParam,
+                        $modellParam
+                    );
+                }
+                // PLKT-Serie gibi değerler kategori adıdır. Merkmal "Serie" ile
+                // eşleşmezse listeyi bu ada göre boşaltma.
+                if ($options === []) {
+                    $options = $this->repo->loadMerkmalOptions(
+                        $field,
+                        $term,
+                        $typParam,
+                        $herstParam,
+                        $basisParam,
+                        $modellParam,
+                        $baujahrParam,
+                        $fkOpts,
+                        $vehicleSeg,
+                        ''
+                    );
+                }
 
                 return new JsonResponse($options, 200, [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             }
@@ -228,7 +262,7 @@ class FilterKonfiguratorController
             }
 
             $selectionQuery = [
-                'segment'    => $isPkw ? 'pkw' : '',
+                'segment'    => $isPkw ? 'pkw' : 'wohnmobil',
                 'typ'        => $typ,
                 'hersteller' => $herst,
                 'basis'      => $basis,
@@ -264,10 +298,11 @@ class FilterKonfiguratorController
                             $age = \time() - $updatedTs;
                             if ($age >= 0 && $age <= $cacheTtlSeconds) {
                                 $decoded = \json_decode((string)$row->cPayload, true);
-                                if (\is_array($decoded)) {
+                                if (\is_array($decoded) && $decoded !== []) {
                                     $decoded = $this->repo->reapplyKonfiguratorQueryOnSeriesItems($decoded, $selectionQuery);
-
-                                    return new JsonResponse($decoded, 200, [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                                    if ($decoded !== []) {
+                                        return new JsonResponse($decoded, 200, [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                                    }
                                 }
                             }
                         }
@@ -275,6 +310,11 @@ class FilterKonfiguratorController
                 } catch (\Throwable $e) {
                     // Cache okuma hatası olursa normal hesaplamaya devam.
                 }
+            }
+
+            // PKW: Serienliste erst nach Baujahr (wie Anasayfa-Konfigurator). Ausnahme: Freitext-Familie-Serie.
+            if ($isPkw && $baujahr === '' && !($fkCustomModell && $modell !== '')) {
+                return new JsonResponse([], 200, [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             }
 
             $selections = [];
@@ -354,7 +394,7 @@ class FilterKonfiguratorController
             $seriesItems      = $this->repo->findSeriesForValues($matchedValues, $serieMerkmalName, $selectionQuery);
 
             // Cache miss -> sonucu cache'e yaz.
-            if ($useStep4Cache && $step4CacheKey !== '') {
+            if ($useStep4Cache && $step4CacheKey !== '' && $seriesItems !== []) {
                 try {
                     $payload = \json_encode($seriesItems, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
                     if (is_string($payload)) {
@@ -377,13 +417,22 @@ class FilterKonfiguratorController
 
             return new JsonResponse($seriesItems, 200, [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         } catch (\Throwable $e) {
+            // Interne Fehlerdetails (Tabellennamen, SQL) niemals an den Client geben.
+            // Detail nur ins PHP-Log schreiben.
+            \error_log('[FilterKonfiguratorSearch] ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+
             return new JsonResponse([
                 'error'   => true,
-                'message' => $e->getMessage(),
+                'message' => 'Es ist ein interner Fehler aufgetreten.',
             ], 500, [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         } finally {
             try {
-                if ($db !== null && $mode !== 'series_meta') {
+                // Schreiblast begrenzen: bei sehr häufigen Anfragen derselben IP
+                // das Logging überspringen (Ergebnis wurde bereits ausgeliefert).
+                // Fail-open ohne APCu → Verhalten wie zuvor (vollständiges Logging).
+                $skipLog = PluginDatabase::throttle('log', (string)$logIp, 60, 10);
+
+                if (!$skipLog && $db !== null && $mode !== 'series_meta') {
                     $durationMs = (int)\round((\microtime(true) - $logStart) * 1000);
                     $payload    = \json_encode($logCtx, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
                     if (!\is_string($payload) || $payload === '') {
@@ -408,5 +457,174 @@ class FilterKonfiguratorController
                 // Never break endpoint due to logging.
             }
         }
+    }
+
+    /**
+     * KI-gestützte Sitz-Erkennung: Foto wird nur im Arbeitsspeicher verarbeitet.
+     */
+    public function recognizeSeatPhoto(
+        ServerRequestInterface $request,
+        array $args,
+        string $apiKey,
+        string $model,
+        bool $enabled
+    ): ResponseInterface {
+        if (!$enabled || \trim($apiKey) === '') {
+            return new JsonResponse([
+                'ok'      => false,
+                'message' => 'Die Fotoerkennung ist momentan nicht verfügbar.',
+            ], 503);
+        }
+
+        $ip = Request::getRealIP();
+        if (PluginDatabase::throttle('seat-photo', $ip, 3, 60)) {
+            return new JsonResponse([
+                'ok'      => false,
+                'message' => 'Bitte warten Sie eine Minute und versuchen Sie es erneut.',
+            ], 429);
+        }
+
+        $file = $_FILES['seat_photo'] ?? null;
+        if (!\is_array($file)) {
+            return new JsonResponse([
+                'ok'      => false,
+                'message' => 'Bitte wählen Sie ein Foto aus.',
+            ], 422);
+        }
+
+        try {
+            $result = (new SeatImageRecognitionService($apiKey, $model))->recognize($file);
+            $code   = (string)$result['seat_code'];
+            $score  = (int)$result['confidence'];
+            $match  = $code !== '' && $score >= 55;
+
+            return new JsonResponse([
+                'ok'         => true,
+                'match'      => $match,
+                'seat_code'  => $match ? $code : '',
+                'confidence' => $score,
+                'reason'     => (string)$result['reason'],
+                'message'    => $match
+                    ? 'Sitz wurde erkannt.'
+                    : 'Der Sitz konnte nicht sicher erkannt werden. Bitte verwenden Sie ein deutlicheres Foto.',
+            ], 200, [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        } catch (\InvalidArgumentException $e) {
+            return new JsonResponse([
+                'ok'      => false,
+                'message' => $e->getMessage(),
+            ], 422, [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        } catch (SeatRecognitionApiException $e) {
+            \error_log('[FilterKonfiguratorSearch] seat recognition failed: ' . $e->getMessage());
+
+            return new JsonResponse([
+                'ok'              => false,
+                'diagnostic'      => $e->getDiagnosticCode(),
+                'provider_status' => $e->getHttpStatus(),
+                'message'         => $e->getPublicMessage(),
+            ], 502, [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        } catch (\Throwable $e) {
+            \error_log('[FilterKonfiguratorSearch] seat recognition failed: ' . $e->getMessage());
+
+            return new JsonResponse([
+                'ok'      => false,
+                'message' => 'Das Foto konnte momentan nicht analysiert werden. Bitte versuchen Sie es später erneut.',
+            ], 502, [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+    }
+
+    /**
+     * Maßanfertigung-Formular: /fk-anfrage (POST)
+     */
+    public function anfrage(ServerRequestInterface $request, array $args): ResponseInterface
+    {
+        $ip = Request::getRealIP();
+        if (PluginDatabase::throttle('anfrage', $ip, 5, 60)) {
+            return new JsonResponse(['ok' => false, 'msg' => 'Bitte warten Sie einen Moment und versuchen Sie es erneut.'], 200);
+        }
+
+        $parsed = $request->getParsedBody();
+        $body   = \is_array($parsed) ? $parsed : [];
+
+        $phone    = \trim((string)($body['phone'] ?? ''));
+        $vorname  = \trim((string)($body['vorname'] ?? ''));
+        $nachname = \trim((string)($body['nachname'] ?? ''));
+        $email    = \trim((string)($body['email'] ?? ''));
+        $textBody = \trim((string)($body['body'] ?? ''));
+
+        if ($email === '' || $vorname === '' || $nachname === '' || $phone === '') {
+            return new JsonResponse(['ok' => false, 'msg' => 'Bitte alle Pflichtfelder ausfüllen.'], 200);
+        }
+        if (!\filter_var($email, \FILTER_VALIDATE_EMAIL)) {
+            return new JsonResponse(['ok' => false, 'msg' => 'Bitte eine gültige E-Mail-Adresse eingeben.'], 200);
+        }
+
+        $empfaenger = 'info@bremer-sitzbezuege.de';
+        $betreff = 'Sitzbezug Maßanfertigung – Anfrage von ' . $vorname . ' ' . $nachname;
+
+        $text  = "Eine neue Anfrage aus dem Wohnmobil-Konfigurator (Maßanfertigung).\n\n";
+        $text .= "--- Kontakt ---\n";
+        $text .= 'Telefon: ' . $phone . "\n";
+        $text .= 'Vorname: ' . $vorname . "\n";
+        $text .= 'Nachname: ' . $nachname . "\n";
+        $text .= 'E-Mail: ' . $email . "\n\n";
+        if ($textBody !== '') {
+            $text .= "--- Konfiguration / Nachricht ---\n" . $textBody . "\n\n";
+        }
+
+        $boundary = \md5(\uniqid((string)\mt_rand(), true));
+        $headers  = "From: Womosi Konfigurator <" . $empfaenger . ">\r\n";
+        $headers .= 'Reply-To: ' . $email . "\r\n";
+        $headers .= "MIME-Version: 1.0\r\n";
+        $headers .= 'Content-Type: multipart/mixed; boundary="' . $boundary . "\"\r\n";
+
+        $mailbody  = '--' . $boundary . "\r\n";
+        $mailbody .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        $mailbody .= "Content-Transfer-Encoding: base64\r\n\r\n";
+        $mailbody .= \chunk_split(\base64_encode($text));
+
+        if (!empty($_FILES['images'])) {
+            $files = $_FILES['images'];
+            $count = \is_array($files['name']) ? \count($files['name']) : 1;
+            if ($count === 1 && !\is_array($files['name']) && $files['name'] !== '') {
+                $files = [
+                    'name'     => [$files['name']],
+                    'type'     => [$files['type']],
+                    'tmp_name' => [$files['tmp_name']],
+                    'error'    => [$files['error']],
+                ];
+                $count = 1;
+            }
+            for ($i = 0; $i < $count; $i++) {
+                $name = \is_array($files['name']) ? (string)$files['name'][$i] : (string)$files['name'];
+                $tmp  = \is_array($files['tmp_name']) ? (string)$files['tmp_name'][$i] : (string)$files['tmp_name'];
+                $err  = \is_array($files['error']) ? (int)$files['error'][$i] : (int)$files['error'];
+                $type = \is_array($files['type']) ? (string)$files['type'][$i] : (string)$files['type'];
+                if ($err !== \UPLOAD_ERR_OK || $name === '' || !\is_uploaded_file($tmp)) {
+                    continue;
+                }
+                $data = \file_get_contents($tmp);
+                if ($data === false) {
+                    continue;
+                }
+                $safeName = \preg_replace('/[^a-zA-Z0-9._-]/', '_', $name) ?: 'bild.jpg';
+                $mailbody .= '--' . $boundary . "\r\n";
+                $mailbody .= 'Content-Type: ' . ($type !== '' ? $type : 'application/octet-stream') . '; name="' . $safeName . "\"\r\n";
+                $mailbody .= "Content-Transfer-Encoding: base64\r\n";
+                $mailbody .= 'Content-Disposition: attachment; filename="' . $safeName . "\"\r\n\r\n";
+                $mailbody .= \chunk_split(\base64_encode($data));
+            }
+        }
+
+        $mailbody .= '--' . $boundary . "--\r\n";
+        $sent = @\mail($empfaenger, $betreff, $mailbody, $headers);
+
+        if ($sent) {
+            return new JsonResponse(['ok' => true, 'msg' => 'Anfrage wurde gesendet.'], 200);
+        }
+
+        return new JsonResponse([
+            'ok'  => false,
+            'msg' => 'E-Mail konnte nicht gesendet werden. Bitte versuchen Sie es später oder kontaktieren Sie uns direkt.',
+        ], 200);
     }
 }

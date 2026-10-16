@@ -168,6 +168,14 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
+.womosi-konfigurator.fk-wm-seat-only #vehicleGrid,
+.womosi-konfigurator.fk-wm-seat-only #step1 > h2,
+.womosi-konfigurator.fk-wm-seat-only #step1 > .actions,
+.womosi-konfigurator.fk-wm-seat-only #step1 > .hint,
+.womosi-konfigurator.fk-wm-seat-only #step1 > .fk-start-divider {
+  display: none !important;
+}
+
 .womosi-konfigurator.fk-segment-pkw .fk-wm-only {
   display: none !important;
 }
@@ -258,6 +266,81 @@ display: flex;
 gap: 11px;
 margin-top: 26px;
 
+}
+
+.womosi-konfigurator .fk-start-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 30px 0 22px;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.womosi-konfigurator .fk-start-divider::before,
+.womosi-konfigurator .fk-start-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.womosi-konfigurator .fk-seat-start {
+  padding: 22px;
+  border: 1px solid rgba(11, 62, 39, 0.14);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(11, 62, 39, 0.04), rgba(204, 255, 0, 0.08));
+}
+
+.womosi-konfigurator .fk-seat-start-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.womosi-konfigurator .fk-seat-start-heading h3 {
+  margin: 3px 0 5px;
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: #0b3e27;
+}
+
+.womosi-konfigurator .fk-seat-start-heading p {
+  margin: 0;
+  color: rgba(0, 0, 0, 0.66);
+}
+
+.womosi-konfigurator .fk-start-kicker {
+  color: #197149;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.womosi-konfigurator .fk-start-order {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #0b3e27;
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.womosi-konfigurator .fk-seat-start-grid {
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.womosi-konfigurator.fk-flow-seat-direct #fk-stepper-wm .steps > :nth-child(n+6),
+.womosi-konfigurator.fk-flow-seat-direct .fk-baujahr-field,
+.womosi-konfigurator.fk-flow-seat-direct #fk-modell-custom-row {
+  display: none !important;
 }
 
 /* Serie-Tiles: Desktop 2 Spalten */
@@ -1010,6 +1093,267 @@ body > .ac-overlay.active {
 }
 
 /* ===== SEATS ===== */
+.womosi-konfigurator .fk-seat-photo {
+  margin: 22px 0 18px;
+  padding: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(204, 255, 0, 0.18), transparent 42%),
+    #f8f9f4;
+}
+
+.womosi-konfigurator .fk-seat-photo-copy {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.womosi-konfigurator .fk-seat-photo-copy strong {
+  color: #171a14;
+  font-size: 1.08rem;
+}
+
+.womosi-konfigurator .fk-seat-photo-copy > span:last-child {
+  color: rgba(0, 0, 0, 0.62);
+  font-size: 0.9rem;
+}
+
+.womosi-konfigurator .fk-seat-photo-badge {
+  justify-self: start;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #171a14;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.womosi-konfigurator .fk-seat-photo-workspace {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(260px, 1.2fr);
+  gap: 14px;
+}
+
+.womosi-konfigurator .fk-seat-photo-drop,
+.womosi-konfigurator .fk-seat-photo-preview {
+  min-height: 178px;
+  border: 2px dashed rgba(0, 0, 0, 0.2);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.womosi-konfigurator .fk-seat-photo-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 18px;
+  color: #171a14;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.womosi-konfigurator .fk-seat-photo-drop:hover,
+.womosi-konfigurator .fk-seat-photo-drop:focus-within {
+  border-color: #93b900;
+  box-shadow: 0 8px 24px rgba(75, 93, 8, 0.1);
+  transform: translateY(-1px);
+}
+
+.womosi-konfigurator .fk-seat-photo-camera {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.womosi-konfigurator .fk-seat-photo-trigger-title {
+  font-weight: 900;
+}
+
+.womosi-konfigurator .fk-seat-photo-trigger-meta {
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 0.78rem;
+}
+
+.womosi-konfigurator .fk-seat-photo-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.womosi-konfigurator .fk-seat-photo-preview {
+  position: relative;
+  overflow: hidden;
+}
+
+.womosi-konfigurator .fk-seat-photo-preview img {
+  width: 100%;
+  height: 100%;
+  min-height: 174px;
+  max-height: 280px;
+  object-fit: contain;
+  background: #fff;
+}
+
+.womosi-konfigurator .fk-seat-photo-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(19, 22, 17, 0.86);
+  color: #fff;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.womosi-konfigurator .fk-seat-photo-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.womosi-konfigurator .fk-seat-photo-consent {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 9px;
+  align-items: start;
+  color: rgba(0, 0, 0, 0.68);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.womosi-konfigurator .fk-seat-photo-consent input {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  margin-top: 1px;
+  padding: 0;
+  border-radius: 3px;
+  appearance: auto;
+  accent-color: #8baa00;
+}
+
+.womosi-konfigurator .fk-seat-photo-analyze {
+  width: 100%;
+}
+
+.womosi-konfigurator .fk-seat-photo-status {
+  min-height: 24px;
+  padding-top: 10px;
+  color: rgba(0, 0, 0, 0.7);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.womosi-konfigurator .fk-seat-photo-status.is-error {
+  color: #a52525;
+}
+
+.womosi-konfigurator .fk-seat-photo-status.is-loading::before {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 8px;
+  border: 2px solid rgba(0, 0, 0, 0.18);
+  border-top-color: #759500;
+  border-radius: 50%;
+  vertical-align: -2px;
+  animation: fk-seat-photo-spin 0.75s linear infinite;
+}
+
+@keyframes fk-seat-photo-spin {
+  to { transform: rotate(360deg); }
+}
+
+.womosi-konfigurator .fk-seat-photo-result {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid rgba(115, 145, 0, 0.35);
+  border-radius: 14px;
+  background: rgba(204, 255, 0, 0.12);
+}
+
+.womosi-konfigurator .fk-seat-photo-result img {
+  width: 64px;
+  height: 64px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #fff;
+  object-fit: contain;
+}
+
+.womosi-konfigurator .fk-seat-photo-result div {
+  display: grid;
+  min-width: 0;
+}
+
+.womosi-konfigurator .fk-seat-photo-result span,
+.womosi-konfigurator .fk-seat-photo-result small {
+  color: rgba(0, 0, 0, 0.58);
+  font-size: 0.75rem;
+}
+
+.womosi-konfigurator .fk-seat-photo-result strong {
+  color: #171a14;
+}
+
+.womosi-konfigurator .fk-seat-photo-result button {
+  padding: 8px 11px;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  border-radius: 9px;
+  background: #fff;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.womosi-konfigurator .fk-seat-photo-divider {
+  margin-top: 20px;
+}
+
+@media (max-width: 700px) {
+  .womosi-konfigurator .fk-seat-photo {
+    padding: 14px;
+  }
+
+  .womosi-konfigurator .fk-seat-photo-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .womosi-konfigurator .fk-seat-photo-result {
+    grid-template-columns: 54px minmax(0, 1fr);
+  }
+
+  .womosi-konfigurator .fk-seat-photo-result img {
+    width: 54px;
+    height: 54px;
+  }
+
+  .womosi-konfigurator .fk-seat-photo-result button {
+    grid-column: 1 / -1;
+  }
+}
+
 .womosi-konfigurator .seat-grid .tile {
   width: 210px;
   padding: 16px;
@@ -1277,6 +1621,20 @@ body > .ac-overlay.active {
 }
 
 @media (max-width: 768px) {
+  .womosi-konfigurator .fk-seat-start {
+    padding: 16px 12px;
+  }
+
+  .womosi-konfigurator .fk-seat-start-heading {
+    display: block;
+  }
+
+  .womosi-konfigurator .fk-start-order {
+    display: inline-block;
+    margin-top: 12px;
+    white-space: normal;
+  }
+
   .womosi-konfigurator {
     padding: 0 0 24px;
     font-size: 14px;
@@ -1814,4 +2172,31 @@ body > .ac-overlay.active {
   0% { left: -100%; }
   20% { left: 100%; }
   100% { left: 100%; }
+}
+
+/* MenuDesign: Konfigurator darf Megamenü nicht überdecken */
+body.womosi-menu-design #main-wrapper,
+body.womosi-menu-design #content-wrapper,
+body.womosi-menu-design .index-filter-konfigurator,
+body.womosi-menu-design #womosi-fk-konfigurator-anchor,
+body.womosi-menu-design .womosi-konfigurator {
+  position: relative;
+  z-index: 0 !important;
+  isolation: auto;
+}
+
+body.womosi-menu-design.md-nav-dropdown-open .womosi-konfigurator,
+body.womosi-menu-design.md-nav-dropdown-open .index-filter-konfigurator {
+  contain: none !important;
+  z-index: 0 !important;
+}
+
+body.womosi-menu-design.md-nav-dropdown-open .womosi-konfigurator::before {
+  z-index: 0 !important;
+}
+
+body.womosi-menu-design.md-nav-dropdown-open .womosi-konfigurator .konfig-banner,
+body.womosi-menu-design.md-nav-dropdown-open .womosi-konfigurator .wrap,
+body.womosi-menu-design.md-nav-dropdown-open .womosi-konfigurator .card {
+  z-index: 0 !important;
 }

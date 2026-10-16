@@ -8,39 +8,49 @@
   var ROOT_SEL = '.fk-selection-micro[data-fk-micro-dynamic="1"]';
   var FK_STATE_KEY = 'womosi_fk_state_v1';
   var FK_QS_KEYS = ['segment', 'typ', 'hersteller', 'basis', 'modell', 'baujahr', 'sitz', 'serie', 'fkCustomModell', 'fkNichtInListe'];
+  var SERIES_LOADING_MESSAGES = [
+    'Wir suchen die passenden Sitzbezüge für Ihr Fahrzeug...',
+    'Die Liste wird zusammengestellt...',
+    'Fast fertig, die besten Optionen werden vorbereitet...',
+    'Gleich geht\'s weiter, wir optimieren die Auswahl...'
+  ];
+  var AI_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>';
   var SERIES_META = {
-    ZM: { label: 'Serie ZM', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/zm-serie.avif' },
-    1: { label: 'Serie 01', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/serie-01.avif' },
-    FT: { label: 'Serie FT', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/ft-serie.avif' },
-    FNL: { label: 'Serie FNL', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/fnl-serie.avif' },
-    V: { label: 'Serie V', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/v-serie.avif' },
-    TK600: { label: 'Serie TK600', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/tk600-serie.avif' },
-    T: { label: 'Serie T', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/t-serie.avif' },
-    TF: { label: 'Serie TF', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/tf-serie.avif' },
-    SL: { label: 'Serie SL', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/sl-serie.avif' },
-    PS: { label: 'Serie PS', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/ps-serie.avif' },
-    PL: { label: 'Serie PL', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/pl-serie.avif' },
-    NL: { label: 'Serie NL', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/nl-serie.avif' },
-    N3: { label: 'Serie N3', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/n3-serie.avif' },
-    MD: { label: 'Serie MD', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/md-serie.avif' },
-    M: { label: 'Serie M', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/m-serie.avif' },
-    KT300: { label: 'Serie KT3', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/kt300-serie.avif' },
-    KT: { label: 'Serie KT', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/kt-serie.avif' },
-    S1: { label: 'Serie 01', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/serie-01.avif' },
-    AH: { label: 'Serie AH', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/ah-serie.avif' },
-    GT: { label: 'Serie GT', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/gt-serie.avif' },
-    C: { label: 'Serie C', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/c-serie.avif' },
-    DPL: { label: 'Serie DPL', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/dpl-serie.avif' },
-    H: { label: 'Serie H', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/h-serie.avif' },
-    PLKT: { label: 'Serie PLKT', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/plkt-serie.avif' },
-    WPL: { label: 'Serie WPL', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/wpl-serie.avif' },
-    WMS: { label: 'Serie WMS', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/wms-serie.avif' },
-    HW: { label: 'Serie HW', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/hw-serie.avif' },
-    BC: { label: 'Serie BC', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/bc-serie.avif' },
-    DS: { label: 'Serie DS', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/ds-serie.avif' },
-    LT: { label: 'Serie LT', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/lt-serie.avif' },
-    800: { label: 'Serie 800er', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/800er-serie.avif' },
-    WMA: { label: 'Aguti Sitze', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/aguti-sitze-serie.avif' }
+    ZM: { label: 'Serie ZM', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/zm-serie.avif' },
+    1: { label: 'Serie 01', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/serie-01.avif' },
+    FT: { label: 'Serie FT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/ft-serie.avif' },
+    FNL: { label: 'Serie FNL', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/fnl-serie.avif' },
+    V: { label: 'Serie V', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/v-serie.avif' },
+    TK600: { label: 'Serie TK600', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/tk600-serie.avif' },
+    T: { label: 'Serie T', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/t-serie.avif' },
+    TF: { label: 'Serie TF', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/tf-serie.avif' },
+    SL: { label: 'Serie SL', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/sl-serie.avif' },
+    PS: { label: 'Serie PS', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/ps-serie.avif' },
+    PL: { label: 'Serie PL', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/pl-serie.avif' },
+    NL: { label: 'Serie NL', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/nl-serie.avif' },
+    N3: { label: 'Serie N3', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/n3-serie.avif' },
+    MD: { label: 'Serie MD', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/md-serie.avif' },
+    M: { label: 'Serie M', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/m-serie.avif' },
+    KT300: { label: 'Serie KT3', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/kt300-serie.avif' },
+    KT: { label: 'Serie KT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/kt-serie.avif' },
+    S1: { label: 'Serie 01', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/serie-01.avif' },
+    AH: { label: 'Serie AH', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/ah-serie.avif' },
+    GT: { label: 'Serie GT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/gt-serie.avif' },
+    C: { label: 'Serie C', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/c-serie.avif' },
+    DPL: { label: 'Serie DPL', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/dpl-serie.avif' },
+    H: { label: 'Serie H', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/h-serie.avif' },
+    PLKT: { label: 'Serie PLKT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/plkt-serie.avif' },
+    WPL: { label: 'Serie WPL', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/wpl-serie.avif' },
+    WMS: { label: 'Serie WMS', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/wms-serie.avif' },
+    HW: { label: 'Serie HW', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/hw-serie.avif' },
+    BC: { label: 'Serie BC', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/bc-serie.avif' },
+    DS: { label: 'Serie DS', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/ds-serie.avif' },
+    LT: { label: 'Serie LT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/lt-serie.avif' },
+    800: { label: 'Serie 800er', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/800er-serie.avif' },
+    WMA: { label: 'Aguti Sitze', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/aguti-sitze-serie.avif' },
+    WDS: { label: 'Serie WDS', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/wds-serie.webp' },
+    SMD: { label: 'Serie SMD', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/smd-serie.webp' },
+    NP: { label: 'Serie NP', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/np-serie.webp' }
   };
 
   var SERIES_HIDDEN = Object.create(null);
@@ -82,15 +92,32 @@
   function findSeriesMeta(code) {
     if (!code) return null;
     var c = String(code).trim();
-    if (SERIES_META[c]) return SERIES_META[c];
-    var stripped = c.replace(/^Serie\s+/i, '');
-    if (SERIES_META[stripped]) return SERIES_META[stripped];
-    var upper = stripped.toUpperCase();
-    for (var k in SERIES_META) {
-      if (k.toUpperCase() === upper) return SERIES_META[k];
+    if (!c) return null;
+    var candidates = [];
+    function add(v) {
+      v = String(v || '').trim();
+      if (v && candidates.indexOf(v) === -1) candidates.push(v);
     }
+    add(c);
+    add(c.replace(/^Serie\s+/i, ''));
+    candidates.slice().forEach(function (v) {
+      add(v.replace(/[\s_-]*serie$/i, ''));
+    });
+    candidates.slice().forEach(function (v) {
+      add(v.replace(/er$/i, ''));
+    });
+    for (var i = 0; i < candidates.length; i++) {
+      var cand = candidates[i];
+      if (SERIES_META[cand]) return SERIES_META[cand];
+      var upper = cand.toUpperCase();
+      for (var k in SERIES_META) {
+        if (k.toUpperCase() === upper) return SERIES_META[k];
+      }
+    }
+    var cUpper = c.toUpperCase();
     for (var k2 in SERIES_META) {
-      if (SERIES_META[k2].label && SERIES_META[k2].label.toUpperCase() === c.toUpperCase()) {
+      var label = SERIES_META[k2].label ? String(SERIES_META[k2].label).toUpperCase() : '';
+      if (label && (label === cUpper || candidates.some(function (v) { return label === ('SERIE ' + v).toUpperCase(); }))) {
         return SERIES_META[k2];
       }
     }
@@ -103,7 +130,9 @@
     try {
       var sp = new URLSearchParams(window.location.search || '');
       var seg = (sp.get('segment') || '').toLowerCase();
+      // URL-Segment ist verbindlich (hat Vorrang vor evtl. veraltetem localStorage)
       if (seg === 'pkw') return true;
+      if (seg === 'wohnmobil' || seg === 'wm') return false;
     } catch (e) { }
     try {
       var raw = window.localStorage.getItem(FK_STATE_KEY);
@@ -179,6 +208,32 @@
     return out;
   }
 
+  var SEAT_NAMES = {
+    '1': 'Aguti Milan 12',
+    '2': 'Aguti Liner 12',
+    '3': 'ISRI Captain Chair',
+    '4': 'ISRI CC mit Gurt',
+    '5': 'ISRI Ducato / Jumper / Boxer, Bj. 2006–2014',
+    '6': 'Aguti Milan',
+    '7': 'Aguti GIS-Liner',
+    '8': 'Aguti GIS-Liner 3',
+    '9': 'Ford Transit ab Bj. 2014',
+    '10': 'Ford Transit ab Bj. 2014 mit integrierter Kopfstütze',
+    '11': 'Aguti Milan 3',
+    '12': 'SKA 1800 M23 Komfort',
+    '13': 'SKA 1800/1000 M23 Classic',
+    '14': 'Mercedes-Benz Sprinter / Hymer'
+  };
+
+  function optionLabel(sel, value) {
+    var v = String(value);
+    if (sel && sel.id === 'fkMicroSitz') {
+      var m = v.match(/^\s*(?:Sitz\s*)?0*(\d{1,2})\s*$/i);
+      if (m && SEAT_NAMES[m[1]]) return SEAT_NAMES[m[1]];
+    }
+    return v;
+  }
+
   function fillSelect(sel, values, keep) {
     if (!sel) return;
     var k = keep != null ? String(keep) : '';
@@ -190,11 +245,24 @@
     (values || []).forEach(function (v) {
       var opt = document.createElement('option');
       opt.value = String(v);
-      opt.textContent = String(v);
+      opt.textContent = optionLabel(sel, v);
       sel.appendChild(opt);
     });
     if (k) {
+      var hasKeep = false;
+      for (var oi = 0; oi < sel.options.length; oi++) {
+        if (sel.options[oi].value === k) { hasKeep = true; break; }
+      }
+      if (!hasKeep) {
+        var keepOpt = document.createElement('option');
+        keepOpt.value = k;
+        keepOpt.textContent = optionLabel(sel, k);
+        sel.appendChild(keepOpt);
+      }
       sel.value = k;
+    }
+    if (sel.id !== 'fkMicroSerie' && sel.id !== 'fkMicroTyp') {
+      sel.disabled = sel.options.length <= 1;
     }
   }
 
@@ -243,6 +311,9 @@
 
     var state = getCfgFromUrlOrStorage();
     var isPkw = isPkwFromUrlOrStorage();
+    if (!isPkw && !state.segment && (state.typ || state.basis || state.sitz)) {
+      state.segment = 'wohnmobil';
+    }
     if (!state.segment) {
       // No explicit segment in state; check which tab is selected in HTML (honors ordering)
       var activeTab = root.querySelector('.fk-micro-tab[aria-selected="true"]');
@@ -286,10 +357,176 @@
     var selSerie = $('#fkMicroSerie', root);
     var gridSerie = $('#fkMicroSerieGrid', root);
     var statusDiv = $('#fkMicroStatus', root);
+    var filterAfterNextSeriesLoad = false;
+    var updateSerieNav = setupSerieNav();
+
+    function setupSerieNav() {
+      if (!gridSerie || !gridSerie.parentNode) return function () { };
+      var wrap = document.createElement('div');
+      wrap.className = 'fk-micro-serie-scroller';
+      gridSerie.parentNode.insertBefore(wrap, gridSerie);
+      wrap.appendChild(gridSerie);
+
+      function makeBtn(dir) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'fk-micro-serie-nav fk-micro-serie-nav--' + (dir < 0 ? 'prev' : 'next');
+        b.setAttribute('aria-label', dir < 0 ? 'Vorherige Serien' : 'Weitere Serien');
+        b.innerHTML = dir < 0 ? '&#8249;' : '&#8250;';
+        b.addEventListener('click', function () {
+          gridSerie.scrollBy({ left: dir * Math.max(200, gridSerie.clientWidth * 0.8), behavior: 'smooth' });
+        });
+        wrap.appendChild(b);
+        return b;
+      }
+      var prev = makeBtn(-1);
+      var next = makeBtn(1);
+
+      function update() {
+        var max = gridSerie.scrollWidth - gridSerie.clientWidth;
+        var hasTiles = !!gridSerie.querySelector('.fk-micro-serie-tile');
+        prev.hidden = !hasTiles || gridSerie.scrollLeft <= 4;
+        next.hidden = !hasTiles || gridSerie.scrollLeft >= max - 4;
+      }
+      gridSerie.addEventListener('scroll', update, { passive: true });
+      window.addEventListener('resize', update);
+      if (window.MutationObserver) {
+        new MutationObserver(function () { window.requestAnimationFrame(update); })
+          .observe(gridSerie, { childList: true });
+      }
+      update();
+      return update;
+    }
 
     if (isPkw) state.segment = 'pkw';
 
     var seriesCache = [];
+    var seriesLoadingInterval = null;
+
+    function hasCompleteWmSelection() {
+      return !!(state.sitz && state.serie && state.hersteller && state.basis && state.modell);
+    }
+
+    function updateSelectionMarks() {
+      [
+        [selHer, state.hersteller],
+        [selBasis, state.basis],
+        [selMod, state.modell],
+        [selSitz, state.sitz]
+      ].forEach(function (entry) {
+        if (entry[0]) {
+          entry[0].required = true;
+          entry[0].setAttribute('aria-required', 'true');
+        }
+        var field = entry[0] && entry[0].closest('.fk-micro-field');
+        if (field) field.classList.toggle('is-selected', !!String(entry[1] || '').trim());
+      });
+      if (selSerie) {
+        selSerie.required = true;
+        selSerie.setAttribute('aria-required', 'true');
+      }
+      var serieField = selSerie && selSerie.closest('.fk-micro-serie-field');
+      if (serieField) serieField.classList.toggle('is-selected', !!String(state.serie || '').trim());
+      var yearField = selYear && selYear.closest('.fk-micro-field');
+      if (yearField) yearField.classList.toggle('is-selected', isPkw && !!String(state.baujahr || '').trim());
+      numberSteps();
+    }
+
+    function numberSteps() {
+      var all = [selSitz, selSerie, selTyp, selHer, selBasis, selMod, selYear];
+      var steps = isPkw ? [selHer, selMod, selYear, selSerie] : [selSitz, selSerie, selHer, selBasis, selMod];
+      all.forEach(function (sel) {
+        var field = sel && sel.closest('.fk-micro-field, .fk-micro-serie-field');
+        var label = field && field.querySelector(':scope > label');
+        if (!label) return;
+        var idx = steps.indexOf(sel);
+        if (idx >= 0) label.setAttribute('data-step', String(idx + 1));
+        else label.removeAttribute('data-step');
+      });
+    }
+
+    function requiredValues() {
+      return isPkw
+        ? [state.hersteller, state.modell, state.baujahr, state.serie]
+        : [state.sitz, state.serie, state.hersteller, state.basis, state.modell];
+    }
+
+    function showRequiredProgress() {
+      if (!statusDiv || statusDiv.querySelector('.is-loading')) return;
+      var values = requiredValues();
+      var selected = values.filter(function (value) { return !!String(value || '').trim(); }).length;
+      statusDiv.innerHTML = '<span class="fk-micro-required-status">'
+        + '<span class="fk-micro-progress" aria-hidden="true"><i style="width:' + Math.round(selected / values.length * 100) + '%"></i></span>'
+        + selected + ' von ' + values.length + ' ausgewählt'
+        + '</span>';
+    }
+
+    // Pro Segment getroffene Auswahl merken, damit Tab-Wechsel die Eingaben nicht verliert.
+    var segMemory = {
+      wohnmobil: { typ: '', hersteller: '', basis: '', modell: '', baujahr: '', sitz: '', serie: '' },
+      pkw: { typ: '', hersteller: '', basis: '', modell: '', baujahr: '', sitz: '', serie: '' }
+    };
+
+    function snapshotSegmentMemory() {
+      var key = isPkw ? 'pkw' : 'wohnmobil';
+      segMemory[key] = {
+        typ: state.typ || '',
+        hersteller: state.hersteller || '',
+        basis: state.basis || '',
+        modell: state.modell || '',
+        baujahr: state.baujahr || '',
+        sitz: state.sitz || '',
+        serie: state.serie || ''
+      };
+    }
+
+    function applySegmentMemory() {
+      var key = isPkw ? 'pkw' : 'wohnmobil';
+      var m = segMemory[key] || {};
+      state.typ = m.typ || '';
+      state.hersteller = m.hersteller || '';
+      state.basis = m.basis || '';
+      state.modell = m.modell || '';
+      state.baujahr = m.baujahr || '';
+      state.sitz = m.sitz || '';
+      state.serie = m.serie || '';
+    }
+
+    function clearSeriesLoading() {
+      if (seriesLoadingInterval) {
+        clearInterval(seriesLoadingInterval);
+        seriesLoadingInterval = null;
+      }
+      if (statusDiv && statusDiv.querySelector('.fk-micro-status-msg.is-loading')) {
+        statusDiv.innerHTML = '';
+      }
+      if (gridSerie && gridSerie.querySelector('.fk-micro-grid-loading')) {
+        gridSerie.innerHTML = '';
+      }
+    }
+
+    function seriesLoadingHtml() {
+      return '<div class="fk-micro-status-msg is-loading fk-micro-grid-loading">'
+        + '<span class="fk-micro-ai-icon">' + AI_ICON_SVG + '</span>'
+        + '<span class="fk-micro-text-dynamic fk-micro-loading-text">' + SERIES_LOADING_MESSAGES[0] + '</span>'
+        + '</div>';
+    }
+
+    function showSeriesLoading() {
+      if (!statusDiv && !gridSerie) return;
+      var html = seriesLoadingHtml();
+      if (statusDiv) statusDiv.innerHTML = html;
+      if (gridSerie) gridSerie.innerHTML = html;
+      var msgIdx = 0;
+      if (seriesLoadingInterval) clearInterval(seriesLoadingInterval);
+      seriesLoadingInterval = setInterval(function () {
+        msgIdx = (msgIdx + 1) % SERIES_LOADING_MESSAGES.length;
+        var nodes = root.querySelectorAll('.fk-micro-loading-text');
+        for (var i = 0; i < nodes.length; i++) {
+          nodes[i].textContent = SERIES_LOADING_MESSAGES[msgIdx];
+        }
+      }, 3000);
+    }
 
     function optionsParams(extra) {
       var p = extra || {};
@@ -312,22 +549,38 @@
         state.typ = '';
         return Promise.resolve();
       }
-      selTyp.disabled = false;
-      return fetchJson('/fk-search', optionsParams({ mode: 'options', field: 'typ' }))
-        .then(function (data) {
-          var vals = uniqSorted((Array.isArray(data) ? data : []).map(function (r) { return r && r.value ? r.value : ''; }));
-          fillSelect(selTyp, vals, state.typ || '');
-          state.typ = String(selTyp.value || '');
-        })
-        .catch(function () { fillSelect(selTyp, [], ''); });
+      fillSelect(selTyp, [], '');
+      state.typ = '';
+      return Promise.resolve();
+    }
+
+    function wmVehicleParams(field) {
+      var p = { mode: 'options', field: field, sitz: state.sitz, serie: state.serie };
+      if (field !== 'hersteller' && state.hersteller) p.hersteller = state.hersteller;
+      if (field === 'modell' && state.basis) p.basis = state.basis;
+      return p;
+    }
+
+    function keepIfListed(vals, value) {
+      var v = String(value || '');
+      return v && vals.indexOf(v) !== -1 ? v : '';
     }
 
     function loadHersteller() {
-      if (!isPkw && !state.typ) {
-        fillSelect(selHer, [], '');
-        return Promise.resolve();
+      if (!isPkw) {
+        if (!state.sitz || !state.serie) {
+          fillSelect(selHer, [], '');
+          return Promise.resolve();
+        }
+        return fetchJson('/fk-search', wmVehicleParams('hersteller'))
+          .then(function (data) {
+            var vals = uniqSorted((Array.isArray(data) ? data : []).map(function (r) { return r && r.value ? r.value : ''; }));
+            fillSelect(selHer, vals, keepIfListed(vals, state.hersteller));
+            state.hersteller = String(selHer.value || '');
+          })
+          .catch(function () { fillSelect(selHer, [], ''); });
       }
-      return fetchJson('/fk-search', optionsParams({ mode: 'options', field: 'hersteller', typ: isPkw ? '' : state.typ }))
+      return fetchJson('/fk-search', optionsParams({ mode: 'options', field: 'hersteller', typ: '' }))
         .then(function (data) {
           var vals = uniqSorted((Array.isArray(data) ? data : []).map(function (r) { return r && r.value ? r.value : ''; }));
           fillSelect(selHer, vals, state.hersteller || '');
@@ -341,14 +594,14 @@
         fillSelect(selBasis, [], '');
         return Promise.resolve();
       }
-      if (!state.typ || !state.hersteller) {
+      if (!state.sitz || !state.serie || !state.hersteller) {
         fillSelect(selBasis, [], '');
         return Promise.resolve();
       }
-      return fetchJson('/fk-search', optionsParams({ mode: 'options', field: 'basis' }))
+      return fetchJson('/fk-search', wmVehicleParams('basis'))
         .then(function (data) {
           var vals = uniqSorted((Array.isArray(data) ? data : []).map(function (r) { return r && r.value ? r.value : ''; }));
-          fillSelect(selBasis, vals, state.basis || '');
+          fillSelect(selBasis, vals, keepIfListed(vals, state.basis));
           state.basis = String(selBasis.value || '');
         })
         .catch(function () { fillSelect(selBasis, [], ''); });
@@ -368,31 +621,101 @@
           })
           .catch(function () { fillSelect(selMod, [], ''); });
       }
-      if (!state.typ || !state.hersteller || !state.basis) {
+      if (!state.sitz || !state.serie || !state.hersteller || !state.basis) {
         fillSelect(selMod, [], '');
         return Promise.resolve();
       }
-      return fetchJson('/fk-search', optionsParams({ mode: 'options', field: 'modell' }))
+      return fetchJson('/fk-search', wmVehicleParams('modell'))
         .then(function (data) {
           var vals = uniqSorted((Array.isArray(data) ? data : []).map(function (r) { return r && r.value ? r.value : ''; }));
-          fillSelect(selMod, vals, state.modell || '');
+          fillSelect(selMod, vals, keepIfListed(vals, state.modell));
           state.modell = String(selMod.value || '');
         })
         .catch(function () { fillSelect(selMod, [], ''); });
     }
 
-    function loadBaujahr() {
+    function resetPkwBaujahrSelect() {
+      if (!selYear) return;
+      state.baujahr = '';
+      fillSelect(selYear, [], '');
+    }
+
+    /** PKW: wie Anasayfa validateStep2 — Baujahr Pflicht vor Serien */
+    function validatePkwSelection() {
+      if (!state.hersteller) return { ok: false };
+      if (!state.modell) return { ok: false };
+      if (!String(state.baujahr || '').trim()) return { ok: false };
+      return { ok: true };
+    }
+
+    function loadBaujahr(keepValue) {
       if (!state.hersteller || !state.modell) {
-        fillSelect(selYear, [], '');
+        if (isPkw) {
+          resetPkwBaujahrSelect();
+        } else {
+          fillSelect(selYear, [], '');
+        }
         return Promise.resolve();
       }
+      var keep = keepValue === true ? String(state.baujahr || '') : '';
       return fetchJson('/fk-search', optionsParams({ mode: 'options', field: 'baujahr', hersteller: state.hersteller, modell: state.modell }))
         .then(function (data) {
           var vals = uniqSorted((Array.isArray(data) ? data : []).map(function (r) { return r && r.value ? r.value : ''; }));
-          fillSelect(selYear, vals, state.baujahr || '');
-          state.baujahr = String(selYear.value || '');
+          fillSelect(selYear, vals, keep);
+          state.baujahr = keep ? String(selYear.value || '') : '';
         })
-        .catch(function () { fillSelect(selYear, [], ''); });
+        .catch(function () {
+          if (isPkw) {
+            resetPkwBaujahrSelect();
+          } else {
+            fillSelect(selYear, [], '');
+          }
+        });
+    }
+
+    function wmVehicleChain() {
+      return loadHersteller()
+        .then(function () { return loadBasis(); })
+        .then(function () { return loadModell(); })
+        .then(function () { updateStatus(seriesCache.length); });
+    }
+
+    function wmFullChain() {
+      return loadSitz()
+        .then(function () { return loadSeries(); })
+        .then(wmVehicleChain);
+    }
+
+    function afterHerstellerChange() {
+      if (isPkw) {
+        clearSeriesLoading();
+        return loadModell().then(function () {
+          resetPkwBaujahrSelect();
+          return loadBaujahr(false);
+        }).then(function () { updateStatus(0); });
+      }
+      return loadBasis().then(function () { return loadModell(); });
+    }
+
+    function afterModellChange() {
+      if (isPkw) {
+        clearSeriesLoading();
+        resetPkwBaujahrSelect();
+        return loadBaujahr(false).then(function () { updateStatus(0); });
+      }
+      updateStatus(seriesCache.length);
+      navigateToSelectedSerie();
+      return Promise.resolve();
+    }
+
+    function maybeLoadSeriesAfterPkwBaujahr() {
+      if (!isPkw) {
+        return loadSeries();
+      }
+      if (validatePkwSelection().ok) {
+        return loadSeries();
+      }
+      return Promise.resolve();
     }
 
     function loadSitz() {
@@ -400,33 +723,47 @@
         fillSelect(selSitz, [], '');
         return Promise.resolve();
       }
-      if (!state.typ || !state.hersteller || !state.basis || !state.modell) {
-        fillSelect(selSitz, [], '');
-        return Promise.resolve();
-      }
-      return fetchJson('/fk-search', optionsParams({ mode: 'options', field: 'sitz' }))
+      return fetchJson('/fk-search', { mode: 'options', field: 'sitz' })
         .then(function (data) {
-          var vals = uniqSorted((Array.isArray(data) ? data : []).map(function (r) { return r && r.value ? r.value : ''; }));
+          var vals = uniqSorted((Array.isArray(data) ? data : []).map(function (r) {
+            return r && r.value ? r.value : '';
+          }));
           fillSelect(selSitz, vals, state.sitz || '');
           state.sitz = String(selSitz.value || '');
         })
-        .catch(function () { fillSelect(selSitz, [], ''); });
+        .catch(function () {
+          fillSelect(selSitz, state.sitz ? [state.sitz] : [], state.sitz || '');
+        });
     }
 
     function canLoadSeries() {
       if (isPkw) {
         return !!(state.hersteller && state.modell && state.baujahr);
       }
-      return !!(state.typ && state.hersteller && state.basis && state.modell && state.sitz);
+      return !!state.sitz;
     }
 
     function loadSeries() {
+      if (!canLoadSeries()) {
+        clearSeriesLoading();
+        if (!isPkw && state.serie) {
+          fillSelect(selSerie, [state.serie], state.serie);
+          selSerie.disabled = false;
+          renderSeriesGrid([state.serie]);
+        } else if (gridSerie) {
+          gridSerie.innerHTML = '<div class="fk-micro-serie-empty">'
+            + (isPkw ? 'Bitte zuerst Marke, Modell und Baujahr wählen.' : 'Bitte zuerst einen Sitz wählen.')
+            + '</div>';
+        }
+        updateStatus(0);
+        return Promise.resolve();
+      }
       selSerie.disabled = true;
       fillSelect(selSerie, [], '');
       if (gridSerie) gridSerie.innerHTML = '';
       seriesCache = [];
-      if (!canLoadSeries()) return Promise.resolve();
-      var p = optionsParams({});
+      showSeriesLoading();
+      var p = isPkw ? optionsParams({}) : { sitz: state.sitz };
       return fetchJson('/fk-search', p)
         .then(function (items) {
           var arr = Array.isArray(items) ? items : [];
@@ -434,15 +771,30 @@
           var serieVals = uniqSorted(arr.map(function (it) { return it && it.serie ? it.serie : ''; }))
             .filter(function (v) { return !isSerieHidden(v); });
 
-          // Default: no auto-selection. Exception: explicit preset from MarkeFiltre.
+          var incomingSerie = String(state.serie || '');
+          var serieInList = incomingSerie && serieVals.some(function (item) { return item === incomingSerie; });
           var allowPreset = String(state.forceSerieSelect || '') === '1' && String(state.mfPreset || '') === 'brand_click';
-          var keepSerie = (allowPreset && state.serie) ? state.serie : '';
+          var keepSerie = serieInList ? incomingSerie : ((allowPreset && incomingSerie) ? incomingSerie : '');
+          if (keepSerie && !serieInList) {
+            serieVals.unshift(keepSerie);
+          }
           fillSelect(selSerie, serieVals, keepSerie);
           renderSeriesGrid(serieVals);
-          updateStatus(arr.length);
+          if (!serieVals.length && gridSerie) {
+            gridSerie.innerHTML = '<div class="fk-micro-serie-empty">Für diese Auswahl sind keine Serien verfügbar.</div>';
+          }
 
           selSerie.disabled = false;
-          state.serie = String(selSerie.value || '');
+          var selectedSerie = String(selSerie.value || '');
+          if (selectedSerie || !keepSerie) {
+            state.serie = selectedSerie;
+          }
+          updateSelectionMarks();
+          updateStatus(arr.length);
+          if (filterAfterNextSeriesLoad && hasCompleteWmSelection()) {
+            filterAfterNextSeriesLoad = false;
+            navigateToSelectedSerie();
+          }
         })
         .catch(function () {
           seriesCache = [];
@@ -450,13 +802,20 @@
           fillSelect(selSerie, [], '');
           if (gridSerie) gridSerie.innerHTML = '';
           updateStatus(0);
+        })
+        .finally(function () {
+          clearSeriesLoading();
         });
     }
 
     function updateStatus(count) {
       if (!statusDiv) return;
-      if (count > 0) {
-        statusDiv.innerHTML = '<span class="fk-micro-status text-success"><span class="fk-micro-status-icon" aria-hidden="true">✔</span> Passend (' + count + ')</span>';
+      updateSelectionMarks();
+      if (isPkw ? !canLoadSeries() : !hasCompleteWmSelection()) {
+        showRequiredProgress();
+      } else if (count > 0) {
+        statusDiv.innerHTML = '<span class="fk-micro-status text-success"><span class="fk-micro-status-icon" aria-hidden="true">✔</span> '
+          + count + (count === 1 ? ' passende Serie' : ' passende Serien') + '</span>';
       } else {
         statusDiv.innerHTML = '';
       }
@@ -468,7 +827,7 @@
       (serieVals || []).forEach(function (val) {
         var meta = findSeriesMeta(val) || { label: val, img: '' };
         var tile = document.createElement('div');
-        tile.className = 'fk-micro-serie-tile';
+        tile.className = 'fk-micro-serie-tile' + (String(state.serie || '') === String(val) ? ' is-active' : '');
         tile.setAttribute('data-serie', val);
         tile.title = meta.label;
         if (meta.color) {
@@ -487,36 +846,145 @@
         name.textContent = meta.label;
         tile.appendChild(name);
 
-        tile.addEventListener('click', function () {
+        tile.setAttribute('role', 'button');
+        tile.setAttribute('tabindex', '0');
+        tile.setAttribute('aria-pressed', String(state.serie || '') === String(val) ? 'true' : 'false');
+
+        function choose() {
           selSerie.value = val;
           state.serie = val;
-          navigateToSelectedSerie();
+          if (isPkw) {
+            updateSelectionMarks();
+            navigateToSelectedSerie();
+            return;
+          }
+          selectWmSerie();
+        }
+        tile.addEventListener('click', choose);
+        tile.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            choose();
+          }
         });
 
         gridSerie.appendChild(tile);
+      });
+      scrollActiveTileIntoView();
+    }
+
+    function scrollActiveTileIntoView() {
+      if (!gridSerie) return;
+      var active = gridSerie.querySelector('.fk-micro-serie-tile.is-active');
+      if (!active) return;
+      window.requestAnimationFrame(function () {
+        var left = active.offsetLeft - gridSerie.offsetLeft - 8;
+        gridSerie.scrollLeft = Math.max(0, left);
+        updateSerieNav();
+      });
+    }
+
+    // Aktuelle Auswahl als Query-Parameter an die Ziel-URL hängen,
+    // damit die Produktseite den Mikro-Konfigurator korrekt vorbefüllt
+    // (Segment + Felder; URL hat Vorrang vor evtl. veraltetem localStorage).
+    function appendSelectionToUrl(rawUrl) {
+      try {
+        var raw = String(rawUrl || '');
+        if (!raw || raw === '#') return rawUrl;
+        var target = new URL(raw, window.location.origin);
+        function set(k, v) {
+          v = (v == null) ? '' : String(v).trim();
+          if (!v) return;
+          target.searchParams.set(k, v);
+        }
+
+        set('segment', isPkw ? 'pkw' : 'wohnmobil');
+        if (!isPkw) set('typ', state.typ);
+        set('hersteller', state.hersteller);
+        if (!isPkw) set('basis', state.basis);
+        if (state.modell) {
+          set('modell', state.modell);
+          if (String(state.fkCustomModell || '') === '1') set('fkCustomModell', '1');
+        }
+        set('baujahr', state.baujahr);
+        if (!isPkw) set('sitz', state.sitz);
+        set('serie', state.serie);
+
+        return target.toString();
+      } catch (_) {
+        return rawUrl;
+      }
+    }
+
+    function findSerieUrl(items, code) {
+      var list = Array.isArray(items) ? items : [];
+      for (var i = 0; i < list.length; i++) {
+        var it = list[i];
+        if (it && String(it.serie || '').trim() === code && it.url) {
+          return String(it.url);
+        }
+      }
+      return '';
+    }
+
+    function selectWmSerie() {
+      if (gridSerie) {
+        var tiles = gridSerie.querySelectorAll('.fk-micro-serie-tile');
+        for (var i = 0; i < tiles.length; i++) {
+          var on = tiles[i].getAttribute('data-serie') === state.serie;
+          tiles[i].classList.toggle('is-active', on);
+          tiles[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+        }
+      }
+      updateSelectionMarks();
+      showRequiredProgress();
+      return wmVehicleChain().then(function () {
+        if (hasCompleteWmSelection()) navigateToSelectedSerie();
       });
     }
 
     function navigateToSelectedSerie() {
       var code = String(selSerie && selSerie.value || '').trim();
       if (!code) return;
-      var url = '';
-      for (var i = 0; i < seriesCache.length; i++) {
-        var it = seriesCache[i];
-        if (!it) continue;
-        if (String(it.serie || '').trim() === code && it.url) {
-          url = String(it.url);
-          break;
-        }
+      if (!isPkw && !hasCompleteWmSelection()) {
+        updateSelectionMarks();
+        showRequiredProgress();
+        return;
+      }
+      var url = findSerieUrl(seriesCache, code);
+      if (!isPkw) {
+        fetchJson('/fk-search', {
+          sitz: state.sitz,
+          hersteller: state.hersteller,
+          basis: state.basis,
+          modell: state.modell
+        })
+          .then(function (items) { return findSerieUrl(items, code) || url; })
+          .catch(function () { return url; })
+          .then(function (target) {
+            if (target) {
+              window.location.assign(appendSelectionToUrl(target));
+            } else if (statusDiv) {
+              statusDiv.innerHTML = '<span class="fk-micro-no-result">Keine passenden Produkte für diese Kombination gefunden.</span>';
+            }
+          });
+        return;
       }
       if (url) {
-        window.location.assign(url);
+        window.location.assign(appendSelectionToUrl(url));
+      } else {
+        filterAfterNextSeriesLoad = false;
+        if (statusDiv) {
+          statusDiv.innerHTML = '<span class="fk-micro-no-result">Keine passenden Produkte für diese Kombination gefunden.</span>';
+        }
       }
     }
 
     function resetDownstream(fromKey) {
       // clear keys + selects after a change
-      var order = ['typ', 'hersteller', 'basis', 'modell', 'baujahr', 'sitz', 'serie'];
+      var order = isPkw
+        ? ['typ', 'hersteller', 'basis', 'modell', 'baujahr', 'sitz', 'serie']
+        : ['sitz', 'serie', 'hersteller', 'basis', 'modell'];
       var idx = order.indexOf(fromKey);
       if (idx === -1) return;
 
@@ -542,10 +1010,13 @@
         }
       }
 
-      if (idx < order.length - 1) {
+      if (idx < order.indexOf('serie')) {
         seriesCache = [];
+        if (!isPkw && gridSerie) gridSerie.innerHTML = '';
+        clearSeriesLoading();
         updateStatus(0);
       }
+      updateSelectionMarks();
     }
 
     function persistSegment(seg) {
@@ -559,24 +1030,34 @@
     }
 
     function switchSegment(toPkw) {
-      isPkw = !!toPkw;
+      var next = !!toPkw;
+      if (next === isPkw) return; // gleicher Tab — nichts tun
+
+      // Auswahl des verlassenen Segments sichern, dann Ziel-Segment wiederherstellen.
+      snapshotSegmentMemory();
+      isPkw = next;
       state.segment = isPkw ? 'pkw' : 'wohnmobil';
       persistSegment(state.segment);
       root.classList.toggle('fk-micro-is-pkw', isPkw);
       setActiveTab(isPkw ? 'pkw' : 'wohnmobil');
-      // Clear fields that don't exist in the other segment
+      applySegmentMemory();
+
+      clearSeriesLoading();
+      if (selSerie) { fillSelect(selSerie, [], ''); selSerie.disabled = true; }
+      if (gridSerie) gridSerie.innerHTML = '';
+      updateStatus(0);
+
+      var hadBaujahr = !!String(state.baujahr || '').trim();
       if (isPkw) {
-        state.typ = '';
-        state.basis = '';
-        state.sitz = '';
-        if (selTyp) { selTyp.disabled = true; fillSelect(selTyp, [], ''); }
         if (selBasis) fillSelect(selBasis, [], '');
         if (selSitz) fillSelect(selSitz, [], '');
-        resetDownstream('hersteller');
-        loadHersteller().then(function () { return loadModell(); }).then(function () { return loadBaujahr(); }).then(function () { return loadSeries(); });
+        loadTyp()
+          .then(function () { return loadHersteller(); })
+          .then(function () { return loadModell(); })
+          .then(function () { return loadBaujahr(hadBaujahr); })
+          .then(function () { return maybeLoadSeriesAfterPkwBaujahr(); });
       } else {
-        resetDownstream('typ');
-        loadTyp().then(function () { return loadHersteller(); }).then(function () { return loadBasis(); }).then(function () { return loadModell(); }).then(function () { return loadBaujahr(); }).then(function () { return loadSitz(); }).then(function () { return loadSeries(); });
+        loadTyp().then(wmFullChain);
       }
     }
 
@@ -591,29 +1072,35 @@
     });
 
     // events
-    if (selTyp) selTyp.addEventListener('change', function () {
-      state.typ = String(selTyp.value || '');
-      resetDownstream('typ');
-      loadHersteller().then(function () { return loadBasis(); }).then(function () { return loadModell(); }).then(function () { return loadSitz(); }).then(function () { return loadSeries(); });
-    });
     if (selHer) selHer.addEventListener('change', function () {
       state.hersteller = String(selHer.value || '');
+      if (isPkw) filterAfterNextSeriesLoad = true;
       resetDownstream('hersteller');
-      loadBasis().then(function () { return loadModell(); }).then(function () { return loadBaujahr(); }).then(function () { return loadSitz(); }).then(function () { return loadSeries(); });
+      afterHerstellerChange();
     });
     if (selBasis) selBasis.addEventListener('change', function () {
       state.basis = String(selBasis.value || '');
+      if (isPkw) filterAfterNextSeriesLoad = true;
       resetDownstream('basis');
-      loadModell().then(function () { return loadSitz(); }).then(function () { return loadSeries(); });
+      if (isPkw) {
+        afterModellChange();
+      } else {
+        loadModell();
+      }
     });
     if (selMod) selMod.addEventListener('change', function () {
       state.modell = String(selMod.value || '');
+      if (isPkw) filterAfterNextSeriesLoad = true;
       resetDownstream('modell');
-      loadBaujahr().then(function () { return loadSitz(); }).then(function () { return loadSeries(); });
+      afterModellChange();
     });
     if (selYear) selYear.addEventListener('change', function () {
       state.baujahr = String(selYear.value || '');
       resetDownstream('baujahr');
+      if (isPkw) {
+        maybeLoadSeriesAfterPkwBaujahr();
+        return;
+      }
       loadSeries();
     });
     if (selSitz) selSitz.addEventListener('change', function () {
@@ -623,6 +1110,11 @@
     });
     if (selSerie) selSerie.addEventListener('change', function () {
       state.serie = String(selSerie.value || '');
+      if (!isPkw) {
+        selectWmSerie();
+        return;
+      }
+      updateSelectionMarks();
       navigateToSelectedSerie();
     });
 
@@ -637,27 +1129,28 @@
     root.classList.toggle('fk-micro-is-pkw', !!isPkw);
     setActiveTab(isPkw ? 'pkw' : 'wohnmobil');
 
-    ensureSeriesConfigLoaded()
-      .then(function () { return loadTyp(); })
-      .then(function () { return loadHersteller(); })
-      .then(function () { return loadBasis(); })
-      .then(function () { return loadModell(); })
-      .then(function () { return loadBaujahr(); })
-      .then(function () { return loadSitz(); })
-      .then(function () { return loadSeries(); })
-      .then(function () {
-        // ensure current selection reflected
-        if (state.typ && selTyp) selTyp.value = state.typ;
-        if (state.hersteller && selHer) selHer.value = state.hersteller;
-        if (state.basis && selBasis) selBasis.value = state.basis;
-        if (state.modell && selMod) selMod.value = state.modell;
-        if (state.baujahr && selYear) selYear.value = state.baujahr;
-        if (state.sitz && selSitz) selSitz.value = state.sitz;
-        if (state.serie && selSerie) {
-          // User request: Do not auto-select the series on initial load
-          // selSerie.value = state.serie; 
-        }
-      });
+    var hadBaujahrPreset = !!String(state.baujahr || '').trim();
+    var initChain = ensureSeriesConfigLoaded().then(function () { return loadTyp(); });
+    if (isPkw) {
+      initChain = initChain
+        .then(function () { return loadHersteller(); })
+        .then(function () { return loadModell(); })
+        .then(function () { return loadBaujahr(hadBaujahrPreset); })
+        .then(function () { return maybeLoadSeriesAfterPkwBaujahr(); });
+    } else {
+      initChain = initChain.then(wmFullChain);
+    }
+    initChain.then(function () {
+      // ensure current selection reflected
+      if (state.hersteller && selHer) selHer.value = state.hersteller;
+      if (state.basis && selBasis) selBasis.value = state.basis;
+      if (state.modell && selMod) selMod.value = state.modell;
+      if (state.baujahr && selYear) selYear.value = state.baujahr;
+      if (state.sitz && selSitz) selSitz.value = state.sitz;
+      if (state.serie && selSerie) selSerie.value = state.serie;
+      updateSelectionMarks();
+      updateStatus(seriesCache.length);
+    });
   }
 
   function initAll() {

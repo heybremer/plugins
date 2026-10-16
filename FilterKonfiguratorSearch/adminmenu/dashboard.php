@@ -14,6 +14,43 @@ $db = Shop::Container()->getDB();
 $message = '';
 $bannerEnsureOk = true;
 $bannerEnsureError = '';
+$fkPluginId = 0;
+$aiPhotoEnabled = 0;
+$aiApiKey = '';
+$aiModel = 'gpt-5.6';
+
+try {
+    $pluginRow = $db->getSingleObject(
+        "SELECT kPlugin FROM tplugin
+          WHERE cPluginID = 'FilterKonfiguratorSearch'
+             OR TRIM(cVerzeichnis) = 'FilterKonfiguratorSearch'
+       ORDER BY kPlugin DESC LIMIT 1"
+    );
+    $fkPluginId = (int)($pluginRow->kPlugin ?? 0);
+    if ($fkPluginId > 0) {
+        $settingRows = $db->getObjects(
+            "SELECT cName, cWert FROM tplugineinstellungen
+              WHERE kPlugin = :pid
+                AND cName IN ('fk_seat_photo_enabled_v2', 'fk_openai_api_key', 'fk_openai_model')",
+            ['pid' => $fkPluginId]
+        );
+        foreach ((array)$settingRows as $settingRow) {
+            $name = (string)($settingRow->cName ?? '');
+            $value = (string)($settingRow->cWert ?? '');
+            if ($name === 'fk_seat_photo_enabled_v2') {
+                $aiPhotoEnabled = \in_array(\strtolower(\trim($value)), ['0', 'n', 'no', 'false', 'off'], true) ? 0 : 1;
+            } elseif ($name === 'fk_openai_api_key') {
+                $aiApiKey = \trim($value);
+            } elseif ($name === 'fk_openai_model' && \trim($value) !== '') {
+                $aiModel = \trim($value);
+            }
+        }
+    }
+} catch (\Throwable $e) {
+}
+if ($aiModel === 'gpt-4.1-mini') {
+    $aiModel = 'gpt-5.6';
+}
 
 // Admin sayfası bazen Bootstrap boot tetiklenmeden çalışabilir.
 // Bu yüzden banner tablosunu burada da garanti altına al.
@@ -38,16 +75,34 @@ try {
             dUpdated DATETIME NOT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
     );
-    try { $db->executeQuery("ALTER TABLE twomosi_fk_banner ADD COLUMN nSub1Active TINYINT(1) NOT NULL DEFAULT 1 AFTER cSub3"); } catch (\Throwable $e) {}
-    try { $db->executeQuery("ALTER TABLE twomosi_fk_banner ADD COLUMN nSub2Active TINYINT(1) NOT NULL DEFAULT 1 AFTER nSub1Active"); } catch (\Throwable $e) {}
-    try { $db->executeQuery("ALTER TABLE twomosi_fk_banner ADD COLUMN nSub3Active TINYINT(1) NOT NULL DEFAULT 1 AFTER nSub2Active"); } catch (\Throwable $e) {}
-    try { $db->executeQuery("ALTER TABLE twomosi_fk_banner ADD COLUMN cSub2ButtonLabel VARCHAR(255) NOT NULL DEFAULT 'Aktif et' AFTER nSub3Active"); } catch (\Throwable $e) {}
-    try { $db->executeQuery("ALTER TABLE twomosi_fk_banner ADD COLUMN cSub2ButtonUrl VARCHAR(500) NOT NULL DEFAULT '#' AFTER cSub2ButtonLabel"); } catch (\Throwable $e) {}
-    try { $db->executeQuery("ALTER TABLE twomosi_fk_banner ADD COLUMN nSegmentWmActive TINYINT(1) NOT NULL DEFAULT 1 AFTER cSub2ButtonUrl"); } catch (\Throwable $e) {}
-    try { $db->executeQuery("ALTER TABLE twomosi_fk_banner ADD COLUMN nSegmentPkwActive TINYINT(1) NOT NULL DEFAULT 1 AFTER nSegmentWmActive"); } catch (\Throwable $e) {}
-    try { $db->executeQuery("ALTER TABLE twomosi_fk_banner ADD COLUMN nSegmentOrder TINYINT(1) NOT NULL DEFAULT 0 AFTER nSegmentPkwActive"); } catch (\Throwable $e) {}
-    try { $db->executeQuery("ALTER TABLE twomosi_fk_banner ADD COLUMN cActiveCategories VARCHAR(1000) NOT NULL DEFAULT '' AFTER nSegmentOrder"); } catch (\Throwable $e) {}
-    try { $db->executeQuery("ALTER TABLE twomosi_fk_banner ADD COLUMN cSegmentPkwFirstCategories VARCHAR(1000) NOT NULL DEFAULT '' AFTER cActiveCategories"); } catch (\Throwable $e) {}
+    $fkHaveCols = static function ($db, string $table): array {
+        $have = [];
+        $cols = $db->getObjects("SHOW COLUMNS FROM {$table}");
+        if (\is_array($cols)) {
+            foreach ($cols as $c) {
+                $have[(string)($c->Field ?? '')] = true;
+            }
+        }
+        return $have;
+    };
+    $bannerHave = $fkHaveCols($db, 'twomosi_fk_banner');
+    $bannerAlters = [
+        'nSub1Active' => "TINYINT(1) NOT NULL DEFAULT 1 AFTER cSub3",
+        'nSub2Active' => "TINYINT(1) NOT NULL DEFAULT 1 AFTER nSub1Active",
+        'nSub3Active' => "TINYINT(1) NOT NULL DEFAULT 1 AFTER nSub2Active",
+        'cSub2ButtonLabel' => "VARCHAR(255) NOT NULL DEFAULT 'Aktif et' AFTER nSub3Active",
+        'cSub2ButtonUrl' => "VARCHAR(500) NOT NULL DEFAULT '#' AFTER cSub2ButtonLabel",
+        'nSegmentWmActive' => "TINYINT(1) NOT NULL DEFAULT 1 AFTER cSub2ButtonUrl",
+        'nSegmentPkwActive' => "TINYINT(1) NOT NULL DEFAULT 1 AFTER nSegmentWmActive",
+        'nSegmentOrder' => "TINYINT(1) NOT NULL DEFAULT 0 AFTER nSegmentPkwActive",
+        'cActiveCategories' => "VARCHAR(1000) NOT NULL DEFAULT '' AFTER nSegmentOrder",
+        'cSegmentPkwFirstCategories' => "VARCHAR(1000) NOT NULL DEFAULT '' AFTER cActiveCategories",
+    ];
+    foreach ($bannerAlters as $col => $def) {
+        if (!isset($bannerHave[$col])) {
+            $db->executeQuery("ALTER TABLE twomosi_fk_banner ADD COLUMN {$col} {$def}");
+        }
+    }
     $db->executeQuery(
         "CREATE TABLE IF NOT EXISTS twomosi_fk_micro_scope (
             kID TINYINT UNSIGNED NOT NULL PRIMARY KEY,
@@ -56,7 +111,10 @@ try {
             dUpdated DATETIME NOT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
     );
-    try { $db->executeQuery("ALTER TABLE twomosi_fk_micro_scope ADD COLUMN cCategoryIdsPkwFirst VARCHAR(4000) NOT NULL DEFAULT '' AFTER cCategoryIds"); } catch (\Throwable $e) {}
+    $scopeHave = $fkHaveCols($db, 'twomosi_fk_micro_scope');
+    if (!isset($scopeHave['cCategoryIdsPkwFirst'])) {
+        $db->executeQuery("ALTER TABLE twomosi_fk_micro_scope ADD COLUMN cCategoryIdsPkwFirst VARCHAR(4000) NOT NULL DEFAULT '' AFTER cCategoryIds");
+    }
     $db->executeQuery(
         "CREATE TABLE IF NOT EXISTS twomosi_fk_serie_meta (
             cSerieKey VARCHAR(64) NOT NULL,
@@ -159,6 +217,14 @@ if ($isAjax && (
     try {
         $lid = (int)Shop::getLanguageID();
         $svc = new \Plugin\FilterKonfiguratorSearch\Service\SnapshotService($db);
+        $pkwCountMsg = static function (\Plugin\FilterKonfiguratorSearch\Service\SnapshotService $svc): string {
+            $c = $svc->getPkwSnapshotCounts();
+
+            return ' (PKW: Hersteller=' . $c['hersteller']
+                . ', Modell=' . $c['modell']
+                . ', Baujahr=' . $c['baujahr']
+                . ', Serien=' . $c['serie'] . ')';
+        };
         if (!empty($_POST['fkSnapshotStepWm'])) {
             $svc->refreshWohnmobilSnapshots($lid);
             if ($lid !== 1) $svc->refreshWohnmobilSnapshots(1);
@@ -166,15 +232,15 @@ if ($isAjax && (
         } elseif (!empty($_POST['fkSnapshotStepPkwHerMod'])) {
             $svc->refreshPkwHerstellerModell($lid);
             if ($lid !== 1) $svc->refreshPkwHerstellerModell(1);
-            echo json_encode(['ok' => true, 'msg' => 'Schritt 2/4: PKW Hersteller & Modell aktualisiert.']);
+            echo json_encode(['ok' => true, 'msg' => 'Schritt 2/4: PKW Hersteller & Modell aktualisiert.' . $pkwCountMsg($svc)]);
         } elseif (!empty($_POST['fkSnapshotStepPkwBj'])) {
             $svc->refreshPkwBaujahr($lid);
             if ($lid !== 1) $svc->refreshPkwBaujahr(1);
-            echo json_encode(['ok' => true, 'msg' => 'Schritt 3/4: PKW Baujahr-Snapshots aktualisiert.']);
+            echo json_encode(['ok' => true, 'msg' => 'Schritt 3/4: PKW Baujahr-Snapshots aktualisiert.' . $pkwCountMsg($svc)]);
         } elseif (!empty($_POST['fkSnapshotStepPkwSerie'])) {
             $svc->refreshPkwSerie($lid);
             if ($lid !== 1) $svc->refreshPkwSerie(1);
-            echo json_encode(['ok' => true, 'msg' => 'Schritt 4/4: PKW Serien-Snapshots aktualisiert. Alle fertig!']);
+            echo json_encode(['ok' => true, 'msg' => 'Schritt 4/4: PKW Serien-Snapshots aktualisiert. Alle fertig!' . $pkwCountMsg($svc)]);
         }
     } catch (\Throwable $e) {
         echo json_encode(['ok' => false, 'msg' => 'Fehler: ' . $e->getMessage()]);
@@ -269,6 +335,18 @@ if (Form::validateToken()) {
                     $pkwFirstCats = trim((string)$_POST['fkPkwFirstCategories']);
                 }
             }
+            $aiPhotoEnabled = !empty($_POST['fkSeatPhotoEnabled']) ? 1 : 0;
+            $postedAiModel = \trim((string)($_POST['fkOpenAiModel'] ?? 'gpt-5.6'));
+            $postedAiModel = \preg_replace('/[^0-9A-Za-z._-]/', '', $postedAiModel) ?: 'gpt-5.6';
+            $aiModel = $postedAiModel;
+            if (!empty($_POST['fkOpenAiApiKeyClear'])) {
+                $aiApiKey = '';
+            } else {
+                $postedAiKey = \trim((string)($_POST['fkOpenAiApiKey'] ?? ''));
+                if ($postedAiKey !== '') {
+                    $aiApiKey = $postedAiKey;
+                }
+            }
             
             // Tüm banner satırlarını güncelle: aksi halde yeni eklenen boş satır ORDER BY dUpdated ile
             // "son satır" olup cActiveCategories'i gizleyebiliyor (vitrinde allowed hep boş görünür).
@@ -335,6 +413,29 @@ if (Form::validateToken()) {
                             'INSERT INTO tplugineinstellungen (kPlugin, cName, cWert) VALUES (:pid, :n, :v)',
                             ['pid' => $kPlugin, 'n' => $confNm2, 'v' => $pkwFirstCats]
                         );
+                    }
+
+                    $aiSettings = [
+                        'fk_seat_photo_enabled_v2' => (string)$aiPhotoEnabled,
+                        'fk_openai_api_key'     => $aiApiKey,
+                        'fk_openai_model'       => $aiModel,
+                    ];
+                    foreach ($aiSettings as $settingName => $settingValue) {
+                        $settingExists = $db->getSingleObject(
+                            'SELECT kPlugin FROM tplugineinstellungen WHERE kPlugin = :pid AND cName = :n LIMIT 1',
+                            ['pid' => $kPlugin, 'n' => $settingName]
+                        );
+                        if ($settingExists !== null) {
+                            $db->executeQueryPrepared(
+                                'UPDATE tplugineinstellungen SET cWert = :v WHERE kPlugin = :pid AND cName = :n',
+                                ['v' => $settingValue, 'pid' => $kPlugin, 'n' => $settingName]
+                            );
+                        } else {
+                            $db->executeQueryPrepared(
+                                'INSERT INTO tplugineinstellungen (kPlugin, cName, cWert) VALUES (:pid, :n, :v)',
+                                ['pid' => $kPlugin, 'n' => $settingName, 'v' => $settingValue]
+                            );
+                        }
                     }
                 }
             } catch (\Throwable $e) {
@@ -853,6 +954,45 @@ if ($tab === 'summary') {
             <form method="post" style="display: grid; gap: 10px;">
                 <?= Form::getTokenInput(); ?>
                 
+                <div style="padding:16px; margin-bottom:10px; border:1px solid rgba(0,0,0,.1); border-radius:8px; background:#fafafa;">
+                    <h4 style="margin:0 0 6px;">KI-Sitz-Fotoerkennung</h4>
+                    <p style="margin:0 0 14px; color:rgba(0,0,0,.6); font-size:13px;">
+                        Der API-Key bleibt serverseitig und wird nicht an den Browser ausgegeben.
+                        Status:
+                        <?php if ($aiApiKey !== ''): ?>
+                            <strong style="color:#198754;">API-Key gespeichert</strong>
+                        <?php else: ?>
+                            <strong style="color:#b42318;">Kein API-Key gespeichert</strong>
+                        <?php endif; ?>
+                    </p>
+
+                    <label style="display:flex; gap:8px; align-items:center; margin-bottom:14px;">
+                        <input type="checkbox" name="fkSeatPhotoEnabled" value="1" <?= $aiPhotoEnabled === 1 ? 'checked' : '' ?>>
+                        <strong>Fotoerkennung aktivieren</strong>
+                    </label>
+
+                    <div style="display:grid; grid-template-columns:minmax(260px,2fr) minmax(180px,1fr); gap:12px;">
+                        <label>
+                            <strong>OpenAI API Key</strong><br>
+                            <input type="password" name="fkOpenAiApiKey" value="" autocomplete="new-password"
+                                   placeholder="<?= $aiApiKey !== '' ? 'Gespeichert – nur zum Ändern neu eingeben' : 'sk-proj-…' ?>"
+                                   style="width:100%; box-sizing:border-box; padding:8px; margin-top:5px;">
+                        </label>
+                        <label>
+                            <strong>OpenAI Vision Model</strong><br>
+                            <input type="text" name="fkOpenAiModel"
+                                   value="<?= htmlspecialchars($aiModel, ENT_QUOTES, 'UTF-8') ?>"
+                                   style="width:100%; box-sizing:border-box; padding:8px; margin-top:5px;">
+                        </label>
+                    </div>
+                    <?php if ($aiApiKey !== ''): ?>
+                        <label style="display:flex; gap:8px; align-items:center; margin-top:10px; color:#b42318; font-size:12px;">
+                            <input type="checkbox" name="fkOpenAiApiKeyClear" value="1">
+                            Gespeicherten API-Key löschen
+                        </label>
+                    <?php endif; ?>
+                </div>
+
                 <div>
                     <strong>Aktive Kategorie(n)</strong><br>
                     <p style="margin:4px 0 8px; font-size:12px; color:rgba(0,0,0,.55);">Checkboxen zuverlässiger als Mehrfach-Select: jede markierte Kategorie wird gespeichert. Unterkategorien der Auswahl gelten automatisch als erlaubt. Für <strong>alle</strong> Kategorien: alle Häkchen entfernen und speichern.</p>

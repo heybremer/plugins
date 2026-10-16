@@ -4,7 +4,7 @@
   "description": "Fahrzeugtyp, Hersteller, Basisfahrzeug, Modell, Baujahr, Sitz ve Serie için LiveSearch tarzı JSON arama endpoint'i.",
   "author": "Erkut Sahin",
   "url": "https://womosi.de",
-  "version": "1.14.18",
+  "version": "1.14.70",
   "minShopVersion": "5.2.0",
   "maxShopVersion": "5.99.99",
   "requires": [],
@@ -27,6 +27,30 @@
       "initialValue": "",
       "description": "PKW sekmesinin 1. sırada (ve varsayılan aktif) gözükmesi gereken kategori ID'lerini virgülle ayırarak yazın.",
       "sort": 2
+    },
+    {
+      "name": "Koltuk Fotoğraf Tanıma",
+      "type": "checkbox",
+      "valueName": "fk_seat_photo_enabled_v2",
+      "initialValue": "0",
+      "description": "OpenAI ile koltuk fotoğraf tanımayı etkinleştirir.",
+      "sort": 3
+    },
+    {
+      "name": "OpenAI API Key",
+      "type": "password",
+      "valueName": "fk_openai_api_key",
+      "initialValue": "",
+      "description": "Yalnızca sunucu tarafındaki fotoğraf analizinde kullanılır.",
+      "sort": 4
+    },
+    {
+      "name": "OpenAI Vision Model",
+      "type": "text",
+      "valueName": "fk_openai_model",
+      "initialValue": "gpt-5.6",
+      "description": "Görsel analiz için kullanılacak OpenAI model kimliği.",
+      "sort": 5
     }
   ],
   "dependencies": []

@@ -2,12 +2,13 @@
 {assign var='fkSegWm' value=$fkBanner->nSegmentWmActive|default:1}
 {assign var='fkSegPkw' value=$fkBanner->nSegmentPkwActive|default:1}
 <script>
-    // Backend base URL (unterstützt Subfolder wie /WomosiWeb)
+    // Backend base URL (unterstÃ¼tzt Subfolder wie /WomosiWeb)
     window.WomosiFkBase = '{$ShopURL}';
     window.WomosiFkSegments = {ldelim}"wm":{$fkSegWm},"pkw":{$fkSegPkw}{rdelim};
 </script>
+<link rel="stylesheet" href="{$ShopURL}/plugins/FilterKonfiguratorSearch/templates/css/womosi-konfigurator.css?v=1.14.74">
 <div class="index-filter-konfigurator" id="womosi-fk-konfigurator-anchor">
-    <div class="womosi-konfigurator {if $fkSegPkw == 1 && $fkSegWm != 1}fk-segment-pkw{else}fk-segment-wm{/if}">
+    <div class="womosi-konfigurator fk-wm-seat-only {if $fkSegPkw == 1 && $fkSegWm != 1}fk-segment-pkw{else}fk-segment-wm{/if}">
         <div class="konfig-banner">
             <h1 class="konfig-banner-title">{$fkBanner->cHeadline|default:'Besuchen Sie uns auf der HanseMesse Rostock'|escape:'html'}</h1>
             <p class="konfig-banner-sub">
@@ -18,7 +19,7 @@
                     <a class="konfig-banner-btn" href="{$fkBanner->cSub2ButtonUrl|default:'#'|escape:'html'}">{$fkBanner->cSub2ButtonLabel|default:'Aktivieren'|escape:'html'}</a> <br>
                 {/if}
                 {if $fkBanner->nSub3Active == 1}
-                    {$fkBanner->cSub3|default:'20. bis 22. März 2026 | HanseMesse Rostock'|escape:'html'}
+                    {$fkBanner->cSub3|default:'20. bis 22. MÃ¤rz 2026 | HanseMesse Rostock'|escape:'html'}
                 {/if}
             </p>
         </div>
@@ -41,19 +42,19 @@
                     <div class="stepperRow">
                         <div class="steps">
                             <span class="label active" id="lbl1">
-                                <span class="dot active" id="dot1">1</span> Wohnmobil-Aufbauart
+                                <span class="dot active" id="dot1">1</span> <span id="lblText1">Wohnmobil-Aufbauart</span>
                             </span>
                             <span style="opacity: .35;">&rarr;</span>
                             <span class="label" id="lbl2">
-                                <span class="dot" id="dot2">2</span> Details
+                                <span class="dot" id="dot2">2</span> <span id="lblText2">Details</span>
                             </span>
                             <span style="opacity: .35;">&rarr;</span>
                             <span class="label" id="lbl3">
-                                <span class="dot" id="dot3">3</span> Sitz
+                                <span class="dot" id="dot3">3</span> <span id="lblText3">Sitz</span>
                             </span>
                             <span style="opacity: .35;">&rarr;</span>
                             <span class="label" id="lbl4">
-                                <span class="dot" id="dot4">4</span> Serie
+                                <span class="dot" id="dot4">4</span> <span id="lblText4">Serie</span>
                             </span>
                         </div>
                         <div style="font-weight: 900; color: rgba(0,0,0,.6); display: flex; align-items: center; gap: 10px;">
@@ -89,33 +90,33 @@
                 <div id="step1" class="fk-wm-only">
                     <h2>Step 1 &ndash; Fahrzeugtyp</h2>
                     <div class="tile-grid" id="vehicleGrid">
-                        <a class="tile-link" href="#" data-url="https://womosi.de/Kastenwagen" data-vehicle="Kastenwagen" data-label="Kastenwagen" data-key="Kastenwagen">
+                        <a class="tile-link" href="#" data-url="https://bremer-sitzbezuege.de/Kastenwagen" data-vehicle="Kastenwagen" data-label="Kastenwagen" data-key="Kastenwagen">
                             <div class="tile">
-                                <img src="https://womosi.de/media/image/storage/opc/kasten-wagen.svg" alt="Kastenwagen">
+                                <img src="https://bremer-sitzbezuege.de/media/image/storage/opc/kasten-wagen.svg" alt="Kastenwagen">
                                 <div class="name">Kastenwagen</div>
                             </div>
                         </a>
-                        <a class="tile-link" href="#" data-url="https://womosi.de/Teilintegriert" data-vehicle="Teilintegriert" data-label="Teilintegriert" data-key="Teilintegriert">
+                        <a class="tile-link" href="#" data-url="https://bremer-sitzbezuege.de/Teilintegriert" data-vehicle="Teilintegriert" data-label="Teilintegriert" data-key="Teilintegriert">
                             <div class="tile">
-                                <img src="https://womosi.de/media/image/storage/opc/teilintegriert.svg" alt="Teilintegriert">
+                                <img src="https://bremer-sitzbezuege.de/media/image/storage/opc/teilintegriert.svg" alt="Teilintegriert">
                                 <div class="name">Teilintegriert</div>
                             </div>
                         </a>
-                        <a class="tile-link" href="#" data-url="https://womosi.de/Alkoven" data-vehicle="Alkoven" data-label="Alkoven" data-key="Alkoven">
+                        <a class="tile-link" href="#" data-url="https://bremer-sitzbezuege.de/Alkoven" data-vehicle="Alkoven" data-label="Alkoven" data-key="Alkoven">
                             <div class="tile">
-                                <img src="https://womosi.de/media/image/storage/opc/alkoven.svg" alt="Alkoven">
+                                <img src="https://bremer-sitzbezuege.de/media/image/storage/opc/alkoven.svg" alt="Alkoven">
                                 <div class="name">Alkoven</div>
                             </div>
                         </a>
-                        <a class="tile-link" href="#" data-url="https://womosi.de/Integriert" data-vehicle="Integriert" data-label="Integriert" data-key="Integriert">
+                        <a class="tile-link" href="#" data-url="https://bremer-sitzbezuege.de/Integriert" data-vehicle="Integriert" data-label="Integriert" data-key="Integriert">
                             <div class="tile">
-                                <img src="https://womosi.de/media/image/storage/opc/integriert.svg" alt="Integriert">
+                                <img src="https://bremer-sitzbezuege.de/media/image/storage/opc/integriert.svg" alt="Integriert">
                                 <div class="name">Integriert</div>
                             </div>
                         </a>
-                        <a class="tile-link" href="#" data-url="https://womosi.de/Urban-Camper-Minivan" data-vehicle="Urban-Camper" data-label="Urban Camper / Minivan" data-key="Urban-Camper">
+                        <a class="tile-link" href="#" data-url="https://bremer-sitzbezuege.de/Urban-Camper-Minivan" data-vehicle="Urban-Camper" data-label="Urban Camper / Minivan" data-key="Urban-Camper">
                             <div class="tile">
-                                <img src="https://womosi.de/media/image/storage/opc/urban-camper.svg" alt="Urban Camper / Minivan">
+                                <img src="https://bremer-sitzbezuege.de/media/image/storage/opc/urban-camper.svg" alt="Urban Camper / Minivan">
                                 <div class="name">Urban Camper / Minivan</div>
                             </div>
                         </a>
@@ -124,10 +125,66 @@
                         <button id="toStep2" class="primary" type="button" disabled="disabled">Weiter zu Details</button>
                     </div>
                     <div class="hint">W&auml;hle zuerst eine Wohnmobil-Aufbauart aus.</div>
+                    <div class="fk-start-divider" aria-hidden="true"><span>oder</span></div>
+                    <section class="fk-seat-start" aria-labelledby="fk-seat-start-title">
+                        <div class="fk-seat-start-heading">
+                            <div>
+                                <span class="fk-start-kicker">Alternative Suche</span>
+                                <h3 id="fk-seat-start-title">Mit Sitz-Auswahl starten</h3>
+                                <p>W&auml;hle deinen Sitz und erhalte direkt die passenden Serien.</p>
+                            </div>
+                            <span class="fk-start-order">Sitz &rarr; Serie</span>
+                        </div>
+                        {if !empty($fkSeatPhotoEnabled)}
+                        <div class="fk-seat-photo" id="seatPhotoRecognizer">
+                            <div class="fk-seat-photo-copy">
+                                <span class="fk-seat-photo-badge">KI-Fotoerkennung</span>
+                                <strong>Sitz fotografieren und automatisch erkennen</strong>
+                                <span>Fotografiere den Sitz m&ouml;glichst frontal bei gutem Licht.</span>
+                            </div>
+                            <div class="fk-seat-photo-workspace">
+                                <label class="fk-seat-photo-drop" for="seatPhotoInput" id="seatPhotoTrigger">
+                                    <span class="fk-seat-photo-camera" aria-hidden="true">&#128247;</span>
+                                    <span class="fk-seat-photo-trigger-title">Foto aufnehmen oder ausw&auml;hlen</span>
+                                    <span class="fk-seat-photo-trigger-meta">JPG, PNG oder WebP &middot; max. 8 MB</span>
+                                </label>
+                                <input class="fk-seat-photo-input" id="seatPhotoInput" name="seat_photo"
+                                       type="file" accept="image/jpeg,image/png,image/webp" capture="environment">
+                                <div class="fk-seat-photo-preview hidden" id="seatPhotoPreview">
+                                    <img id="seatPhotoPreviewImage" src="" alt="Vorschau des aufgenommenen Sitzes">
+                                    <button class="fk-seat-photo-remove" id="seatPhotoRemove" type="button"
+                                            aria-label="Ausgew&auml;hltes Foto entfernen">&times;</button>
+                                </div>
+                                <div class="fk-seat-photo-actions">
+                                    <label class="fk-seat-photo-consent">
+                                        <input id="seatPhotoConsent" type="checkbox">
+                                        <span>Ich stimme der Analyse durch OpenAI zu. Das Foto wird nicht gespeichert.</span>
+                                    </label>
+                                    <button class="primary fk-seat-photo-analyze" id="seatPhotoAnalyze" type="button" disabled>
+                                        Sitz erkennen
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="fk-seat-photo-status" id="seatPhotoStatus" role="status" aria-live="polite"></div>
+                            <div class="fk-seat-photo-result hidden" id="seatPhotoResult" aria-live="polite">
+                                <img id="seatPhotoResultImage" src="" alt="">
+                                <div>
+                                    <span>Erkannter Sitz</span>
+                                    <strong id="seatPhotoResultName"></strong>
+                                    <small id="seatPhotoResultConfidence"></small>
+                                </div>
+                                <button id="seatPhotoRetry" type="button">Anderes Foto</button>
+                            </div>
+                        </div>
+                        <div class="fk-start-divider fk-seat-photo-divider" aria-hidden="true"><span>oder manuell</span></div>
+                        {/if}
+                        <div class="hint" id="seatStartHint">Sitze werden geladen&hellip;</div>
+                        <div class="tile-grid seat-grid fk-seat-start-grid" id="seatStartGrid"></div>
+                    </section>
                 </div>
                 <!-- STEP 2 -->
                 <div id="step2" class="hidden">
-                    <h2 class="fk-wm-only">Step 2 &ndash; Details</h2>
+                    <h2 class="fk-wm-only" id="fk-wm-details-title">Step 2 &ndash; Details</h2>
                     <h2 class="fk-pkw-only">Step 1 &ndash; Fahrzeugdetails</h2>
                     <div id="fkLoading" class="fk-loading hidden" aria-hidden="true">
                         <div class="fk-loading-bar"></div>
@@ -137,33 +194,33 @@
                             <label for="hersteller">Fahrzeug-Marke<span class="req" id="reqHer">*</span></label>
                             <div class="fk-control">
                                 <select id="hersteller"></select>
-                                <button type="button" class="fk-clear-btn" aria-label="Fahrzeug-Marke löschen" data-clear-target="#hersteller">×</button>
+                                <button type="button" class="fk-clear-btn" aria-label="Fahrzeug-Marke lÃ¶schen" data-clear-target="#hersteller">Ã—</button>
                             </div>
                         </div>
                         <div class="field fk-wm-only">
                             <label for="basisfahrzeug">Wohnmobil-Fahrgestell<span class="req" id="reqBasis">*</span></label>
                             <div class="fk-control">
                                 <select id="basisfahrzeug"></select>
-                                <button type="button" class="fk-clear-btn" aria-label="Wohnmobil-Fahrgestell löschen" data-clear-target="#basisfahrzeug">×</button>
+                                <button type="button" class="fk-clear-btn" aria-label="Wohnmobil-Fahrgestell lÃ¶schen" data-clear-target="#basisfahrzeug">Ã—</button>
                             </div>
                         </div>
                         <div class="field">
                             <label for="modell">Fahrzeug-Modell<span class="req" id="reqModell">*</span></label>
                             <div class="fk-control">
                                 <select id="modell"></select>
-                                <button type="button" class="fk-clear-btn" aria-label="Fahrzeug-Modell löschen" data-clear-target="#modell">×</button>
+                                <button type="button" class="fk-clear-btn" aria-label="Fahrzeug-Modell lÃ¶schen" data-clear-target="#modell">Ã—</button>
                             </div>
                         </div>
-                        <div class="field">
+                        <div class="field fk-baujahr-field">
                             <label class="fk-wm-only" for="baujahr">Baujahr<span class="req">*</span></label>
                             <label class="fk-pkw-only" for="baujahr_pkw">Baujahr<span class="req">*</span></label>
                             <div class="fk-control fk-wm-only">
                                 <input id="baujahr" inputmode="numeric" pattern="\\d*" placeholder="z.B. 2021" type="text">
-                                <button type="button" class="fk-clear-btn" aria-label="Baujahr löschen" data-clear-target="#baujahr">×</button>
+                                <button type="button" class="fk-clear-btn" aria-label="Baujahr lÃ¶schen" data-clear-target="#baujahr">Ã—</button>
                             </div>
                             <div class="fk-control fk-pkw-only">
                                 <select id="baujahr_pkw" aria-label="Baujahr"></select>
-                                <button type="button" class="fk-clear-btn" aria-label="Baujahr löschen" data-clear-target="#baujahr_pkw">×</button>
+                                <button type="button" class="fk-clear-btn" aria-label="Baujahr lÃ¶schen" data-clear-target="#baujahr_pkw">Ã—</button>
                             </div>
                         </div>
                     </div>
@@ -172,7 +229,7 @@
                             <label for="modell_custom">Ihr Modell nicht dabei?</label>
                             <div class="fk-control">
                                 <input id="modell_custom" type="text" placeholder="Bitte tragen Sie Ihr Modell ein">
-                                <button type="button" class="fk-clear-btn" aria-label="Eigene Modellbezeichnung löschen" data-clear-target="#modell_custom">×</button>
+                                <button type="button" class="fk-clear-btn" aria-label="Eigene Modellbezeichnung lÃ¶schen" data-clear-target="#modell_custom">Ã—</button>
                             </div>
                         </div>
                     </div>
@@ -194,10 +251,10 @@
                 </div>
                 <!-- STEP 4 -->
                 <div id="step4" class="hidden">
-                    <h2 class="fk-wm-only">Step 4 &ndash; Serie ausw&auml;hlen</h2>
+                    <h2 class="fk-wm-only" id="fk-wm-serie-title">Step 4 &ndash; Serie ausw&auml;hlen</h2>
                     <h2 class="fk-pkw-only">Step 2 &ndash; Serie ausw&auml;hlen</h2>
                     <div class="hint" id="serieHint">W&auml;hle die passende Serie &ndash; tippe auf eine Kachel.</div>
-                    <!-- Verstecktes Text-Dropdown für Fallback / Logik -->
+                    <!-- Verstecktes Text-Dropdown fÃ¼r Fallback / Logik -->
                    <div class="fields hidden">
    <div class="fields">
     <div class="field">
@@ -208,7 +265,7 @@
 </div>
                     <!-- Visuelle Serie-Auswahl -->
                     <div class="tile-grid serie-grid" id="serieGrid"></div>
-                    <!-- Kein Ergebnis: Maßanfertigung-Formular -->
+                    <!-- Kein Ergebnis: MaÃŸanfertigung-Formular -->
                     <div id="serieEmptyFallback" class="serie-fallback hidden">
                         <div class="serie-fallback-text">
                             <p><strong>Kein passender Sitzbezug im Konfigurator gefunden?</strong></p>
@@ -261,10 +318,10 @@
     </div>
 <div class="fk-status-overlay hidden" id="fkSuccessOverlay" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="fk-status-modal" role="document">
-        <div class="fk-status-icon" id="fkSuccessIcon">✓</div>
+        <div class="fk-status-icon" id="fkSuccessIcon">âœ“</div>
         <h3 id="fkSuccessTitle">Erfolg</h3>
         <p id="fkSuccessMessage"></p>
-        <button type="button" class="fk-status-close" id="fkSuccessClose">Schließen</button>
+        <button type="button" class="fk-status-close" id="fkSuccessClose">SchlieÃŸen</button>
     </div>
 </div>
 <script>
@@ -426,7 +483,7 @@
                 }
             }
 
-            // Autocomplete alanlarını hazırla
+            // Autocomplete alanlarÄ±nÄ± hazÄ±rla
             setupAutocomplete('hersteller', 'hersteller_ac', 'hersteller_panel', 'hersteller');
             setupAutocomplete('basis', 'basis_ac', 'basis_panel', 'basisfahrzeug');
             setupAutocomplete('modell', 'modell_ac', 'modell_panel', 'modell');
@@ -451,7 +508,7 @@
                     if (toStep2Btn) {
                         toStep2Btn.disabled = false;
                     }
-                    // Fahrzeugtyp seçilince otomatik Step 2'ye geç
+                    // Fahrzeugtyp seÃ§ilince otomatik Step 2'ye geÃ§
                     setStep(2);
                 });
             }
@@ -504,4 +561,5 @@
         }
     })();
 </script>
+<script src="{$ShopURL}/plugins/FilterKonfiguratorSearch/templates/js/womosi-konfigurator.js?v=1.14.74" defer></script>
 

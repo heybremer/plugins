@@ -6,6 +6,7 @@ namespace Plugin\FilterKonfiguratorSearch\Repository;
 
 use JTL\DB\DbInterface;
 use JTL\Shop;
+use Plugin\FilterKonfiguratorSearch\Filter\CharacteristicOptionsGuard;
 use Plugin\FilterKonfiguratorSearch\Query\PkwSqlFragments;
 
 /**
@@ -16,6 +17,9 @@ use Plugin\FilterKonfiguratorSearch\Query\PkwSqlFragments;
  */
 class FilterKonfiguratorRepository
 {
+    /** @var array<string, array<int|string, mixed>> */
+    private static array $merkmalOptionsMemo = [];
+
     public function __construct(
         private readonly DbInterface $db,
         private readonly int $langID
@@ -54,10 +58,10 @@ class FilterKonfiguratorRepository
             $baujahr = \trim($s['baujahr'] ?? '');
             $sitz = \trim($s['sitz'] ?? '');
             
-            // Replicate canLoadSeries logic from JS
+            // Replicate canLoadSeries logic from JS (PKW: Baujahr Pflicht vor Serien)
             $canLoad = false;
             if ($isPkw) {
-                if ($herst !== '' && $modell !== '') $canLoad = true;
+                if ($herst !== '' && $modell !== '' && $baujahr !== '') $canLoad = true;
             } else {
                 if ($typ !== '' && $herst !== '' && $basis !== '' && $modell !== '' && $sitz !== '') $canLoad = true;
             }
@@ -97,63 +101,9 @@ class FilterKonfiguratorRepository
                 }
             } catch (\Throwable $e) {}
 
-            // 1. PKW Segment: Snapshot table okuma (anlık hız)
-            if ($isPkw && $herst !== '' && $modell !== '') {
-                try {
-                    $snapParams = [
-                        'lid'        => $this->langID,
-                        'hersteller' => $herst,
-                        'modell'     => $modell,
-                    ];
-                    $baujahrCond = '';
-                    if ($baujahr !== '') {
-                        $snapParams['baujahr'] = $baujahr;
-                        $baujahrCond = ' AND cBaujahr = :baujahr';
-                    } else {
-                        $baujahrCond = " AND cBaujahr = ''";
-                    }
-
-                    $snapRows = $this->db->getObjects(
-                        "SELECT DISTINCT cSerie, cSerieLabel
-                           FROM twomosi_fk_opt_pkw_serie
-                          WHERE kSprache   = :lid
-                            AND cHersteller = :hersteller
-                            AND cModell     = :modell"
-                        . $baujahrCond .
-                        " ORDER BY cSerie ASC
-                          LIMIT 200",
-                        $snapParams
-                    );
-
-                    if (\is_array($snapRows) && \count($snapRows) > 0) {
-                        $snapResult = [];
-                        foreach ($snapRows as $row) {
-                            if (empty($row->cSerie)) continue;
-                            $snapResult[] = [
-                                'serie'       => $row->cSerie,
-                                'serie_label' => $row->cSerieLabel ?: $row->cSerie,
-                                'hersteller'  => $herst,
-                                'modell'      => $modell,
-                                'baujahr'     => $baujahr,
-                            ];
-                        }
-                        if ($snapResult !== []) {
-                            // Also write to step4_cache for future use
-                            try {
-                                $this->db->executeQueryPrepared(
-                                    "INSERT INTO twomosi_step4_cache (cKey, dUpdated, cPayload)
-                                     VALUES (:k, NOW(), :p)
-                                     ON DUPLICATE KEY UPDATE dUpdated = NOW(), cPayload = VALUES(cPayload)",
-                                    ['k' => $cacheKey, 'p' => \json_encode($snapResult, \JSON_UNESCAPED_UNICODE)]
-                                );
-                            } catch (\Throwable $e) {}
-                            return $snapResult;
-                        }
-                    }
-                } catch (\Throwable $e) {
-                    // Snapshot table doesn't exist yet, fallthrough to live query
-                }
-            }
+            // PKW-Snapshot wird in findSeriesForValues() gelesen, damit Batch- und
+            // /fk-search-Weg dieselben Items (inkl. url) liefern und derselbe
+            // step4_cache-Key nicht mit unterschiedlichen Payload-Formen belegt wird.
             
             $selections = [];
             // Replicate exactly the Controller.php selection builder logic
@@ -269,11 +219,18 @@ class FilterKonfiguratorRepository
                               WHERE kSprache = :lid AND cTyp = :typ AND cHersteller = :her" . $likeBas . " ORDER BY cBasis ASC LIMIT 120",
                             $params
                         );
-                    } elseif ($field === 'modell' && $typFilter !== '' && $herstellerFilter !== '' && $basisFilter !== '') {
-                        $params['typ'] = $typFilter; $params['her'] = $herstellerFilter; $params['basis'] = $basisFilter;
+                    } elseif ($field === 'modell' && $typFilter !== '' && $herstellerFilter !== '') {
+                        $params['typ'] = $typFilter;
+                        $params['her'] = $herstellerFilter;
+                        $basisSql = '';
+                        if ($basisFilter !== '') {
+                            $params['basis'] = $basisFilter;
+                            $basisSql = ' AND cBasis = :basis';
+                        }
                         $rows = $this->db->getObjects(
-                            "SELECT DISTINCT cModell AS val FROM twomosi_fk_opt_modell 
-                              WHERE kSprache = :lid AND cTyp = :typ AND cHersteller = :her AND cBasis = :basis" . $likeMod . " ORDER BY cModell ASC LIMIT 120",
+                            "SELECT DISTINCT cModell AS val FROM twomosi_fk_opt_modell
+                              WHERE kSprache = :lid AND cTyp = :typ AND cHersteller = :her"
+                            . $basisSql . $likeMod . " ORDER BY cModell ASC LIMIT 120",
                             $params
                         );
                     } else {
@@ -296,6 +253,76 @@ class FilterKonfiguratorRepository
          *
          * @return array<int, array{value:string}>
          */
+        /**
+         * PKW seri önce seçilince marka/model/yıl listesini snapshot'tan süzer.
+         *
+         * @return array<int, array{value:string}>|null
+         */
+        private function loadPkwSnapshotBySerie(
+            string $field,
+            string $serie,
+            string $hersteller,
+            string $modell
+        ): ?array {
+            $lid = $this->langID > 0 ? $this->langID : 1;
+            $params = ['lid' => $lid];
+            try {
+                if ($field === 'serie') {
+                    $rows = $this->db->getObjects(
+                        'SELECT DISTINCT cSerie AS val
+                           FROM twomosi_fk_opt_pkw_serie
+                          WHERE kSprache = :lid AND cSerie <> \'\'
+                       ORDER BY cSerie ASC',
+                        $params
+                    );
+                } elseif ($field === 'hersteller' && $serie !== '') {
+                    $params['serie'] = $serie;
+                    $rows = $this->db->getObjects(
+                        'SELECT DISTINCT cHersteller AS val
+                           FROM twomosi_fk_opt_pkw_serie
+                          WHERE kSprache = :lid AND cSerie = :serie AND cHersteller <> \'\'
+                       ORDER BY cHersteller ASC',
+                        $params
+                    );
+                } elseif ($field === 'modell' && $serie !== '' && $hersteller !== '') {
+                    $params['serie'] = $serie;
+                    $params['her'] = $hersteller;
+                    $rows = $this->db->getObjects(
+                        'SELECT DISTINCT cModell AS val
+                           FROM twomosi_fk_opt_pkw_serie
+                          WHERE kSprache = :lid AND cSerie = :serie AND cHersteller = :her AND cModell <> \'\'
+                       ORDER BY cModell ASC',
+                        $params
+                    );
+                } elseif ($field === 'baujahr' && $serie !== '' && $hersteller !== '' && $modell !== '') {
+                    $params['serie'] = $serie;
+                    $params['her'] = $hersteller;
+                    $params['mod'] = $modell;
+                    $rows = $this->db->getObjects(
+                        'SELECT DISTINCT cBaujahr AS val
+                           FROM twomosi_fk_opt_pkw_serie
+                          WHERE kSprache = :lid AND cSerie = :serie AND cHersteller = :her AND cModell = :mod AND cBaujahr <> \'\'
+                       ORDER BY cBaujahr ASC',
+                        $params
+                    );
+                } else {
+                    return null;
+                }
+            } catch (\Throwable $e) {
+                return null;
+            }
+
+            $out = [];
+            foreach ((array)$rows as $row) {
+                $value = \trim((string)($row->val ?? ''));
+                if ($value !== '') {
+                    $out[] = ['value' => $value];
+                }
+            }
+
+            return $out;
+        }
+
         public function loadPkwMerkmalOptions(
             string $field,
             string $term,
@@ -323,10 +350,21 @@ class FilterKonfiguratorRepository
                     'pkw'
                 );
                 if (\is_array($snap)) return $snap;
+            } elseif ($term === '') {
+                $bySerie = $this->loadPkwSnapshotBySerie($field, $serieFilter, $herstellerFilter, $modellFilter);
+                if (\is_array($bySerie)) {
+                    return $bySerie;
+                }
             }
 
             if ($field === 'serie') {
                 $langID = $this->langID > 0 ? $this->langID : 1;
+                if ($term === '' && $herstellerFilter === '' && $modellFilter === '' && \trim($baujahrFilter) === '') {
+                    $allSeries = $this->loadPkwSnapshotBySerie('serie', '', '', '');
+                    if (\is_array($allSeries) && $allSeries !== []) {
+                        return $allSeries;
+                    }
+                }
                 // 0) Cache Check (Speed up Step 4 for PKW)
                 $cacheKey = '';
                 if ($term === '') {
@@ -856,8 +894,261 @@ class FilterKonfiguratorRepository
             if ($field === '') {
                 return [];
             }
-    
+
             $serieFilter = \trim($serieFilter);
+            $memoKey = \md5(\serialize([
+                $this->langID,
+                $field,
+                $term,
+                $typFilter,
+                $herstellerFilter,
+                $basisFilter,
+                $modellFilter,
+                $baujahrFilter,
+                $fkCustomModell,
+                $vehicleSegment,
+                $serieFilter,
+            ]));
+            if (\array_key_exists($memoKey, self::$merkmalOptionsMemo)) {
+                return self::$merkmalOptionsMemo[$memoKey];
+            }
+            self::$merkmalOptionsMemo[$memoKey] = CharacteristicOptionsGuard::rememberByKey(
+                'fk_mopt_' . $memoKey,
+                function () use (
+                    $field,
+                    $term,
+                    $typFilter,
+                    $herstellerFilter,
+                    $basisFilter,
+                    $modellFilter,
+                    $baujahrFilter,
+                    $fkCustomModell,
+                    $vehicleSegment,
+                    $serieFilter
+                ): array {
+                    return $this->loadMerkmalOptionsCompute(
+                        $field,
+                        $term,
+                        $typFilter,
+                        $herstellerFilter,
+                        $basisFilter,
+                        $modellFilter,
+                        $baujahrFilter,
+                        $fkCustomModell,
+                        $vehicleSegment,
+                        $serieFilter
+                    );
+                }
+            );
+            return self::$merkmalOptionsMemo[$memoKey];
+        }
+
+        /**
+         * @return array<int,bool>
+         */
+        private function loadArticleIdsForMerkmalValue(string $merkmalName, string $value, int $langID): array
+        {
+            $rows = $this->db->getObjects(
+                "SELECT DISTINCT am.kArtikel
+                   FROM tmerkmalsprache ms
+             INNER JOIN tmerkmalwert mw ON mw.kMerkmal = ms.kMerkmal
+             INNER JOIN tmerkmalwertsprache ws
+                     ON ws.kMerkmalWert = mw.kMerkmalWert
+                    AND ws.kSprache = :langID
+             INNER JOIN tartikelmerkmal am ON am.kMerkmalWert = mw.kMerkmalWert
+                  WHERE ms.kSprache = :langID
+                    AND ms.cName = :merkmalName
+                    AND TRIM(ws.cWert) = :val",
+                ['langID' => $langID, 'merkmalName' => $merkmalName, 'val' => $value]
+            );
+            $ids = [];
+            foreach ((array)$rows as $row) {
+                $ids[(int)$row->kArtikel] = true;
+            }
+
+            return $ids;
+        }
+
+        /**
+         * Sitz + Serie wurden zuerst gewählt: nur Fahrzeugwerte derselben
+         * tatsächlich kompatiblen Artikelkombination zurückgeben.
+         *
+         * @return array<int, array{value:string}>
+         */
+        public function loadWmVehicleOptionsForSeatSeries(
+            string $field,
+            string $sitz,
+            string $serie,
+            string $typ = '',
+            string $hersteller = '',
+            string $basis = '',
+            string $modell = ''
+        ): array {
+            $targetNames = [
+                'typ'        => 'Wohnmobil-Aufbauart',
+                'hersteller' => 'Fahrzeug-Marke',
+                'basis'      => 'Wohnmobil-Fahrgestell',
+                'modell'     => 'Fahrzeug-Modell',
+            ];
+            if (!isset($targetNames[$field]) || \trim($sitz) === '' || \trim($serie) === '') {
+                return [];
+            }
+
+            $langID = $this->langID > 0 ? $this->langID : 1;
+            $sitz   = \trim($sitz);
+            $serie  = \trim($serie);
+
+            try {
+                $sitzIds = $this->loadArticleIdsForMerkmalValue('kompatible Sitze', $sitz, $langID);
+                if ($sitzIds === []) {
+                    return [];
+                }
+                $serieIds = $this->loadArticleIdsForMerkmalValue('Serie', $serie, $langID);
+                foreach ((array)$this->db->getObjects(
+                    "SELECT DISTINCT ka.kArtikel
+                       FROM tkategorieartikel ka
+                 INNER JOIN tkategorie k ON k.kKategorie = ka.kKategorie
+                  LEFT JOIN tkategoriesprache ks
+                         ON ks.kKategorie = k.kKategorie
+                        AND ks.kSprache = :langID
+                      WHERE COALESCE(NULLIF(ks.cName, ''), k.cName) = :serie",
+                    ['langID' => $langID, 'serie' => $serie]
+                ) as $row) {
+                    $serieIds[(int)$row->kArtikel] = true;
+                }
+                if ($serieIds === []) {
+                    return [];
+                }
+
+                $sitzList = \implode(',', \array_keys($sitzIds));
+                $candidates = [];
+                foreach ((array)$this->db->getObjects(
+                    "SELECT a.kArtikel, a.kVaterArtikel
+                       FROM tartikel a
+                      WHERE a.nIstVater = 0
+                        AND (a.kArtikel IN ({$sitzList}) OR a.kVaterArtikel IN ({$sitzList}))"
+                ) as $row) {
+                    $id     = (int)$row->kArtikel;
+                    $parent = (int)$row->kVaterArtikel;
+                    if (isset($serieIds[$id]) || ($parent > 0 && isset($serieIds[$parent]))) {
+                        $candidates[$id] = $id;
+                    }
+                }
+                if ($candidates === []) {
+                    return [];
+                }
+
+                $idList = \implode(',', $candidates);
+                $segmentJoin = PkwSqlFragments::wmProdukttypFilter('langID');
+                $parents = [];
+                $allowed = [];
+                foreach ((array)$this->db->getObjects(
+                    "SELECT DISTINCT a.kArtikel, a.kVaterArtikel
+                       FROM tartikel a
+                       {$segmentJoin}
+                      WHERE a.kArtikel IN ({$idList})",
+                    ['langID' => $langID]
+                ) as $row) {
+                    $id = (int)$row->kArtikel;
+                    $allowed[$id] = (int)$row->kVaterArtikel;
+                    if ((int)$row->kVaterArtikel > 0) {
+                        $parents[(int)$row->kVaterArtikel] = (int)$row->kVaterArtikel;
+                    }
+                }
+                if ($allowed === []) {
+                    return [];
+                }
+
+                $merkmalNames = [
+                    'typ'        => 'Wohnmobil-Aufbauart',
+                    'hersteller' => 'Fahrzeug-Marke',
+                    'basis'      => 'Wohnmobil-Fahrgestell',
+                    'modell'     => 'Fahrzeug-Modell',
+                ];
+                $nameToKey = \array_flip($merkmalNames);
+                $valueIds  = \implode(',', \array_unique(\array_merge(\array_keys($allowed), \array_values($parents))));
+                $values    = [];
+                foreach ((array)$this->db->getObjects(
+                    "SELECT am.kArtikel, ms.cName, TRIM(ws.cWert) AS val
+                       FROM tartikelmerkmal am
+                 INNER JOIN tmerkmalwert mw ON mw.kMerkmalWert = am.kMerkmalWert
+                 INNER JOIN tmerkmalsprache ms
+                         ON ms.kMerkmal = mw.kMerkmal
+                        AND ms.kSprache = :langID
+                        AND ms.cName IN ('Wohnmobil-Aufbauart', 'Fahrzeug-Marke', 'Wohnmobil-Fahrgestell', 'Fahrzeug-Modell')
+                 INNER JOIN tmerkmalwertsprache ws
+                         ON ws.kMerkmalWert = am.kMerkmalWert
+                        AND ws.kSprache = :langID
+                      WHERE am.kArtikel IN ({$valueIds})",
+                    ['langID' => $langID]
+                ) as $row) {
+                    $key = $nameToKey[(string)$row->cName] ?? '';
+                    $val = (string)$row->val;
+                    if ($key !== '' && $val !== '') {
+                        $values[(int)$row->kArtikel][$key][$val] = true;
+                    }
+                }
+
+                $wanted = [
+                    'typ'        => \trim($typ),
+                    'hersteller' => \trim($hersteller),
+                    'basis'      => \trim($basis),
+                    'modell'     => \trim($modell),
+                ];
+                $rows = [];
+                foreach ($allowed as $id => $parent) {
+                    $own = $values[$id] ?? [];
+                    $inherited = $parent > 0 ? ($values[$parent] ?? []) : [];
+                    $match = true;
+                    foreach ($wanted as $key => $value) {
+                        if ($key === $field || $value === '') {
+                            continue;
+                        }
+                        if (!isset($own[$key][$value]) && !isset($inherited[$key][$value])) {
+                            $match = false;
+                            break;
+                        }
+                    }
+                    if (!$match) {
+                        continue;
+                    }
+                    foreach (\array_keys(($own[$field] ?? []) + ($inherited[$field] ?? [])) as $val) {
+                        $rows[$val] = (object)['val' => (string)$val];
+                    }
+                }
+                \ksort($rows, \SORT_NATURAL | \SORT_FLAG_CASE);
+                $rows = \array_slice(\array_values($rows), 0, 200);
+            } catch (\Throwable $e) {
+                return [];
+            }
+
+            $out = [];
+            foreach ((array)$rows as $row) {
+                $value = \trim((string)($row->val ?? ''));
+                if ($value !== '') {
+                    $out[$value] = ['value' => $value];
+                }
+            }
+
+            return \array_values($out);
+        }
+
+        /**
+         * @return list<array<string, mixed>>|list<string>
+         */
+        private function loadMerkmalOptionsCompute(
+            string $field,
+            string $term,
+            string $typFilter,
+            string $herstellerFilter,
+            string $basisFilter,
+            string $modellFilter,
+            string $baujahrFilter,
+            bool $fkCustomModell,
+            string $vehicleSegment,
+            string $serieFilter
+        ): array
+        {
     
             if ($vehicleSegment === 'pkw') {
                 return $this->loadPkwMerkmalOptions($field, $term, $herstellerFilter, $modellFilter, $baujahrFilter, $serieFilter, $vehicleSegment);
@@ -1198,7 +1489,7 @@ class FilterKonfiguratorRepository
                 }
             }
     
-            // Modell: Seçili Typ + Hersteller + Basis (Wohnmobil-Fahrgestell) kombinasyonuna göre modeller
+            // Modell: Typ + Hersteller; Basis seçilmişse sonucu ayrıca daralt.
             if ($field === 'modell') {
                 // Serie → Marke → Modell (ohne Typ/Basis): Modell aus Artikeln mit Serie + Marke.
                 if ($serieFilter !== '' && $herstellerFilter !== '' && $typFilter === '' && $basisFilter === '') {
@@ -1289,15 +1580,33 @@ class FilterKonfiguratorRepository
                     return $out;
                 }
     
-                if ($herstellerFilter === '' || $typFilter === '' || $basisFilter === '') {
+                if ($herstellerFilter === '' || $typFilter === '') {
                     $names = ['Fahrzeug-Modell'];
                 } else {
                     $params = [
                         'langID'     => $this->langID,
                         'typ'        => $typFilter,
                         'hersteller' => $herstellerFilter,
-                        'basis'      => $basisFilter,
                     ];
+                    $basisJoin = '';
+                    if ($basisFilter !== '') {
+                        $params['basis'] = $basisFilter;
+                        $basisJoin = "
+                        INNER JOIN tartikelmerkmal am_basis
+                                ON am_basis.kArtikel = a.kArtikel
+                        INNER JOIN tmerkmalwert mw_basis
+                                ON mw_basis.kMerkmalWert = am_basis.kMerkmalWert
+                        INNER JOIN tmerkmal m_basis
+                                ON m_basis.kMerkmal = mw_basis.kMerkmal
+                        INNER JOIN tmerkmalsprache ms_basis
+                                ON ms_basis.kMerkmal = m_basis.kMerkmal
+                               AND ms_basis.kSprache = :langID
+                               AND ms_basis.cName    = 'Wohnmobil-Fahrgestell'
+                        INNER JOIN tmerkmalwertsprache tmws_basis
+                                ON tmws_basis.kMerkmalWert = mw_basis.kMerkmalWert
+                               AND tmws_basis.kSprache     = :langID
+                               AND tmws_basis.cWert        = :basis";
+                    }
                     $likeSql = '';
                     if ($term !== '') {
                         $params['term'] = '%' . $term . '%';
@@ -1338,21 +1647,7 @@ class FilterKonfiguratorRepository
                                 ON tmws_her.kMerkmalWert = mw_her.kMerkmalWert
                                AND tmws_her.kSprache     = :langID
                                AND tmws_her.cWert        = :hersteller
-                        -- Basisfahrzeug (Wohnmobil-Fahrgestell)
-                        INNER JOIN tartikelmerkmal am_basis
-                                ON am_basis.kArtikel = a.kArtikel
-                        INNER JOIN tmerkmalwert mw_basis
-                                ON mw_basis.kMerkmalWert = am_basis.kMerkmalWert
-                        INNER JOIN tmerkmal m_basis
-                                ON m_basis.kMerkmal = mw_basis.kMerkmal
-                        INNER JOIN tmerkmalsprache ms_basis
-                                ON ms_basis.kMerkmal = m_basis.kMerkmal
-                               AND ms_basis.kSprache = :langID
-                               AND ms_basis.cName    = 'Wohnmobil-Fahrgestell'
-                        INNER JOIN tmerkmalwertsprache tmws_basis
-                                ON tmws_basis.kMerkmalWert = mw_basis.kMerkmalWert
-                               AND tmws_basis.kSprache     = :langID
-                               AND tmws_basis.cWert        = :basis
+                        {$basisJoin}
                         -- Modell (Fahrzeug-Modell)
                         INNER JOIN tartikelmerkmal am_mod
                                 ON am_mod.kArtikel = a.kArtikel
@@ -1860,21 +2155,38 @@ class FilterKonfiguratorRepository
             if (!\in_array($serieMerkmalName, $allowed, true)) {
                 $serieMerkmalName = 'Serie';
             }
+
+            // PKW-Standardfall zuerst aus dem Snapshot bedienen. Familie-Serie
+            // (Freitext-Modell) und Wohnmobil laufen weiter über die Live-Abfrage.
+            if ($serieMerkmalName === 'Serie'
+                && \strtolower(\trim((string)($selectionQuery['segment'] ?? ''))) === 'pkw'
+            ) {
+                $fromSnapshot = $this->findPkwSeriesFromSnapshot($matchedValues, $selectionQuery);
+                if ($fromSnapshot !== null && $fromSnapshot !== []) {
+                    return $fromSnapshot;
+                }
+            }
     
-            $joins  = '';
-            $params = ['langID' => $this->langID, 'serieMerkmalName' => $serieMerkmalName];
+            $joins      = '';
+            $childJoins = '';
+            $params     = ['langID' => $this->langID, 'serieMerkmalName' => $serieMerkmalName];
     
             foreach ($matchedValues as $i => $mv) {
                 $tamAlias  = 'tam' . $i;
                 $tmwsAlias = 'tmws' . $i;
                 $paramKey  = 'q' . $i;
     
-                $joins .= " INNER JOIN tartikelmerkmal {$tamAlias}"
-                        . "    ON {$tamAlias}.kArtikel = a.kArtikel"
-                        . " INNER JOIN tmerkmalwertsprache {$tmwsAlias}"
+                $valueJoin = " INNER JOIN tmerkmalwertsprache {$tmwsAlias}"
                         . "    ON {$tmwsAlias}.kMerkmalWert = {$tamAlias}.kMerkmalWert"
                         . "   AND {$tmwsAlias}.kSprache     = :langID"
                         . "   AND {$tmwsAlias}.cWert         = :{$paramKey}";
+                $joins .= " INNER JOIN tartikelmerkmal {$tamAlias}"
+                        . "    ON ({$tamAlias}.kArtikel = a.kArtikel"
+                        . "        OR (a.kVaterArtikel > 0 AND {$tamAlias}.kArtikel = a.kVaterArtikel))"
+                        . $valueJoin;
+                $childJoins .= " INNER JOIN tartikelmerkmal {$tamAlias}"
+                        . "    ON {$tamAlias}.kArtikel = a.kArtikel"
+                        . $valueJoin;
     
                 $params[$paramKey] = $mv['cWert'];
             }
@@ -1893,7 +2205,8 @@ class FilterKonfiguratorRepository
                       {$segJoin}
                       {$joins}
                 INNER JOIN tartikelmerkmal tamSerie
-                        ON tamSerie.kArtikel = a.kArtikel
+                        ON (tamSerie.kArtikel = a.kArtikel
+                            OR (a.kVaterArtikel > 0 AND tamSerie.kArtikel = a.kVaterArtikel))
                 INNER JOIN tmerkmalwert mwSerie
                         ON mwSerie.kMerkmalWert = tamSerie.kMerkmalWert
                 INNER JOIN tmerkmal mSerie
@@ -1914,7 +2227,69 @@ class FilterKonfiguratorRepository
                      LIMIT 24";
     
             $rows = $this->db->getObjects($sql, $params);
+            if ((!is_array($rows) || $rows === []) && $segment !== 'pkw') {
+                $rows = $this->findWmSeriesCategoryRows($childJoins, $segJoin, $params);
+            }
     
+            return $this->buildSerieItems($rows, $matchedValues, $selectionQuery);
+        }
+
+        /**
+         * Wohnmobil serisi çoğu üründe "Serie" merkmalı değil, kategori adıdır
+         * (ör. PLKT-Serie). Merkmal sorgusu boşsa aynı seçime uyan yaprak
+         * kategoriyi seri olarak döndür.
+         *
+         * @param array<string,mixed> $params
+         * @return array<int,object>
+         */
+        private function findWmSeriesCategoryRows(string $joins, string $segJoin, array $params): array
+        {
+            $sql = "SELECT DISTINCT COALESCE(NULLIF(ks.cName, ''), NULLIF(c.cName, '')) AS serie,
+                           seo.cSeo AS serieSeo
+                      FROM tartikel a
+                      {$segJoin}
+                      {$joins}
+                INNER JOIN tkategorieartikel kaSerie
+                        ON kaSerie.kArtikel = a.kArtikel
+                INNER JOIN tkategorie c
+                        ON c.kKategorie = kaSerie.kKategorie
+                 LEFT JOIN tkategoriesprache ks
+                        ON ks.kKategorie = c.kKategorie
+                       AND ks.kSprache = :langID
+                 LEFT JOIN tseo seo
+                        ON seo.cKey = 'kKategorie'
+                       AND seo.kKey = c.kKategorie
+                       AND seo.kSprache = :langID
+                     WHERE a.nIstVater = 0
+                       AND COALESCE(NULLIF(ks.cName, ''), c.cName) LIKE '%Serie%'
+                  ORDER BY serie ASC
+                     LIMIT 24";
+
+            unset($params['serieMerkmalName']);
+
+            try {
+                $rows = $this->db->getObjects($sql, $params);
+            } catch (\Throwable $e) {
+                return [];
+            }
+
+            return is_array($rows) ? $rows : [];
+        }
+
+
+        /**
+         * Serien-URLs (SEO-Pfad + Filtersegmente) aus Ergebniszeilen bauen.
+         * Wird von der Live-Abfrage und vom PKW-Snapshot genutzt, damit beide
+         * Wege identische URLs liefern.
+         *
+         * @param mixed                                      $rows Zeilen mit serie/serieSeo
+         * @param array<int,array{cWert:string,cSeo:string}>  $matchedValues
+         * @param array<string,string>                       $selectionQuery
+         *
+         * @return array<int,array{serie:string,url:string}>
+         */
+        private function buildSerieItems($rows, array $matchedValues, array $selectionQuery): array
+        {
             $filterSlugs = [];
             foreach ($matchedValues as $mv) {
                 if (!empty($mv['cSeo'])) {
@@ -1922,25 +2297,158 @@ class FilterKonfiguratorRepository
                 }
             }
             $filterPath = !empty($filterSlugs) ? '__' . \implode('__', $filterSlugs) : '';
-    
+
             $shopURL = Shop::getURL();
             $items   = [];
-    
+
             if (\is_array($rows)) {
                 foreach ($rows as $row) {
-                    $serieBase = !empty($row->serieSeo)
-                        ? '/' . $row->serieSeo
-                        : '/' . $row->serie . '-Serie';
-    
-                    $base = $shopURL . $serieBase . $filterPath;
+                    $serie = \trim((string)($row->serie ?? ''));
+                    if ($serie === '') {
+                        continue;
+                    }
+                    $serieSeo  = \trim((string)($row->serieSeo ?? ''));
+                    $serieBase = $serieSeo !== '' ? '/' . $serieSeo : '/' . $serie . '-Serie';
+                    $base      = $shopURL . $serieBase . $filterPath;
+
                     $items[] = [
-                        'serie'   => $row->serie,
-                        'url'     => $this->appendKonfiguratorQueryParams($base, $selectionQuery),
+                        'serie' => $serie,
+                        'url'   => $this->appendKonfiguratorQueryParams($base, $selectionQuery),
                     ];
                 }
             }
-    
+
             return $items;
+        }
+
+
+        /**
+         * PKW-Serien aus dem Snapshot (twomosi_fk_opt_pkw_serie) lesen, statt die
+         * teure Live-Abfrage über tartikel/tartikelmerkmal auszuführen.
+         *
+         * null = kein Snapshot-Treffer; der Aufrufer nutzt dann die Live-Abfrage.
+         *
+         * @param array<int,array{cWert:string,cSeo:string}> $matchedValues
+         * @param array<string,string>                       $selectionQuery
+         *
+         * @return array<int,array{serie:string,url:string}>|null
+         */
+        private function findPkwSeriesFromSnapshot(array $matchedValues, array $selectionQuery): ?array
+        {
+            $hersteller = \trim((string)($selectionQuery['hersteller'] ?? ''));
+            $modell     = \trim((string)($selectionQuery['modell'] ?? ''));
+            $baujahr    = \trim((string)($selectionQuery['baujahr'] ?? ''));
+            if ($hersteller === '' || $modell === '' || $baujahr === '') {
+                return null;
+            }
+
+            try {
+                $rows = $this->db->getObjects(
+                    "SELECT DISTINCT cSerie
+                       FROM twomosi_fk_opt_pkw_serie
+                      WHERE kSprache    = :lid
+                        AND cHersteller = :hersteller
+                        AND cModell     = :modell
+                        AND cBaujahr    = :baujahr
+                   ORDER BY cSerie ASC
+                      LIMIT 24",
+                    [
+                        'lid'        => $this->langID > 0 ? $this->langID : 1,
+                        'hersteller' => $hersteller,
+                        'modell'     => $modell,
+                        'baujahr'    => $baujahr,
+                    ]
+                );
+            } catch (\Throwable $e) {
+                return null;
+            }
+            if (!\is_array($rows) || $rows === []) {
+                return null;
+            }
+
+            $serieValues = [];
+            foreach ($rows as $row) {
+                $serie = \trim((string)($row->cSerie ?? ''));
+                if ($serie !== '') {
+                    $serieValues[$serie] = $serie;
+                }
+            }
+            if ($serieValues === []) {
+                return null;
+            }
+
+            $seoMap       = $this->fetchSerieSeoSlugs(\array_values($serieValues));
+            $snapshotRows = [];
+            foreach ($serieValues as $serie) {
+                $snapshotRows[] = (object)[
+                    'serie'    => $serie,
+                    'serieSeo' => $seoMap[$serie] ?? '',
+                ];
+            }
+
+            return $this->buildSerieItems($snapshotRows, $matchedValues, $selectionQuery);
+        }
+
+
+        /**
+         * SEO-Slugs der Serien-Merkmalwerte — ohne Artikel-Joins, daher günstig.
+         *
+         * @param array<int,string> $serieValues
+         *
+         * @return array<string,string> cWert => cSeo
+         */
+        private function fetchSerieSeoSlugs(array $serieValues): array
+        {
+            if ($serieValues === []) {
+                return [];
+            }
+
+            $placeholders = [];
+            $params       = ['langID' => $this->langID];
+            foreach (\array_values($serieValues) as $i => $value) {
+                $key            = 'sv' . $i;
+                $placeholders[] = ':' . $key;
+                $params[$key]   = $value;
+            }
+
+            try {
+                $rows = $this->db->getObjects(
+                    "SELECT tmws.cWert AS serie,
+                            seo.cSeo   AS serieSeo
+                       FROM tmerkmalwertsprache tmws
+                 INNER JOIN tmerkmalwert mw
+                         ON mw.kMerkmalWert = tmws.kMerkmalWert
+                 INNER JOIN tmerkmal m
+                         ON m.kMerkmal = mw.kMerkmal
+                 INNER JOIN tmerkmalsprache ms
+                         ON ms.kMerkmal = m.kMerkmal
+                        AND ms.kSprache = :langID
+                        AND ms.cName    = 'Serie'
+                  LEFT JOIN tseo seo
+                         ON seo.cKey     = 'kMerkmalWert'
+                        AND seo.kKey     = tmws.kMerkmalWert
+                        AND seo.kSprache = :langID
+                      WHERE tmws.kSprache = :langID
+                        AND tmws.cWert IN (" . \implode(',', $placeholders) . ")",
+                    $params
+                );
+            } catch (\Throwable $e) {
+                return [];
+            }
+
+            $map = [];
+            if (\is_array($rows)) {
+                foreach ($rows as $row) {
+                    $serie = \trim((string)($row->serie ?? ''));
+                    $seo   = \trim((string)($row->serieSeo ?? ''));
+                    if ($serie === '' || $seo === '' || isset($map[$serie])) {
+                        continue;
+                    }
+                    $map[$serie] = $seo;
+                }
+            }
+
+            return $map;
         }
     
     

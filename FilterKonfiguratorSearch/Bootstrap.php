@@ -6,7 +6,9 @@ require_once __DIR__ . '/src/PluginDatabase.php';
 require_once __DIR__ . '/src/Query/PkwSqlFragments.php';
 require_once __DIR__ . '/src/Repository/FilterKonfiguratorRepository.php';
 require_once __DIR__ . '/src/Controller/FilterKonfiguratorController.php';
+require_once __DIR__ . '/src/Service/SeatImageRecognitionService.php';
 require_once __DIR__ . '/src/SeriesMetaRuntime.php';
+require_once __DIR__ . '/src/Filter/CharacteristicOptionsGuard.php';
 
 use JTL\DB\DbInterface;
 use JTL\Events\Dispatcher;
@@ -57,9 +59,13 @@ class Bootstrap extends Bootstrapper
         // Tablo DDL: PluginDatabase::ensureCoreTables() — yalnızca /fk-search ve /fk-selection
         // (ve admin) yollarında; her shop isteğinde bootstrap yükünü artırmaz.
         $this->ensureAdminMenuEntry();
+        try {
+            $this->registerCharacteristicOptionsCache($dispatcher);
+        } catch (\Throwable $e) {
+        }
 
         // CSS/JS: sadece gereken sayfalarda yükle (global yükleme LCP/TTI/TBT'yi ciddi düşürür).
-        // - Ana konfigurator CSS + womosi-konfigurator.js → yalnızca Startseite (HTML de orada).
+        // - Ana konfigurator CSS + JS sürümlü URL ile doğrudan kendi template'inden yüklenir.
         // - fk-liste-title + fk-manual-model-cart → liste/ürün/warenkorb/checkout + Startseite.
         // Serie-Metadaten (Dashboard) → window.FK_SERIES_CONFIG vor den Konfigurator-Skripten
         $dispatcher->hookInto(\HOOK_SMARTY_OUTPUTFILTER, function (array &$args): void {
@@ -80,6 +86,32 @@ class Bootstrap extends Bootstrapper
             }
             $doc = $args['document'];
             $this->injectFkSeriesConfigInDocumentHead($doc);
+            try {
+                $assetVersion = (string)$this->getPlugin()->getMeta()->getSemVer()->getOriginalVersion();
+            } catch (\Throwable $e) {
+                $assetVersion = '1.14.70';
+            }
+            $assetVersion = \preg_replace('/[^0-9A-Za-z._-]/', '', $assetVersion) ?: '1.14.70';
+            if (\version_compare($assetVersion, '1.14.85', '<')) {
+                $assetVersion = '1.14.85';
+            }
+            foreach ([
+                ['selector' => 'script[src*="fk-micro-konfigurator.js"]', 'attr' => 'src'],
+                ['selector' => 'link[href*="fk-micro-filter.css"]', 'attr' => 'href'],
+            ] as $asset) {
+                $nodes = $doc->find($asset['selector']);
+                for ($i = 0, $count = (int)$nodes->length; $i < $count; $i++) {
+                    $node = $nodes->eq($i);
+                    $url  = (string)$node->attr($asset['attr']);
+                    if ($url === '' || \strpos($url, 'fkver=') !== false) {
+                        continue;
+                    }
+                    $node->attr(
+                        $asset['attr'],
+                        $url . (\strpos($url, '?') === false ? '?' : '&') . 'fkver=' . $assetVersion
+                    );
+                }
+            }
         });
 
         $dispatcher->hookInto(\HOOK_LETZTERINCLUDE_CSS_JS, function (array &$args): void {
@@ -98,25 +130,8 @@ class Bootstrap extends Bootstrapper
                 return;
             }
 
-            if ($isHome) {
-                if (!isset($args['cPluginCss_arr']) || !\is_array($args['cPluginCss_arr'])) {
-                    $args['cPluginCss_arr'] = [];
-                }
-                $cssPath = 'plugins/FilterKonfiguratorSearch/templates/css/womosi-konfigurator.css';
-                if (!\in_array($cssPath, $args['cPluginCss_arr'], true)) {
-                    $args['cPluginCss_arr'][] = $cssPath;
-                }
-            }
-
             if (!isset($args['cPluginJsHead_arr']) || !\is_array($args['cPluginJsHead_arr'])) {
                 $args['cPluginJsHead_arr'] = [];
-            }
-
-            if ($isHome) {
-                $jsPathMain = 'plugins/FilterKonfiguratorSearch/templates/js/womosi-konfigurator.js';
-                if (!\in_array($jsPathMain, $args['cPluginJsHead_arr'], true)) {
-                    $args['cPluginJsHead_arr'][] = $jsPathMain;
-                }
             }
 
             if ($needsAuxJs) {
@@ -210,6 +225,37 @@ class Bootstrap extends Bootstrapper
                     'nSegmentPkwActive' => 1,
                 ]);
             }
+
+            $seatPhotoEnabledRaw = '0';
+            try {
+                $seatPhotoEnabledRaw = \strtolower(\trim((string)(
+                    $this->getPlugin()->getConfig()->getValue('fk_seat_photo_enabled_v2') ?? '0'
+                )));
+                $db = Shop::Container()->getDB();
+                $pluginRow = $db->getSingleObject(
+                    "SELECT kPlugin FROM tplugin
+                      WHERE cPluginID = 'FilterKonfiguratorSearch'
+                         OR TRIM(cVerzeichnis) = 'FilterKonfiguratorSearch'
+                   ORDER BY kPlugin DESC LIMIT 1"
+                );
+                $pluginId = (int)($pluginRow->kPlugin ?? 0);
+                if ($pluginId > 0) {
+                    $settingRow = $db->getSingleObject(
+                        "SELECT cWert FROM tplugineinstellungen
+                          WHERE kPlugin = :pid AND cName = 'fk_seat_photo_enabled_v2'
+                          LIMIT 1",
+                        ['pid' => $pluginId]
+                    );
+                    if ($settingRow !== null) {
+                        $seatPhotoEnabledRaw = \strtolower(\trim((string)($settingRow->cWert ?? '0')));
+                    }
+                }
+            } catch (\Throwable $e) {
+            }
+            $smarty->assign(
+                'fkSeatPhotoEnabled',
+                !\in_array($seatPhotoEnabledRaw, ['0', 'n', 'no', 'false', 'off', ''], true)
+            );
 
             $tplPath = $this->getPlugin()->getPaths()->getBasePath() . 'templates/filterkonfigurator_index.tpl';
             if (!\is_file($tplPath)) {
@@ -515,9 +561,14 @@ class Bootstrap extends Bootstrapper
             $values = [];
             foreach ($items as $it) {
                 $val = trim((string)($it['value'] ?? ''));
-                if ($val !== '') {
-                    $values[] = $esc($val);
+                $label = trim((string)($it['label'] ?? ''));
+                if ($val === '') {
+                    continue;
                 }
+                if ($label === 'kompatible Sitze') {
+                    $val = $this->fkSeatDisplayName($val);
+                }
+                $values[] = $esc($val);
             }
 
             $segment = \trim((string)Request::getVar('segment', ''));
@@ -540,14 +591,8 @@ class Bootstrap extends Bootstrapper
             $subtitle = '';
             if (!($microInjected && $fkMicroListPage)) {
                 if ($noGreenMessageBlock) {
-                    // Produkt-, Warenkorb-, Checkout: kein grüner Hinweis; nur H1-Kompaktzeile oder Werte ohne Meldung
-                    if ($compactTitle !== '') {
-                        $subtitle = '';
-                    } else {
-                        $subtitle = '<div class="fk-selection-subtitle text-muted mt-2 mb-1">'
-                            . '<div class="fk-selection-values">' . \implode(' ', $values) . '</div>'
-                            . '</div>';
-                    }
+                    // Produkt-, Warenkorb-, Checkout: kein grüner Hinweis; nur H1-Kompaktzeile
+                    $subtitle = '';
                 } elseif ($compactTitle !== '') {
                     $subtitle = '<div class="fk-selection-subtitle text-muted mt-2 mb-1">'
                         . $messageBlock
@@ -637,6 +682,11 @@ class Bootstrap extends Bootstrapper
                         $ua          = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
                         $ip          = Request::getRealIP();
 
+                        // Spam-/Bot-Schutz: max. 20 Selektions-Logs pro IP / 10s (fail-open ohne APCu).
+                        if (PluginDatabase::throttle('sel', $ip, 20, 10)) {
+                            return new \Laminas\Diactoros\Response\JsonResponse(['ok' => true], 200);
+                        }
+
                         try {
                             PluginDatabase::ensureCoreTables();
                             $db->executeQueryPrepared(
@@ -664,6 +714,77 @@ class Bootstrap extends Bootstrapper
                     },
                     'fk-selection',
                     ['GET', 'POST']
+                );
+
+                $router->addRoute(
+                    '/fk-anfrage',
+                    function (ServerRequestInterface $request, array $routeArgs, JTLSmarty $smarty) {
+                        $controller = new FilterKonfiguratorController();
+                        return $controller->anfrage($request, $routeArgs);
+                    },
+                    'fk-anfrage',
+                    ['POST']
+                );
+
+                $router->addRoute(
+                    '/fk-seat-recognize',
+                    function (ServerRequestInterface $request, array $routeArgs, JTLSmarty $smarty) {
+                        $apiKey = '';
+                        $model = 'gpt-5.6';
+                        $enabledRaw = '0';
+                        try {
+                            $config = $this->getPlugin()->getConfig();
+                            $apiKey = \trim((string)($config->getValue('fk_openai_api_key') ?? ''));
+                            $model = \trim((string)($config->getValue('fk_openai_model') ?? 'gpt-5.6'));
+                            $enabledRaw = \strtolower(\trim((string)($config->getValue('fk_seat_photo_enabled_v2') ?? '0')));
+                        } catch (\Throwable $e) {
+                        }
+                        try {
+                            $db = Shop::Container()->getDB();
+                            $pluginRow = $db->getSingleObject(
+                                "SELECT kPlugin FROM tplugin
+                                  WHERE cPluginID = 'FilterKonfiguratorSearch'
+                                     OR TRIM(cVerzeichnis) = 'FilterKonfiguratorSearch'
+                               ORDER BY kPlugin DESC LIMIT 1"
+                            );
+                            $pluginId = (int)($pluginRow->kPlugin ?? 0);
+                            if ($pluginId > 0) {
+                                $settingRows = $db->getObjects(
+                                    "SELECT cName, cWert FROM tplugineinstellungen
+                                      WHERE kPlugin = :pid
+                                        AND cName IN ('fk_seat_photo_enabled_v2', 'fk_openai_api_key', 'fk_openai_model')",
+                                    ['pid' => $pluginId]
+                                );
+                                foreach ((array)$settingRows as $settingRow) {
+                                    $name = (string)($settingRow->cName ?? '');
+                                    $value = \trim((string)($settingRow->cWert ?? ''));
+                                    if ($name === 'fk_openai_api_key') {
+                                        $apiKey = $value;
+                                    } elseif ($name === 'fk_openai_model' && $value !== '') {
+                                        $model = $value;
+                                    } elseif ($name === 'fk_seat_photo_enabled_v2') {
+                                        $enabledRaw = \strtolower($value);
+                                    }
+                                }
+                            }
+                        } catch (\Throwable $e) {
+                        }
+                        if ($model === '' || $model === 'gpt-4.1-mini') {
+                            $model = 'gpt-5.6';
+                        }
+                        $enabled = !\in_array($enabledRaw, ['0', 'n', 'no', 'false', 'off'], true);
+                        $controller = new FilterKonfiguratorController();
+
+                        return $controller->recognizeSeatPhoto(
+                            $request,
+                            $routeArgs,
+                            $apiKey,
+                            $model,
+                            $enabled
+                        );
+                    },
+                    'fk-seat-recognize',
+                    ['POST']
                 );
             });
         }
@@ -761,15 +882,15 @@ class Bootstrap extends Bootstrapper
                 if (!isset($have['nSegmentPkwActive'])) {
                     $db->executeQuery("ALTER TABLE twomosi_fk_banner ADD COLUMN nSegmentPkwActive TINYINT(1) NOT NULL DEFAULT 1 AFTER nSegmentWmActive");
                 }
-                try {
+                if (!isset($have['nSegmentOrder'])) {
                     $db->executeQuery("ALTER TABLE twomosi_fk_banner ADD COLUMN nSegmentOrder TINYINT(1) NOT NULL DEFAULT 0 AFTER nSegmentPkwActive");
-                } catch (\Throwable $e) {}
-                try {
+                }
+                if (!isset($have['cActiveCategories'])) {
                     $db->executeQuery("ALTER TABLE twomosi_fk_banner ADD COLUMN cActiveCategories VARCHAR(1000) NOT NULL DEFAULT '' AFTER nSegmentOrder");
-                } catch (\Throwable $e) {}
-                try {
+                }
+                if (!isset($have['cSegmentPkwFirstCategories'])) {
                     $db->executeQuery("ALTER TABLE twomosi_fk_banner ADD COLUMN cSegmentPkwFirstCategories VARCHAR(1000) NOT NULL DEFAULT '' AFTER cActiveCategories");
-                } catch (\Throwable $e) {}
+                }
             }
 
             // Seed defaults once (race-safe enough: duplicate rows are harmless; prefer single row)
@@ -912,7 +1033,10 @@ class Bootstrap extends Bootstrapper
                     dUpdated DATETIME NOT NULL
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
             );
-            try { $db->executeQuery("ALTER TABLE twomosi_fk_micro_scope ADD COLUMN cCategoryIdsPkwFirst VARCHAR(4000) NOT NULL DEFAULT '' AFTER cCategoryIds"); } catch (\Throwable $e) {}
+            $pkwFirstCol = $db->getSingleObject("SHOW COLUMNS FROM twomosi_fk_micro_scope LIKE 'cCategoryIdsPkwFirst'");
+            if ($pkwFirstCol === null) {
+                $db->executeQuery("ALTER TABLE twomosi_fk_micro_scope ADD COLUMN cCategoryIdsPkwFirst VARCHAR(4000) NOT NULL DEFAULT '' AFTER cCategoryIds");
+            }
             self::$fkMicroScopeTableEnsured = true;
             self::$fkMicroScopeLastErr = '';
         } catch (\Throwable $e) {
@@ -1236,17 +1360,19 @@ class Bootstrap extends Bootstrapper
             . $tabsHtml
             . '<div class="fk-selection-micro-inner">'
             . '<div id="fkMicroStatus" class="fk-micro-status-wrap"></div>'
-            . '<div class="fk-micro-form" aria-label="Fahrzeug auswählen">'
-            . '<div class="fk-micro-field fk-micro-field--wm"><label for="fkMicroTyp">Typ</label><select id="fkMicroTyp" class="custom-select custom-select-sm"><option value="">Bitte wählen</option></select></div>'
-            . '<div class="fk-micro-field"><label for="fkMicroHersteller">Marke</label><select id="fkMicroHersteller" class="custom-select custom-select-sm"><option value="">Bitte wählen</option></select></div>'
-            . '<div class="fk-micro-field fk-micro-field--wm"><label for="fkMicroBasis">Basis</label><select id="fkMicroBasis" class="custom-select custom-select-sm"><option value="">Bitte wählen</option></select></div>'
-            . '<div class="fk-micro-field"><label for="fkMicroModell">Modell</label><select id="fkMicroModell" class="custom-select custom-select-sm"><option value="">Bitte wählen</option></select></div>'
-            . '<div class="fk-micro-field fk-micro-field--pkw"><label for="fkMicroBaujahr">Baujahr</label><select id="fkMicroBaujahr" class="custom-select custom-select-sm"><option value="">Bitte wählen</option></select></div>'
-            . '<div class="fk-micro-field fk-micro-field--wm"><label for="fkMicroSitz">Sitz</label><select id="fkMicroSitz" class="custom-select custom-select-sm"><option value="">Bitte wählen</option></select></div>'
+            . '<div class="fk-micro-form fk-micro-form--seat fk-micro-field--wm" aria-label="Sitz auswählen">'
+            . '<div class="fk-micro-field"><label for="fkMicroSitz">Sitz <span class="fk-required" aria-hidden="true">*</span></label><select id="fkMicroSitz" class="custom-select custom-select-sm" required aria-required="true"><option value="">Bitte wählen</option></select></div>'
             . '</div>'
-            . '<div class="fk-micro-serie-field"><label for="fkMicroSerie">Serie</label>'
-            . '<select id="fkMicroSerie" class="custom-select custom-select-sm" disabled style="display:none;"><option value="">Bitte wählen</option></select>'
+            . '<div class="fk-micro-serie-field"><label for="fkMicroSerie">Serie <span class="fk-required" aria-hidden="true">*</span></label>'
+            . '<select id="fkMicroSerie" class="custom-select custom-select-sm" required aria-required="true" disabled style="display:none;"><option value="">Bitte wählen</option></select>'
             . '<div id="fkMicroSerieGrid" class="fk-micro-serie-grid"></div>'
+            . '</div>'
+            . '<div class="fk-micro-form fk-micro-form--vehicle" aria-label="Fahrzeug auswählen">'
+            . '<div class="fk-micro-field fk-micro-field--wm" style="display:none;"><label for="fkMicroTyp">Typ</label><select id="fkMicroTyp" class="custom-select custom-select-sm"><option value="">Bitte wählen</option></select></div>'
+            . '<div class="fk-micro-field"><label for="fkMicroHersteller">Marke <span class="fk-required" aria-hidden="true">*</span></label><select id="fkMicroHersteller" class="custom-select custom-select-sm" required aria-required="true"><option value="">Bitte wählen</option></select></div>'
+            . '<div class="fk-micro-field fk-micro-field--wm"><label for="fkMicroBasis">Fahrgestell <span class="fk-required" aria-hidden="true">*</span></label><select id="fkMicroBasis" class="custom-select custom-select-sm" required aria-required="true"><option value="">Bitte wählen</option></select></div>'
+            . '<div class="fk-micro-field"><label for="fkMicroModell">Modell <span class="fk-required" aria-hidden="true">*</span></label><select id="fkMicroModell" class="custom-select custom-select-sm" required aria-required="true"><option value="">Bitte wählen</option></select></div>'
+            . '<div class="fk-micro-field fk-micro-field--pkw"><label for="fkMicroBaujahr">Baujahr</label><select id="fkMicroBaujahr" class="custom-select custom-select-sm"><option value="">Bitte wählen</option></select></div>'
             . '</div>'
             . '</div>'
             . '</div></div>';
@@ -1265,6 +1391,32 @@ class Bootstrap extends Bootstrapper
         ];
 
         return $map[$label] ?? $label;
+    }
+
+    private function fkSeatDisplayName(string $value): string
+    {
+        $code = \trim($value);
+        if (\preg_match('/^\d{1,2}$/', $code) === 1) {
+            $code = (string)(int)$code;
+        }
+        $names = [
+            '1'  => 'Aguti Milan 12',
+            '2'  => 'Aguti Liner 12',
+            '3'  => 'ISRI Captain Chair',
+            '4'  => 'ISRI CC mit Gurt',
+            '5'  => 'ISRI Ducato / Jumper / Boxer, Bj. 2006–2014',
+            '6'  => 'Aguti Milan',
+            '7'  => 'Aguti GIS-Liner',
+            '8'  => 'Aguti GIS-Liner 3',
+            '9'  => 'Ford Transit ab Bj. 2014',
+            '10' => 'Ford Transit ab Bj. 2014 mit integrierter Kopfstütze',
+            '11' => 'Aguti Milan 3',
+            '12' => 'SKA 1800 M23 Komfort',
+            '13' => 'SKA 1800/1000 M23 Classic',
+            '14' => 'Mercedes-Benz Sprinter / Hymer',
+        ];
+
+        return $names[$code] ?? $value;
     }
 
     /**
@@ -1327,6 +1479,9 @@ class Bootstrap extends Bootstrapper
         foreach ($map as $key => $label) {
             $val = $get($key);
             if ($val !== '') {
+                if ($key === 'sitz') {
+                    $val = $this->fkSeatDisplayName($val);
+                }
                 $items[] = ['label' => $label, 'value' => $val];
             }
         }
@@ -1476,6 +1631,12 @@ class Bootstrap extends Bootstrapper
         } catch (\Throwable $e) {
             // No hard failure for menu insertion.
         }
+    }
+
+    private function registerCharacteristicOptionsCache(Dispatcher $dispatcher): void
+    {
+        // 1.14.47: Shop-Cache-Austausch und ALTER TABLE in boot() erzeugten HTTP 500.
+        // Schutz bleibt vorerst deaktiviert, bis die Seite wieder läuft.
     }
 }
 

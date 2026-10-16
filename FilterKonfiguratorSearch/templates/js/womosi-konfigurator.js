@@ -186,6 +186,7 @@
     var step2 = container.querySelector('#step2');
     var step3 = container.querySelector('#step3');
     var step4 = container.querySelector('#step4');
+    var wmSerieTitle = container.querySelector('#fk-wm-serie-title');
 
     var lbl1 = container.querySelector('#lbl1');
     var lbl2 = container.querySelector('#lbl2');
@@ -197,6 +198,10 @@
     var dot4 = container.querySelector('#dot4');
     var bar = container.querySelector('#bar');
     var stepText = container.querySelector('#stepText');
+    var lblText1 = container.querySelector('#lblText1');
+    var lblText2 = container.querySelector('#lblText2');
+    var lblText3 = container.querySelector('#lblText3');
+    var lblText4 = container.querySelector('#lblText4');
 
     var lblP1 = container.querySelector('#lblP1');
     var lblP2 = container.querySelector('#lblP2');
@@ -251,12 +256,14 @@
         if (doneCb) doneCb();
         return;
       }
-      WomosiApi.fetchJson('/fk-search', WomosiState.fkSegmentParams({
+      var yearReq = WomosiState.fkSegmentParams({
         mode: 'options',
         field: 'baujahr',
         hersteller: state.hersteller,
         modell: modApi
-      })).then(function (data) {
+      });
+      if (state.serie) yearReq.serie = state.serie;
+      WomosiApi.fetchJson('/fk-search', yearReq).then(function (data) {
         var vals = uniqSorted(
           (Array.isArray(data) ? data : [])
             .map(function (row) { return row && row.value ? String(row.value) : ''; })
@@ -275,6 +282,22 @@
     }
     var seatGrid = container.querySelector('#seatGrid');
     var seatHint = container.querySelector('#seatHint');
+    var seatStartGrid = container.querySelector('#seatStartGrid');
+    var seatStartHint = container.querySelector('#seatStartHint');
+    var seatPhotoInput = container.querySelector('#seatPhotoInput');
+    var seatPhotoTrigger = container.querySelector('#seatPhotoTrigger');
+    var seatPhotoPreview = container.querySelector('#seatPhotoPreview');
+    var seatPhotoPreviewImage = container.querySelector('#seatPhotoPreviewImage');
+    var seatPhotoRemove = container.querySelector('#seatPhotoRemove');
+    var seatPhotoConsent = container.querySelector('#seatPhotoConsent');
+    var seatPhotoAnalyze = container.querySelector('#seatPhotoAnalyze');
+    var seatPhotoStatus = container.querySelector('#seatPhotoStatus');
+    var seatPhotoResult = container.querySelector('#seatPhotoResult');
+    var seatPhotoResultImage = container.querySelector('#seatPhotoResultImage');
+    var seatPhotoResultName = container.querySelector('#seatPhotoResultName');
+    var seatPhotoResultConfidence = container.querySelector('#seatPhotoResultConfidence');
+    var seatPhotoRetry = container.querySelector('#seatPhotoRetry');
+    var seatPhotoObjectUrl = '';
     var selSerie = container.querySelector('#serie');
     var serieGrid = container.querySelector('#serieGrid');
     var serieHint = container.querySelector('#serieHint');
@@ -303,6 +326,7 @@
     var state = {
       step: 1,
       segment: defaultSeg,
+      flowMode: 'seat-first',
       typKey: '',
       typLabel: '',
       hersteller: '',
@@ -343,6 +367,10 @@
         o.segment = 'pkw';
       }
       return o;
+    }
+
+    WomosiState.isWmSeatFirst = function () {
+      return state.segment !== 'pkw' && state.flowMode === 'seat-first';
     }
 
     WomosiState.modellEffectiveForApi = function () {
@@ -398,6 +426,7 @@
         var payload = {
           step: state.step || 1,
           segment: state.segment || 'wohnmobil',
+          flowMode: state.flowMode || 'vehicle-first',
           typKey: state.typKey || '',
           typLabel: state.typLabel || '',
           hersteller: state.hersteller || '',
@@ -417,6 +446,66 @@
       try {
         window.localStorage.removeItem(FK_STATE_CACHE_KEY);
       } catch (_) { }
+    }
+
+    // Hängt die aktuelle Auswahl als Query-Parameter an die Ziel-URL,
+    // damit der Mikro-Konfigurator auf der Produkt-/Kategorieseite die
+    // Auswahl auch ohne localStorage zuverlässig übernimmt.
+    WomosiState.appendSelectionToUrl = function (rawUrl) {
+      try {
+        var u = String(rawUrl || '');
+        if (!u || u === '#') return rawUrl;
+
+        var hash = '';
+        var hashIdx = u.indexOf('#');
+        if (hashIdx !== -1) { hash = u.slice(hashIdx); u = u.slice(0, hashIdx); }
+
+        // Bereits vorhandene Query-Keys ermitteln, damit wir sie nicht doppelt anhängen
+        // (die URL kommt vom Server ggf. schon mit segment/hersteller/modell/baujahr etc.).
+        var existingKeys = {};
+        var qIdx = u.indexOf('?');
+        if (qIdx !== -1) {
+          u.slice(qIdx + 1).split('&').forEach(function (pair) {
+            if (!pair) return;
+            var eq = pair.indexOf('=');
+            var k = eq === -1 ? pair : pair.slice(0, eq);
+            try { k = decodeURIComponent(k); } catch (_) { /* keep raw */ }
+            if (k) existingKeys[k] = true;
+          });
+        }
+
+        var isPkw = state.segment === 'pkw';
+        var pairs = [];
+        function add(k, v) {
+          if (existingKeys[k]) return;
+          v = (v == null) ? '' : String(v).trim();
+          if (!v) return;
+          pairs.push(encodeURIComponent(k) + '=' + encodeURIComponent(v));
+        }
+
+        add('segment', isPkw ? 'pkw' : 'wohnmobil');
+        if (!isPkw) add('typ', state.typKey);
+        add('hersteller', state.hersteller);
+        if (!isPkw) add('basis', state.basis);
+
+        var modellParam = WomosiState.modellEffectiveForApi();
+        if (modellParam) {
+          add('modell', modellParam);
+          if (state.modell === FK_MODELL_CUSTOM_VALUE || (state.modellCustom && !state.modell)) {
+            add('fkCustomModell', '1');
+          }
+        }
+
+        add('baujahr', state.year);
+        if (!isPkw) add('sitz', state.seatId);
+        add('serie', state.serie);
+
+        if (!pairs.length) return rawUrl;
+        var sep = u.indexOf('?') === -1 ? '?' : '&';
+        return u + sep + pairs.join('&') + hash;
+      } catch (_) {
+        return rawUrl;
+      }
     }
 
     WomosiUI.ensureSelectValue = function (sel, value) {
@@ -443,6 +532,8 @@
         if (!cached || typeof cached !== 'object') return false;
 
         state.segment = String(cached.segment || 'wohnmobil') === 'pkw' ? 'pkw' : 'wohnmobil';
+        state.flowMode = String(cached.flowMode || '') === 'seat-first' ? 'seat-first' : 'vehicle-first';
+        if (state.segment === 'pkw') state.flowMode = 'vehicle-first';
         WomosiState.clampSegmentToAllowed();
         WomosiUI.applySegmentToDom();
         state.typKey = String(cached.typKey || '');
@@ -468,6 +559,9 @@
         if (state.segment === 'pkw' && desiredStep === 3) {
           desiredStep = 4;
         }
+        if (WomosiState.isWmSeatFirst() && desiredStep !== 1) {
+          desiredStep = state.seatId ? 4 : 1;
+        }
 
         // Restore visible controls quickly (without waiting API chains)
         if (vehicleGrid && state.typKey) {
@@ -476,6 +570,9 @@
           });
           var activeLink = vehicleGrid.querySelector('a.tile-link[data-key="' + state.typKey.replace(/"/g, '\\"') + '"]');
           if (activeLink) activeLink.classList.add('is-active');
+        }
+        if (state.flowMode === 'seat-first') {
+          WomosiApi.loadStartSitzOptions();
         }
         WomosiUI.ensureSelectValue(selHer, state.hersteller);
         WomosiUI.ensureSelectValue(selBasis, state.basis);
@@ -574,20 +671,20 @@
     }
 
     var SEAT_META = {
-      '1': { code: '1', name: 'Sitz 1', tooltip: 'Milan 12', img: 'https://womosi.de/mediafiles/sitz/1.jpg' },
-      '2': { code: '2', name: 'Sitz 2', tooltip: 'Liner 12', img: 'https://womosi.de/mediafiles/sitz/2.jpg' },
-      '3': { code: '3', name: 'Sitz 3', tooltip: 'Captain Chair', img: 'https://womosi.de/mediafiles/sitz/3.jpg' },
-      '4': { code: '4', name: 'Sitz 4', tooltip: 'Itineo', img: 'https://womosi.de/mediafiles/sitz/4.jpg' },
-      '5': { code: '5', name: 'Sitz 5', tooltip: 'Standart Ducato Sitz', img: 'https://womosi.de/mediafiles/sitz/5.jpg' },
-      '6': { code: '6', name: 'Sitz 6', tooltip: 'Milan', img: 'https://womosi.de/mediafiles/sitz/6.jpg' },
-      '7': { code: '7', name: 'Sitz 7', tooltip: 'Gis Liner', img: 'https://womosi.de/mediafiles/sitz/7.jpg' },
-      '8': { code: '8', name: 'Sitz 8', tooltip: 'Gis Liner 3', img: 'https://womosi.de/mediafiles/sitz/8.jpg' },
-      '9': { code: '9', name: 'Sitz 9', tooltip: 'Ford Transit', img: 'https://womosi.de/mediafiles/sitz/9.jpg' },
-      '10': { code: '10', name: 'Sitz 10', tooltip: 'Ford Pilot', img: 'https://womosi.de/mediafiles/sitz/10.jpg' },
-      '11': { code: '11', name: 'Sitz 11', tooltip: 'Mian 3', img: 'https://womosi.de/mediafiles/sitz/11.jpg' },
-      '12': { code: '12', name: 'Sitz 12', tooltip: 'SKA 1800-M23 Komfort', img: 'https://womosi.de/mediafiles/sitz/12.jpg' },
-      '13': { code: '13', name: 'Sitz 13', tooltip: 'SKA 1800-1000 M23 Classic', img: 'https://womosi.de/mediafiles/sitz/13.jpg' },
-      '14': { code: '14', name: 'Sitz 14', tooltip: 'Mercedes Sprinter', img: 'https://womosi.de/mediafiles/sitz/14.jpg' }
+      '1': { code: '1', order: 7, name: 'Aguti Milan 12', tooltip: 'Aguti Milan 12', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/1.jpg' },
+      '2': { code: '2', order: 6, name: 'Aguti Liner 12', tooltip: 'Aguti Liner 12', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/2.jpg' },
+      '3': { code: '3', order: 1, name: 'ISRI Captain Chair', tooltip: 'ISRI Captain Chair', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/3.jpg' },
+      '4': { code: '4', order: 3, name: 'ISRI CC mit Gurt', tooltip: 'ISRI CC mit Gurt', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/4.jpg' },
+      '5': { code: '5', order: 2, name: 'ISRI Ducato / Jumper / Boxer, Bj. 2006–2014', tooltip: 'ISRI Ducato / Jumper / Boxer, Bj. 2006–2014', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/5.jpg' },
+      '6': { code: '6', order: 5, name: 'Aguti Milan', tooltip: 'Aguti Milan', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/6.jpg' },
+      '7': { code: '7', order: 4, name: 'Aguti GIS-Liner', tooltip: 'Aguti GIS-Liner', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/7.jpg' },
+      '8': { code: '8', order: 11, name: 'Aguti GIS-Liner 3', tooltip: 'Aguti GIS-Liner 3', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/8.jpg' },
+      '9': { code: '9', order: 8, name: 'Ford Transit ab Bj. 2014', tooltip: 'Ford Transit ab Bj. 2014', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/9.jpg' },
+      '10': { code: '10', order: 9, name: 'Ford Transit ab Bj. 2014 mit integrierter Kopfstütze', tooltip: 'Ford Transit ab Bj. 2014 mit integrierter Kopfstütze', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/10.jpg' },
+      '11': { code: '11', order: 12, name: 'Aguti Milan 3', tooltip: 'Aguti Milan 3', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/11.jpg' },
+      '12': { code: '12', order: 13, name: 'SKA 1800 M23 Komfort', tooltip: 'SKA 1800 M23 Komfort', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/12.jpg' },
+      '13': { code: '13', order: 14, name: 'SKA 1800/1000 M23 Classic', tooltip: 'SKA 1800/1000 M23 Classic', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/13.jpg' },
+      '14': { code: '14', order: 10, name: 'Mercedes-Benz Sprinter / Hymer', tooltip: 'Mercedes-Benz Sprinter / Hymer', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/14.jpg' }
     };
 
     WomosiState.seatCodeFromValue = function (v) {
@@ -596,43 +693,46 @@
       // Accept "1", "01", "Sitz 1", "Sitz 10", etc.
       var m = s.match(/(\d{1,2})/);
       if (!m) return '';
-      var code = String(parseInt(m[1], 14));
+      var code = String(parseInt(m[1], 10));
       return SEAT_META[code] ? code : '';
     }
 
     var SERIES_META = {
-      ZM: { label: 'Serie ZM', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/zm-serie.avif' },
-      1: { label: 'Serie 01', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/serie-01.avif' },
-      FT: { label: 'Serie FT', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/ft-serie.avif' },
-      FNL: { label: 'Serie FNL', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/fnl-serie.avif' },
-      V: { label: 'Serie V', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/v-serie.avif' },
-      TK600: { label: 'Serie TK600', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/tk600-serie.avif' },
-      T: { label: 'Serie T', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/t-serie.avif' },
-      TF: { label: 'Serie TF', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/tf-serie.avif' },
-      SL: { label: 'Serie SL', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/sl-serie.avif' },
-      PS: { label: 'Serie PS', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/ps-serie.avif' },
-      PL: { label: 'Serie PL', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/pl-serie.avif' },
-      NL: { label: 'Serie NL', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/nl-serie.avif' },
-      N3: { label: 'Serie N3', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/n3-serie.avif' },
-      MD: { label: 'Serie MD', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/md-serie.avif' },
-      M: { label: 'Serie M', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/m-serie.avif' },
-      KT300: { label: 'Serie KT3', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/kt300-serie.avif' },
-      KT: { label: 'Serie KT', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/kt-serie.avif' },
-      S1: { label: 'Serie 01', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/serie-01.avif' },
-      AH: { label: 'Serie AH', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/ah-serie.avif' },
-      GT: { label: 'Serie GT', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/gt-serie.avif' },
-      C: { label: 'Serie C', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/c-serie.avif' },
-      DPL: { label: 'Serie DPL', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/dpl-serie.avif' },
-      H: { label: 'Serie H', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/h-serie.avif' },
-      PLKT: { label: 'Serie PLKT', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/plkt-serie.avif' },
-      WPL: { label: 'Serie WPL', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/wpl-serie.avif' },
-      WMS: { label: 'Serie WMS', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/wms-serie.avif' },
-      HW: { label: 'Serie HW', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/hw-serie.avif' },
-      BC: { label: 'Serie BC', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/bc-serie.avif' },
-      DS: { label: 'Serie DS', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/ds-serie.avif' },
-      LT: { label: 'Serie LT', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/lt-serie.avif' },
-      800: { label: 'Serie 800er', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/800er-serie.avif' },
-      WMA: { label: 'Aguti Sitze', color: '#f5f5f5', img: 'https://womosi.de/mediafiles/seat/aguti-sitze-serie.avif' }
+      ZM: { label: 'Serie ZM', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/zm-serie.avif' },
+      1: { label: 'Serie 01', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/serie-01.avif' },
+      FT: { label: 'Serie FT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/ft-serie.avif' },
+      FNL: { label: 'Serie FNL', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/fnl-serie.avif' },
+      V: { label: 'Serie V', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/v-serie.avif' },
+      TK600: { label: 'Serie TK600', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/tk600-serie.avif' },
+      T: { label: 'Serie T', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/t-serie.avif' },
+      TF: { label: 'Serie TF', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/tf-serie.avif' },
+      SL: { label: 'Serie SL', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/sl-serie.avif' },
+      PS: { label: 'Serie PS', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/ps-serie.avif' },
+      PL: { label: 'Serie PL', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/pl-serie.avif' },
+      NL: { label: 'Serie NL', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/nl-serie.avif' },
+      N3: { label: 'Serie N3', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/n3-serie.avif' },
+      MD: { label: 'Serie MD', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/md-serie.avif' },
+      M: { label: 'Serie M', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/m-serie.avif' },
+      KT300: { label: 'Serie KT3', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/kt300-serie.avif' },
+      KT: { label: 'Serie KT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/kt-serie.avif' },
+      S1: { label: 'Serie 01', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/serie-01.avif' },
+      AH: { label: 'Serie AH', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/ah-serie.avif' },
+      GT: { label: 'Serie GT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/gt-serie.avif' },
+      C: { label: 'Serie C', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/c-serie.avif' },
+      DPL: { label: 'Serie DPL', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/dpl-serie.avif' },
+      H: { label: 'Serie H', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/h-serie.avif' },
+      PLKT: { label: 'Serie PLKT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/plkt-serie.avif' },
+      WPL: { label: 'Serie WPL', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/wpl-serie.avif' },
+      WMS: { label: 'Serie WMS', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/wms-serie.avif' },
+      HW: { label: 'Serie HW', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/hw-serie.avif' },
+      BC: { label: 'Serie BC', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/bc-serie.avif' },
+      DS: { label: 'Serie DS', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/ds-serie.avif' },
+      LT: { label: 'Serie LT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/lt-serie.avif' },
+      800: { label: 'Serie 800er', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/800er-serie.avif' },
+      WMA: { label: 'Aguti Sitze', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/aguti-sitze-serie.avif' },
+      WDS: { label: 'Serie WDS', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/wds-serie.webp' },
+      SMD: { label: 'Serie SMD', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/smd-serie.webp' },
+      NP: { label: 'Serie NP', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/np-serie.webp' }
     };
 
     var SERIES_HIDDEN = Object.create(null);
@@ -691,15 +791,32 @@
     function findSeriesMeta(code) {
       if (!code) return null;
       var c = String(code).trim();
-      if (SERIES_META[c]) return SERIES_META[c];
-      var stripped = c.replace(/^Serie\s+/i, '');
-      if (SERIES_META[stripped]) return SERIES_META[stripped];
-      var upper = stripped.toUpperCase();
-      for (var k in SERIES_META) {
-        if (k.toUpperCase() === upper) return SERIES_META[k];
+      if (!c) return null;
+      var candidates = [];
+      function add(v) {
+        v = String(v || '').trim();
+        if (v && candidates.indexOf(v) === -1) candidates.push(v);
       }
+      add(c);
+      add(c.replace(/^Serie\s+/i, ''));
+      candidates.slice().forEach(function (v) {
+        add(v.replace(/[\s_-]*serie$/i, ''));
+      });
+      candidates.slice().forEach(function (v) {
+        add(v.replace(/er$/i, ''));
+      });
+      for (var i = 0; i < candidates.length; i++) {
+        var cand = candidates[i];
+        if (SERIES_META[cand]) return SERIES_META[cand];
+        var upper = cand.toUpperCase();
+        for (var k in SERIES_META) {
+          if (k.toUpperCase() === upper) return SERIES_META[k];
+        }
+      }
+      var cUpper = c.toUpperCase();
       for (var k2 in SERIES_META) {
-        if (SERIES_META[k2].label && SERIES_META[k2].label.toUpperCase() === c.toUpperCase()) {
+        var label = SERIES_META[k2].label ? String(SERIES_META[k2].label).toUpperCase() : '';
+        if (label && (label === cUpper || candidates.some(function (v) { return label === ('SERIE ' + v).toUpperCase(); }))) {
           return SERIES_META[k2];
         }
       }
@@ -736,11 +853,29 @@
         serieLoadingInterval = null;
       }
 
+      var seatFirst = state.segment !== 'pkw' && state.flowMode === 'seat-first';
+      var uxStep = n;
+      if (seatFirst) {
+        uxStep = n === 4 ? 2 : (n === 2 ? 3 : 1);
+      }
+      container.classList.toggle('fk-flow-seat-direct', seatFirst);
+      if (lblText1) lblText1.textContent = seatFirst ? 'Sitz' : 'Wohnmobil-Aufbauart';
+      if (lblText2) lblText2.textContent = seatFirst ? 'Serie' : 'Details';
+      if (lblText3) lblText3.textContent = seatFirst ? 'Fahrzeug' : 'Sitz';
+      if (lblText4) lblText4.textContent = 'Serie';
+      if (wmSerieTitle) {
+        wmSerieTitle.textContent = seatFirst ? 'Step 2 – Serie auswählen' : 'Step 4 – Serie auswählen';
+      }
+      var wmDetailsTitle = container.querySelector('#fk-wm-details-title');
+      if (wmDetailsTitle) {
+        wmDetailsTitle.textContent = seatFirst ? 'Step 3 – Fahrzeug auswählen' : 'Step 2 – Details';
+      }
+
       var labels = [lbl1, lbl2, lbl3, lbl4];
       var dots = [dot1, dot2, dot3, dot4];
       labels.forEach(function (l, i) {
         if (!l || !dots[i]) return;
-        if (i + 1 === n) {
+        if (i + 1 === uxStep) {
           l.classList.add('active');
           dots[i].classList.add('active');
         } else {
@@ -750,10 +885,10 @@
       });
 
       if (bar) {
-        bar.style.width = (25 * n) + '%';
+        bar.style.width = (seatFirst ? Math.round(100 * uxStep / 3) : (25 * uxStep)) + '%';
       }
       if (stepText) {
-        stepText.textContent = 'Step ' + n + '/4';
+        stepText.textContent = 'Step ' + uxStep + '/' + (seatFirst ? '3' : '4');
       }
 
       if (state.segment === 'pkw') {
@@ -785,6 +920,9 @@
       if (state.segment === 'pkw' && n === 4) {
         doScroll = true;
       }
+      if (state.segment !== 'pkw' && state.flowMode === 'seat-first' && n === 4) {
+        doScroll = true;
+      }
       if (state.segment === 'pkw' && n === 3) {
         doScroll = false;
       }
@@ -804,6 +942,12 @@
         if (!yp) {
           return { ok: false, msg: 'Bitte Baujahr wählen.' };
         }
+        return { ok: true, msg: '' };
+      }
+      if (WomosiState.isWmSeatFirst()) {
+        if (!state.hersteller) return { ok: false, msg: 'Bitte Hersteller wählen.' };
+        if (!state.basis) return { ok: false, msg: 'Bitte Wohnmobil-Fahrgestell wählen.' };
+        if (!state.modell) return { ok: false, msg: 'Bitte Modell wählen.' };
         return { ok: true, msg: '' };
       }
       if (!state.typKey) return { ok: false, msg: 'Bitte zuerst Fahrzeugtyp wählen.' };
@@ -831,7 +975,7 @@
         toStep3Btn.disabled = !v2;
         toStep3Btn.textContent = state.segment === 'pkw'
           ? 'Weiter zur Serie'
-          : 'Weiter zu Sitz-Auswahl';
+          : (state.flowMode === 'seat-first' ? 'Weiter zu den Produkten' : 'Weiter zu Sitz-Auswahl');
       }
       if (toStep4Btn) {
         toStep4Btn.disabled = state.segment === 'pkw' ? true : !state.seatId;
@@ -857,6 +1001,7 @@
     WomosiUI.hardReset = function () {
       // State sıfırla
       state.step = 1;
+      state.flowMode = 'seat-first';
       state.typKey = '';
       state.typLabel = '';
       state.hersteller = '';
@@ -912,6 +1057,11 @@
       if (seatGrid) {
         seatGrid.innerHTML = '';
       }
+      if (seatStartGrid) {
+        seatStartGrid.querySelectorAll('.tile-link.is-active').forEach(function (a) {
+          a.classList.remove('is-active');
+        });
+      }
       if (seatHint) {
         seatHint.textContent = '';
       }
@@ -941,6 +1091,7 @@
         WomosiUI.setStep(2);
       } else {
         WomosiUI.setStep(1);
+        WomosiApi.loadStartSitzOptions();
       }
       WomosiUI.updateSummary();
       WomosiState.clearStateCache();
@@ -948,16 +1099,27 @@
 
     // ==== Dropdown yükleme ====
 
+    WomosiApi.seatSerieParams = function (extra) {
+      var p = extra || {};
+      p.sitz = state.seatId || '';
+      p.serie = state.serie || '';
+      return p;
+    }
+
     WomosiApi.loadHersteller = function () {
-      if (state.segment === 'wohnmobil' && !state.typKey) {
+      var seatFirst = WomosiState.isWmSeatFirst();
+      if (seatFirst ? (!state.seatId || !state.serie) : (state.segment === 'wohnmobil' && !state.typKey)) {
         if (selHer) WomosiUI.fillSelect(selHer, []);
         return;
       }
-      var hq = WomosiState.fkSegmentParams({
-        mode: 'options',
-        field: 'hersteller',
-        typ: state.segment === 'wohnmobil' ? (state.typKey || '') : ''
-      });
+      var hq = seatFirst
+        ? WomosiApi.seatSerieParams({ mode: 'options', field: 'hersteller' })
+        : WomosiState.fkSegmentParams({
+          mode: 'options',
+          field: 'hersteller',
+          typ: state.segment === 'wohnmobil' ? (state.typKey || '') : ''
+        });
+      if (state.segment === 'pkw' && state.serie) hq.serie = state.serie;
       WomosiApi.fetchJson('/fk-search', hq).then(function (data) {
         var vals = uniqSorted(
           (Array.isArray(data) ? data : [])
@@ -981,16 +1143,15 @@
     }
 
     WomosiApi.loadBasis = function () {
-      if (!state.typKey || !state.hersteller) {
+      var seatFirst = WomosiState.isWmSeatFirst();
+      if ((!seatFirst && !state.typKey) || !state.hersteller) {
         if (selBasis) WomosiUI.fillSelect(selBasis, []);
         return;
       }
-      WomosiApi.fetchJson('/fk-search', {
-        mode: 'options',
-        field: 'basis',
-        typ: state.typKey || '',
-        hersteller: state.hersteller || ''
-      }).then(function (data) {
+      var bq = seatFirst
+        ? WomosiApi.seatSerieParams({ mode: 'options', field: 'basis', hersteller: state.hersteller })
+        : { mode: 'options', field: 'basis', typ: state.typKey || '', hersteller: state.hersteller || '' };
+      WomosiApi.fetchJson('/fk-search', bq).then(function (data) {
         var vals = uniqSorted(
           (Array.isArray(data) ? data : [])
             .map(function (row) { return row && row.value ? String(row.value) : ''; })
@@ -1018,11 +1179,13 @@
           if (doneCb) doneCb();
           return;
         }
-        WomosiApi.fetchJson('/fk-search', WomosiState.fkSegmentParams({
+        var modellReq = WomosiState.fkSegmentParams({
           mode: 'options',
           field: 'modell',
           hersteller: state.hersteller || ''
-        })).then(function (data) {
+        });
+        if (state.serie) modellReq.serie = state.serie;
+        WomosiApi.fetchJson('/fk-search', modellReq).then(function (data) {
           var vals = uniqSorted(
             (Array.isArray(data) ? data : [])
               .map(function (row) { return row && row.value ? String(row.value) : ''; })
@@ -1059,24 +1222,22 @@
         });
         return;
       }
-      if (!state.typKey || !state.hersteller || !state.basis) {
+      var seatFirstMod = WomosiState.isWmSeatFirst();
+      if ((!seatFirstMod && !state.typKey) || !state.hersteller || !state.basis) {
         WomosiUI.fillSelect(selMod, []);
         if (doneCb) doneCb();
         return;
       }
-      WomosiApi.fetchJson('/fk-search', {
-        mode: 'options',
-        field: 'modell',
-        typ: state.typKey || '',
-        hersteller: state.hersteller || '',
-        basis: state.basis || ''
-      }).then(function (data) {
+      var mq = seatFirstMod
+        ? WomosiApi.seatSerieParams({ mode: 'options', field: 'modell', hersteller: state.hersteller, basis: state.basis })
+        : { mode: 'options', field: 'modell', typ: state.typKey || '', hersteller: state.hersteller || '', basis: state.basis || '' };
+      WomosiApi.fetchJson('/fk-search', mq).then(function (data) {
         var vals = uniqSorted(
           (Array.isArray(data) ? data : [])
             .map(function (row) { return row && row.value ? String(row.value) : ''; })
         );
         WomosiUI.fillSelect(selMod, vals);
-        WomosiUI.appendModellNotInListOption(selMod);
+        if (!seatFirstMod) WomosiUI.appendModellNotInListOption(selMod);
         state.modell = '';
         state.modellCustom = '';
         if (inpModCustom) {
@@ -1092,18 +1253,10 @@
       });
     }
 
-    WomosiUI.renderSeats = function (values) {
-      if (!seatGrid) return;
-      seatGrid.innerHTML = '';
+    WomosiUI.renderSeatGrid = function (targetGrid, values, onSelect) {
+      if (!targetGrid) return;
+      targetGrid.innerHTML = '';
       var list = Array.isArray(values) ? values : [];
-      if (!list.length) {
-        if (seatHint) seatHint.textContent = 'Keine kompatiblen Sitze gefunden.';
-        state.seatId = '';
-        state.seatLabel = '';
-        WomosiUI.updateSummary();
-        return;
-      }
-      if (seatHint) seatHint.textContent = 'Wähle deinen Sitz.';
       list.forEach(function (label) {
         var seatValue = String(label || '').trim();
         if (!seatValue) return;
@@ -1141,14 +1294,150 @@
           e.preventDefault();
           state.seatId = seatValue;
           state.seatLabel = (meta && meta.name) ? meta.name : seatValue;
-          WomosiUI.renderSeats(list);
-          WomosiUI.updateSummary();
-          // Sitz seçildikten sonra otomatik Step 4'e geç ve Serileri yükle
-          WomosiUI.setStep(4);
-          WomosiApi.loadSerie();
+          if (onSelect) onSelect(list);
         });
-        seatGrid.appendChild(a);
+        targetGrid.appendChild(a);
       });
+    }
+
+    WomosiUI.renderSeats = function (values) {
+      var list = Array.isArray(values) ? values : [];
+      if (!list.length) {
+        if (seatGrid) seatGrid.innerHTML = '';
+        if (seatHint) seatHint.textContent = 'Keine kompatiblen Sitze gefunden.';
+        state.seatId = '';
+        state.seatLabel = '';
+        WomosiUI.updateSummary();
+        return;
+      }
+      if (seatHint) seatHint.textContent = 'Wähle deinen Sitz.';
+      WomosiUI.renderSeatGrid(seatGrid, list, function () {
+        WomosiUI.renderSeats(list);
+        WomosiUI.updateSummary();
+        WomosiUI.setStep(4);
+        WomosiApi.loadSerie();
+      });
+    }
+
+    WomosiUI.renderStartSeats = function (values) {
+      var list = Array.isArray(values) ? values : [];
+      if (!list.length) {
+        if (seatStartGrid) seatStartGrid.innerHTML = '';
+        if (seatStartHint) seatStartHint.textContent = 'Keine Sitztypen gefunden.';
+        return;
+      }
+      if (seatStartHint) seatStartHint.textContent = 'Wähle deinen Sitztyp als Startpunkt.';
+      WomosiUI.renderSeatGrid(seatStartGrid, list, function () {
+        WomosiUI.selectStartSeat();
+      });
+    }
+
+    WomosiUI.selectStartSeat = function () {
+      if (!state.seatId) return;
+      state.flowMode = 'seat-first';
+      WomosiUI.renderStartSeats(WomosiApi.allKnownSeatValues());
+      WomosiUI.updateSummary();
+      WomosiUI.setStep(4);
+      WomosiApi.loadSerie();
+    }
+
+    WomosiApi.allKnownSeatValues = function () {
+      return Object.keys(SEAT_META).sort(function (a, b) {
+        return (SEAT_META[a].order || 99) - (SEAT_META[b].order || 99);
+      });
+    }
+
+    WomosiUI.setSeatPhotoStatus = function (message, stateClass) {
+      if (!seatPhotoStatus) return;
+      seatPhotoStatus.textContent = message || '';
+      seatPhotoStatus.classList.remove('is-loading', 'is-error');
+      if (stateClass) seatPhotoStatus.classList.add(stateClass);
+    }
+
+    WomosiUI.updateSeatPhotoAnalyzeState = function () {
+      if (!seatPhotoAnalyze) return;
+      var hasFile = !!(seatPhotoInput && seatPhotoInput.files && seatPhotoInput.files[0]);
+      seatPhotoAnalyze.disabled = !hasFile || !(seatPhotoConsent && seatPhotoConsent.checked);
+    }
+
+    WomosiUI.resetSeatPhoto = function (openPicker) {
+      if (seatPhotoObjectUrl) {
+        URL.revokeObjectURL(seatPhotoObjectUrl);
+        seatPhotoObjectUrl = '';
+      }
+      if (seatPhotoInput) seatPhotoInput.value = '';
+      if (seatPhotoPreviewImage) seatPhotoPreviewImage.removeAttribute('src');
+      if (seatPhotoPreview) seatPhotoPreview.classList.add('hidden');
+      if (seatPhotoTrigger) seatPhotoTrigger.classList.remove('hidden');
+      if (seatPhotoResult) seatPhotoResult.classList.add('hidden');
+      WomosiUI.setSeatPhotoStatus('');
+      WomosiUI.updateSeatPhotoAnalyzeState();
+      if (openPicker && seatPhotoInput) seatPhotoInput.click();
+    }
+
+    WomosiApi.recognizeSeatPhoto = function () {
+      if (!seatPhotoInput || !seatPhotoInput.files || !seatPhotoInput.files[0] || !seatPhotoAnalyze) return;
+      var formData = new FormData();
+      formData.append('seat_photo', seatPhotoInput.files[0]);
+      seatPhotoAnalyze.disabled = true;
+      seatPhotoAnalyze.textContent = 'Foto wird analysiert...';
+      WomosiUI.setSeatPhotoStatus('Die KI vergleicht den Sitz mit unseren Referenzbildern.', 'is-loading');
+
+      fetch(fkBase() + '/fk-seat-recognize', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+      }).then(function (response) {
+        return response.text().then(function (text) {
+          var data = null;
+          try { data = JSON.parse(text); } catch (_) { data = null; }
+          if (!response.ok || !data || !data.ok) {
+            var errorMessage = data && data.message ? data.message : 'Das Foto konnte nicht analysiert werden.';
+            if (data && data.diagnostic) {
+              errorMessage += ' [' + data.diagnostic
+                + (data.provider_status ? ' / HTTP ' + data.provider_status : '') + ']';
+            }
+            throw new Error(errorMessage);
+          }
+          return data;
+        });
+      }).then(function (data) {
+        var code = String(data.seat_code || '').trim();
+        var meta = SEAT_META[code];
+        if (!data.match || !meta) {
+          throw new Error(data.message || 'Der Sitz konnte nicht sicher erkannt werden.');
+        }
+
+        state.seatId = code;
+        state.seatLabel = meta.name;
+        if (seatPhotoResultImage) {
+          seatPhotoResultImage.src = meta.img;
+          seatPhotoResultImage.alt = meta.name;
+        }
+        if (seatPhotoResultName) seatPhotoResultName.textContent = meta.name;
+        if (seatPhotoResultConfidence) {
+          seatPhotoResultConfidence.textContent = 'Übereinstimmung: ' + String(data.confidence || 0) + ' %';
+        }
+        if (seatPhotoResult) seatPhotoResult.classList.remove('hidden');
+        WomosiUI.setSeatPhotoStatus('Sitz erkannt. Passende Serien werden geladen.');
+        window.setTimeout(function () {
+          WomosiUI.selectStartSeat();
+        }, 700);
+      }).catch(function (error) {
+        WomosiUI.setSeatPhotoStatus(
+          error && error.message ? error.message : 'Das Foto konnte nicht analysiert werden.',
+          'is-error'
+        );
+      }).finally(function () {
+        seatPhotoAnalyze.textContent = 'Sitz erkennen';
+        WomosiUI.updateSeatPhotoAnalyzeState();
+      });
+    }
+
+    WomosiApi.loadStartSitzOptions = function () {
+      if (state.segment === 'pkw' || !seatStartGrid) return;
+      if (seatStartHint) seatStartHint.textContent = 'Sitze werden geladen...';
+      WomosiUI.renderStartSeats(WomosiApi.allKnownSeatValues());
     }
 
     WomosiApi.loadSitzOptions = function () {
@@ -1239,23 +1528,37 @@
         return;
       }
 
+      // PKW: Serien-Suche und Ladeanimation erst nach Baujahr (wie Step-2-Validierung)
+      if (state.segment === 'pkw' && !String(state.year || '').trim()) {
+        state.isLoadingSerie = false;
+        if (serieLoadingInterval) {
+          clearInterval(serieLoadingInterval);
+          serieLoadingInterval = null;
+        }
+        return;
+      }
+
       var params = {};
       if (state.segment === 'pkw') {
         params.segment = 'pkw';
       }
-      if (state.typKey) params.typ = state.typKey;
-      if (state.hersteller) params.hersteller = state.hersteller;
-      if (state.basis) params.basis = state.basis;
-      var modellParam = WomosiState.modellEffectiveForApi();
-      if (modellParam) params.modell = modellParam;
-      if (state.year) params.baujahr = state.year;
-      if (state.seatId) params.sitz = state.seatId;
-      // Sentinel „Nicht in der Liste“: Flags immer (auch ohne Freitext), sonst greift der gefilterte Endpoint → oft []
-      if (state.modell === FK_MODELL_CUSTOM_VALUE) {
-        params.fkCustomModell = '1';
-        params.fkNichtInListe = '1';
-      } else if (modellParam && (!domModellValue && !!domCustomValue)) {
-        params.fkCustomModell = '1';
+      if (WomosiState.isWmSeatFirst()) {
+        params.sitz = state.seatId || '';
+      } else {
+        if (state.typKey) params.typ = state.typKey;
+        if (state.hersteller) params.hersteller = state.hersteller;
+        if (state.basis) params.basis = state.basis;
+        var modellParam = WomosiState.modellEffectiveForApi();
+        if (modellParam) params.modell = modellParam;
+        if (state.year) params.baujahr = state.year;
+        if (state.seatId) params.sitz = state.seatId;
+        // Sentinel „Nicht in der Liste“: Flags immer (auch ohne Freitext), sonst greift der gefilterte Endpoint → oft []
+        if (state.modell === FK_MODELL_CUSTOM_VALUE) {
+          params.fkCustomModell = '1';
+          params.fkNichtInListe = '1';
+        } else if (modellParam && (!domModellValue && !!domCustomValue)) {
+          params.fkCustomModell = '1';
+        }
       }
 
       var cacheKey = [
@@ -1321,6 +1624,50 @@
       });
     }
 
+    WomosiApi.finishSeatFirst = function () {
+      if (!WomosiState.isWmSeatFirst() || !validateStep2().ok) return;
+      var serieCode = String(state.serie || '');
+      var fallbackUrl = '';
+      (serieCache || []).forEach(function (it) {
+        if (!fallbackUrl && it && String(it.serie || '').trim() === serieCode && it.url) {
+          fallbackUrl = String(it.url);
+        }
+      });
+      var loadingEl = container.querySelector('#fkLoading');
+      if (loadingEl) loadingEl.classList.remove('hidden');
+      if (toStep3Btn) toStep3Btn.disabled = true;
+
+      function go(url) {
+        if (!url || url === '#') {
+          if (loadingEl) loadingEl.classList.add('hidden');
+          WomosiUI.updateButtons();
+          return;
+        }
+        WomosiState.logStep4Selection(serieCode);
+        var target = WomosiState.appendSelectionToUrl(url);
+        window.setTimeout(function () {
+          window.location.href = target;
+        }, 80);
+      }
+
+      WomosiApi.fetchJson('/fk-search', {
+        sitz: state.seatId || '',
+        hersteller: state.hersteller || '',
+        basis: state.basis || '',
+        modell: state.modell || ''
+      }).then(function (items) {
+        var url = '';
+        (Array.isArray(items) ? items : []).forEach(function (it) {
+          if (!url && it && String(it.serie || '').trim() === serieCode && it.url) {
+            url = String(it.url);
+          }
+        });
+        go(url || fallbackUrl);
+      }).catch(function () {
+        go(fallbackUrl);
+      });
+    }
+
     WomosiUI.renderSerieItems = function (list) {
       var arr = (Array.isArray(list) ? list : []).filter(function (it) {
         return it && !isSerieHidden(it.serie);
@@ -1354,10 +1701,7 @@
 
       if (serieEmptyFallback) serieEmptyFallback.classList.add('hidden');
       if (serieGrid) serieGrid.classList.remove('hidden');
-      if (serieHint) {
-        serieHint.innerHTML = '<div class="ai-hint"><div class="ai-icon">' + AI_ICON_SVG + '</div><span class="ai-text">Liste gefunden, bitte wählen Sie Ihre Serie.</span></div>';
-        serieHint.classList.remove('hidden');
-      }
+      if (serieHint) serieHint.classList.add('hidden');
 
       var serieValues = arr
         .map(function (it) { return String(it.serie || ''); })
@@ -1442,13 +1786,22 @@
             a.classList.add('is-active');
             WomosiUI.updateSummary();
 
+            if (WomosiState.isWmSeatFirst()) {
+              state.year = '';
+              if (inpYear) inpYear.value = '';
+              WomosiUI.setStep(2);
+              WomosiApi.loadHersteller();
+              return;
+            }
+
             // Step 4 - Seçilen seri sonrası admin dashboard için log
             WomosiState.logStep4Selection(code);
 
             if (url && url !== '#') {
+              var target = WomosiState.appendSelectionToUrl(url);
               // Give the logging request a moment on unload.
               window.setTimeout(function () {
-                window.location.href = url;
+                window.location.href = target;
               }, 80);
             }
           });
@@ -1479,6 +1832,9 @@
 
         state.typKey = key;
         state.typLabel = label;
+        if (!state.seatId) {
+          state.flowMode = 'vehicle-first';
+        }
 
         vehicleGrid.querySelectorAll('.tile-link.is-active').forEach(function (a) {
           a.classList.remove('is-active');
@@ -1496,8 +1852,10 @@
         state.hersteller = selHer.value || '';
         state.basis = '';
         state.modell = '';
-        state.seatId = '';
-        state.seatLabel = '';
+        if (state.flowMode !== 'seat-first') {
+          state.seatId = '';
+          state.seatLabel = '';
+        }
         seatOptions = [];
         seatOptionsKey = '';
         if (selBasis) {
@@ -1531,8 +1889,10 @@
           inpModCustom.value = '';
           WomosiUI.setClearBtnVisible(inpModCustom, false);
         }
-        state.seatId = '';
-        state.seatLabel = '';
+        if (state.flowMode !== 'seat-first') {
+          state.seatId = '';
+          state.seatLabel = '';
+        }
         seatOptions = [];
         seatOptionsKey = '';
         if (selMod) {
@@ -1562,8 +1922,10 @@
             if (inpModCustom) inpModCustom.focus();
           } catch (_) { }
         }
-        state.seatId = '';
-        state.seatLabel = '';
+        if (state.flowMode !== 'seat-first') {
+          state.seatId = '';
+          state.seatLabel = '';
+        }
         seatOptions = [];
         seatOptionsKey = '';
         if (state.segment === 'pkw') {
@@ -1578,6 +1940,9 @@
         WomosiUI.syncModellCustomRowVisibility();
         WomosiUI.updateSummary();
         WomosiUI.setClearBtnVisible(selMod, !!state.modell);
+        if (v && WomosiState.isWmSeatFirst()) {
+          WomosiApi.finishSeatFirst();
+        }
       });
     }
 
@@ -1605,7 +1970,12 @@
         if (state.step === 2 && state.segment !== 'pkw') {
           var v = validateStep2();
           if (v.ok) {
-            WomosiUI.setStep(3);
+            if (state.flowMode === 'seat-first' && state.seatId) {
+              WomosiUI.setStep(4);
+              WomosiApi.loadSerie();
+            } else {
+              WomosiUI.setStep(3);
+            }
           }
         }
         WomosiUI.setClearBtnVisible(inpYear, !!state.year);
@@ -1705,6 +2075,55 @@
       });
     });
 
+    if (seatPhotoInput) {
+      seatPhotoInput.addEventListener('change', function () {
+        var file = seatPhotoInput.files && seatPhotoInput.files[0];
+        if (!file) {
+          WomosiUI.resetSeatPhoto(false);
+          return;
+        }
+        if (file.size > 8 * 1024 * 1024) {
+          WomosiUI.resetSeatPhoto(false);
+          WomosiUI.setSeatPhotoStatus('Das Foto darf maximal 8 MB groß sein.', 'is-error');
+          return;
+        }
+        if (['image/jpeg', 'image/png', 'image/webp'].indexOf(file.type) === -1) {
+          WomosiUI.resetSeatPhoto(false);
+          WomosiUI.setSeatPhotoStatus('Bitte verwenden Sie ein JPG-, PNG- oder WebP-Foto.', 'is-error');
+          return;
+        }
+        if (seatPhotoObjectUrl) URL.revokeObjectURL(seatPhotoObjectUrl);
+        seatPhotoObjectUrl = URL.createObjectURL(file);
+        if (seatPhotoPreviewImage) seatPhotoPreviewImage.src = seatPhotoObjectUrl;
+        if (seatPhotoPreview) seatPhotoPreview.classList.remove('hidden');
+        if (seatPhotoTrigger) seatPhotoTrigger.classList.add('hidden');
+        if (seatPhotoResult) seatPhotoResult.classList.add('hidden');
+        WomosiUI.setSeatPhotoStatus('Foto bereit zur Analyse.');
+        WomosiUI.updateSeatPhotoAnalyzeState();
+      });
+    }
+    if (seatPhotoConsent) {
+      seatPhotoConsent.addEventListener('change', WomosiUI.updateSeatPhotoAnalyzeState);
+    }
+    if (seatPhotoAnalyze) {
+      seatPhotoAnalyze.addEventListener('click', function (e) {
+        e.preventDefault();
+        WomosiApi.recognizeSeatPhoto();
+      });
+    }
+    if (seatPhotoRemove) {
+      seatPhotoRemove.addEventListener('click', function (e) {
+        e.preventDefault();
+        WomosiUI.resetSeatPhoto(false);
+      });
+    }
+    if (seatPhotoRetry) {
+      seatPhotoRetry.addEventListener('click', function (e) {
+        e.preventDefault();
+        WomosiUI.resetSeatPhoto(true);
+      });
+    }
+
     // Maßanfertigung – Datei-Upload Trigger
     if (fallbackImagesTrigger && fallbackImagesInput) {
       fallbackImagesTrigger.addEventListener('click', function (e) {
@@ -1753,11 +2172,21 @@
         }
         formData.set('body', body);
 
-        fetch('/sitzbezug-anfrage.php', {
+        fetch(fkBase() + '/fk-anfrage', {
           method: 'POST',
-          body: formData
+          body: formData,
+          credentials: 'same-origin'
         })
-          .then(function (res) { return res.json(); })
+          .then(function (res) {
+            return res.text().then(function (text) {
+              var parsed = null;
+              try { parsed = JSON.parse(text); } catch (_) { parsed = null; }
+              if (!parsed) {
+                throw new Error('invalid-json');
+              }
+              return parsed;
+            });
+          })
           .then(function (data) {
             if (data && data.ok) {
               WomosiUI.showStatusModal(
@@ -1797,7 +2226,7 @@
     if (backTo1Btn) {
       backTo1Btn.addEventListener('click', function (e) {
         e.preventDefault();
-        WomosiUI.setStep(1);
+        WomosiUI.setStep(WomosiState.isWmSeatFirst() ? 4 : 1);
       });
     }
     if (toStep3Btn) {
@@ -1808,6 +2237,8 @@
         if (state.segment === 'pkw') {
           WomosiUI.setStep(4);
           WomosiApi.loadSerie();
+        } else if (state.flowMode === 'seat-first' && state.seatId) {
+          WomosiApi.finishSeatFirst();
         } else {
           WomosiUI.setStep(3);
         }
@@ -1832,6 +2263,8 @@
         e.preventDefault();
         if (state.segment === 'pkw') {
           WomosiUI.setStep(2);
+        } else if (state.flowMode === 'seat-first') {
+          WomosiUI.setStep(1);
         } else {
           WomosiUI.setStep(3);
         }
@@ -1858,8 +2291,12 @@
         WomosiApi.loadHersteller();
         WomosiUI.setStep(2);
       } else {
+        state.flowMode = 'seat-first';
         WomosiUI.setStep(1);
       }
+    }
+    if (state.segment !== 'pkw') {
+      WomosiApi.loadStartSitzOptions();
     }
     WomosiUI.updateSummary();
     WomosiUI.syncModellCustomRowVisibility();

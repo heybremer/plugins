@@ -50,7 +50,7 @@ final class PkwSqlFragments
      */
     public static function pkwProdukttypFilter(string $langParamName = 'langID'): string
     {
-        return self::categoryTreeFilter(19) . 
+        return self::categoryTreeFilter(19, false) . 
                " INNER JOIN tartikelmerkmal am_ptyp ON am_ptyp.kArtikel = a.kArtikel
                  INNER JOIN tmerkmalwert mw_ptyp ON mw_ptyp.kMerkmalWert = am_ptyp.kMerkmalWert
                  INNER JOIN tmerkmal m_ptyp ON m_ptyp.kMerkmal = mw_ptyp.kMerkmal
@@ -78,19 +78,24 @@ final class PkwSqlFragments
 
     /**
      * Ürünleri belirli bir kategori ağacıyla (lft/rght üzerinden) sınırlar.
-     * Ayrıca Kategori 22 (Komplette Sets) altındakileri otomatik dışlar.
+     * $excludeKompletteSets true ise Kategori 22 (Komplette Sets) altındakileri dışlar.
      */
-    public static function categoryTreeFilter(int $rootId): string
+    public static function categoryTreeFilter(int $rootId, bool $excludeKompletteSets = true): string
     {
-        return " INNER JOIN tkategorieartikel ka_tree ON ka_tree.kArtikel = a.kArtikel
+        $sql = " INNER JOIN tkategorieartikel ka_tree ON ka_tree.kArtikel = a.kArtikel
                  INNER JOIN tkategorie c_tree ON c_tree.kKategorie = ka_tree.kKategorie
                  INNER JOIN tkategorie p_tree ON p_tree.kKategorie = {$rootId}
-                    AND c_tree.lft BETWEEN p_tree.lft AND p_tree.rght
-                 -- Exclude Komplette Sets (Cat 22)
+                    AND c_tree.lft BETWEEN p_tree.lft AND p_tree.rght ";
+
+        if ($excludeKompletteSets) {
+            $sql .= " -- Exclude Komplette Sets (Cat 22)
                  AND NOT EXISTS (
                      SELECT 1 FROM tkategorie p_excl 
                      WHERE p_excl.kKategorie = 22 
                        AND c_tree.lft BETWEEN p_excl.lft AND p_excl.rght
                  ) ";
+        }
+
+        return $sql;
     }
 }

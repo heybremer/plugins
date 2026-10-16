@@ -41,6 +41,9 @@ class SnapshotCronJob extends Job
             $service->refreshAll($currentLang);
         }
 
+        // Log-Tabellen beschneiden, damit sie nicht unbegrenzt wachsen.
+        $service->pruneLogs();
+
         $this->setFinished(true);
         return $this;
     }

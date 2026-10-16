@@ -14,6 +14,38 @@ final class PluginDatabase
 {
     private static bool $coreEnsured = false;
 
+    /**
+     * Leichtgewichtige IP-basierte Rate-Limitierung über APCu.
+     *
+     * Fail-open: Ohne APCu wird NICHT gedrosselt (Verhalten wie zuvor),
+     * damit reine DB-Setups nicht stillschweigend Schreibvorgänge verlieren.
+     *
+     * @param string $bucket         Logischer Bereich, z. B. 'sel' oder 'log'.
+     * @param string $ip             Client-IP.
+     * @param int    $max            Maximale Treffer pro Zeitfenster.
+     * @param int    $windowSeconds  Länge des Zeitfensters in Sekunden.
+     *
+     * @return bool true => gedrosselt (Aufrufer soll den Schreibvorgang überspringen).
+     */
+    public static function throttle(string $bucket, string $ip, int $max, int $windowSeconds): bool
+    {
+        if ($ip === '' || $max <= 0 || !\function_exists('apcu_fetch')) {
+            return false;
+        }
+        $key = 'fk_thr_' . $bucket . '_' . \md5($ip);
+        try {
+            $count = (int)@\apcu_fetch($key);
+            if ($count >= $max) {
+                return true;
+            }
+            @\apcu_store($key, $count + 1, \max(1, $windowSeconds));
+        } catch (\Throwable $e) {
+            return false;
+        }
+
+        return false;
+    }
+
     public static function ensureCoreTables(): void
     {
         if (self::$coreEnsured) {
