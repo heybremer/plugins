@@ -225,6 +225,8 @@
     '14': 'Mercedes-Benz Sprinter / Hymer'
   };
 
+  var SEAT_ORDER = ['3', '5', '4', '7', '6', '2', '1', '9', '10', '14', '8', '11', '12', '13'];
+
   function optionLabel(sel, value) {
     var v = String(value);
     if (sel && sel.id === 'fkMicroSitz') {
@@ -736,18 +738,9 @@
         fillSelect(selSitz, [], '');
         return Promise.resolve();
       }
-      setFieldLoading(selSitz, true);
-      return fetchJson('/fk-search', { mode: 'options', field: 'sitz' })
-        .then(function (data) {
-          var vals = uniqSorted((Array.isArray(data) ? data : []).map(function (r) {
-            return r && r.value ? r.value : '';
-          }));
-          fillSelect(selSitz, vals, state.sitz || '');
-          state.sitz = String(selSitz.value || '');
-        })
-        .catch(function () {
-          fillSelect(selSitz, state.sitz ? [state.sitz] : [], state.sitz || '');
-        });
+      fillSelect(selSitz, SEAT_ORDER, state.sitz || '');
+      state.sitz = String(selSitz.value || '');
+      return Promise.resolve();
     }
 
     function canLoadSeries() {
@@ -780,6 +773,7 @@
       var p = isPkw ? optionsParams({}) : { sitz: state.sitz };
       return fetchJson('/fk-search', p)
         .then(function (items) {
+          clearSeriesLoading();
           var arr = Array.isArray(items) ? items : [];
           seriesCache = arr;
           var serieVals = uniqSorted(arr.map(function (it) { return it && it.serie ? it.serie : ''; }))
@@ -811,6 +805,7 @@
           }
         })
         .catch(function () {
+          clearSeriesLoading();
           seriesCache = [];
           selSerie.disabled = true;
           fillSelect(selSerie, [], '');

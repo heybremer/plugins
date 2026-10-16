@@ -29,6 +29,28 @@ class FilterKonfiguratorController
         $this->repo = new FilterKonfiguratorRepository($db, (int)Shop::getLanguageID());
     }
 
+    private const OPTIONS_CACHE_TTL = 6 * 60 * 60;
+
+    private function optionsCacheGet(string $key): ?array
+    {
+        try {
+            $hit = Shop::Container()->getCache()->get($key);
+
+            return \is_array($hit) && $hit !== [] ? $hit : null;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private function optionsCacheSet(string $key, array $options): void
+    {
+        try {
+            $tags = [\defined('CACHING_GROUP_ARTICLE') ? \CACHING_GROUP_ARTICLE : 'art', 'fk_options'];
+            Shop::Container()->getCache()->set($key, $options, $tags, self::OPTIONS_CACHE_TTL);
+        } catch (\Throwable $e) {
+        }
+    }
+
     /**
      * JSON endpoint: /fk-search
      * Beklenen query parametreleri (hepsi opsiyonel):
@@ -133,6 +155,14 @@ class FilterKonfiguratorController
                 $segParam = \strtolower(\trim((string)($params['segment'] ?? '')));
                 $vehicleSeg = ($segParam === 'pkw') ? 'pkw' : '';
                 $sitzParam = \trim((string)($params['sitz'] ?? ''));
+                $optCacheKey = 'fk_opts_' . \md5((string)\json_encode([
+                    $field, $term, $typParam, $herstParam, $basisParam, $modellParam,
+                    $serieParam, $baujahrParam, $fkOpts, $vehicleSeg, $sitzParam, $langID,
+                ]));
+                $cachedOptions = $this->optionsCacheGet($optCacheKey);
+                if ($cachedOptions !== null) {
+                    return new JsonResponse($cachedOptions, 200, [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                }
                 $options = [];
                 if ($vehicleSeg !== 'pkw'
                     && $sitzParam !== ''
@@ -164,6 +194,9 @@ class FilterKonfiguratorController
                         $vehicleSeg,
                         ''
                     );
+                }
+                if ($options !== []) {
+                    $this->optionsCacheSet($optCacheKey, $options);
                 }
 
                 return new JsonResponse($options, 200, [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
