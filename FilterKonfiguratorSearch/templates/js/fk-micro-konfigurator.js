@@ -234,8 +234,15 @@
     return v;
   }
 
+  function setFieldLoading(sel, on) {
+    var field = sel && sel.closest('.fk-micro-field');
+    if (field) field.classList.toggle('is-loading', !!on);
+    if (sel) sel.setAttribute('aria-busy', on ? 'true' : 'false');
+  }
+
   function fillSelect(sel, values, keep) {
     if (!sel) return;
+    setFieldLoading(sel, false);
     var k = keep != null ? String(keep) : '';
     sel.innerHTML = '';
     var emptyOpt = document.createElement('option');
@@ -572,6 +579,7 @@
           fillSelect(selHer, [], '');
           return Promise.resolve();
         }
+        setFieldLoading(selHer, true);
         return fetchJson('/fk-search', wmVehicleParams('hersteller'))
           .then(function (data) {
             var vals = uniqSorted((Array.isArray(data) ? data : []).map(function (r) { return r && r.value ? r.value : ''; }));
@@ -580,6 +588,7 @@
           })
           .catch(function () { fillSelect(selHer, [], ''); });
       }
+      setFieldLoading(selHer, true);
       return fetchJson('/fk-search', optionsParams({ mode: 'options', field: 'hersteller', typ: '' }))
         .then(function (data) {
           var vals = uniqSorted((Array.isArray(data) ? data : []).map(function (r) { return r && r.value ? r.value : ''; }));
@@ -598,6 +607,7 @@
         fillSelect(selBasis, [], '');
         return Promise.resolve();
       }
+      setFieldLoading(selBasis, true);
       return fetchJson('/fk-search', wmVehicleParams('basis'))
         .then(function (data) {
           var vals = uniqSorted((Array.isArray(data) ? data : []).map(function (r) { return r && r.value ? r.value : ''; }));
@@ -613,6 +623,7 @@
           fillSelect(selMod, [], '');
           return Promise.resolve();
         }
+        setFieldLoading(selMod, true);
         return fetchJson('/fk-search', optionsParams({ mode: 'options', field: 'modell', hersteller: state.hersteller }))
           .then(function (data) {
             var vals = uniqSorted((Array.isArray(data) ? data : []).map(function (r) { return r && r.value ? r.value : ''; }));
@@ -625,6 +636,7 @@
         fillSelect(selMod, [], '');
         return Promise.resolve();
       }
+      setFieldLoading(selMod, true);
       return fetchJson('/fk-search', wmVehicleParams('modell'))
         .then(function (data) {
           var vals = uniqSorted((Array.isArray(data) ? data : []).map(function (r) { return r && r.value ? r.value : ''; }));
@@ -658,6 +670,7 @@
         return Promise.resolve();
       }
       var keep = keepValue === true ? String(state.baujahr || '') : '';
+      setFieldLoading(selYear, true);
       return fetchJson('/fk-search', optionsParams({ mode: 'options', field: 'baujahr', hersteller: state.hersteller, modell: state.modell }))
         .then(function (data) {
           var vals = uniqSorted((Array.isArray(data) ? data : []).map(function (r) { return r && r.value ? r.value : ''; }));
@@ -723,6 +736,7 @@
         fillSelect(selSitz, [], '');
         return Promise.resolve();
       }
+      setFieldLoading(selSitz, true);
       return fetchJson('/fk-search', { mode: 'options', field: 'sitz' })
         .then(function (data) {
           var vals = uniqSorted((Array.isArray(data) ? data : []).map(function (r) {

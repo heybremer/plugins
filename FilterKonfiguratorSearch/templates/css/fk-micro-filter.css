@@ -156,6 +156,29 @@
   box-shadow: 0 0 0 2px rgba(25, 113, 73, 0.1);
 }
 
+.fk-micro-field.is-loading {
+  position: relative;
+}
+
+.fk-micro-field.is-loading::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #eef4f0 0%, #f9fbfa 40%, #eef4f0 80%);
+  background-size: 200% 100%;
+  animation: fk-micro-skeleton 1.1s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes fk-micro-skeleton {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
 .fk-micro-field .custom-select {
   height: 44px;
   padding: 0 12px;
@@ -521,6 +544,10 @@
 @media (prefers-reduced-motion: reduce) {
   .fk-micro-serie-grid {
     scroll-behavior: auto;
+  }
+
+  .fk-micro-field.is-loading::after {
+    animation: none;
   }
 
   .fk-micro-serie-tile,
