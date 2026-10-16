@@ -6,7 +6,7 @@
     window.WomosiFkBase = '{$ShopURL}';
     window.WomosiFkSegments = {ldelim}"wm":{$fkSegWm},"pkw":{$fkSegPkw}{rdelim};
 </script>
-<link rel="stylesheet" href="{$ShopURL}/plugins/FilterKonfiguratorSearch/templates/css/womosi-konfigurator.css?v=1.14.74">
+<link rel="stylesheet" href="{$ShopURL}/plugins/FilterKonfiguratorSearch/templates/css/womosi-konfigurator.css?v=1.14.86">
 <div class="index-filter-konfigurator" id="womosi-fk-konfigurator-anchor">
     <div class="womosi-konfigurator fk-wm-seat-only {if $fkSegPkw == 1 && $fkSegWm != 1}fk-segment-pkw{else}fk-segment-wm{/if}">
         <div class="konfig-banner">
@@ -561,5 +561,5 @@
         }
     })();
 </script>
-<script src="{$ShopURL}/plugins/FilterKonfiguratorSearch/templates/js/womosi-konfigurator.js?v=1.14.74" defer></script>
+<script src="{$ShopURL}/plugins/FilterKonfiguratorSearch/templates/js/womosi-konfigurator.js?v=1.14.86" defer></script>
 

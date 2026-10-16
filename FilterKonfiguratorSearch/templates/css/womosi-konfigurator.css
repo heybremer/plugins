@@ -535,6 +535,29 @@ h1.fk-selection-h1,
   width: 100%;
 }
 
+.womosi-konfigurator .field.fk-field-loading .fk-control::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #eef4f0 0%, #f9fbfa 40%, #eef4f0 80%);
+  background-size: 200% 100%;
+  animation: fk-field-skeleton 1.1s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes fk-field-skeleton {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .womosi-konfigurator .field.fk-field-loading .fk-control::after {
+    animation: none;
+  }
+}
+
 .womosi-konfigurator .fk-control select,
 .womosi-konfigurator .fk-control input {
   padding-right: 34px;

@@ -110,8 +110,16 @@
       });
     }
 
+    WomosiUI.setFieldLoading = function (sel, isLoading) {
+      if (!sel) return;
+      var field = sel.closest ? sel.closest('.field') : null;
+      if (field) field.classList.toggle('fk-field-loading', !!isLoading);
+      sel.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+    }
+
     WomosiUI.fillSelect = function (sel, values) {
       if (!sel) return;
+      WomosiUI.setFieldLoading(sel, false);
       sel.innerHTML = '';
       var emptyOpt = document.createElement('option');
       emptyOpt.value = '';
@@ -232,6 +240,7 @@
 
     WomosiUI.resetPkwBaujahrSelect = function () {
       if (!selYearPkw) return;
+      WomosiUI.setFieldLoading(selYearPkw, false);
       selYearPkw.innerHTML = '';
       var emptyOpt = document.createElement('option');
       emptyOpt.value = '';
@@ -263,6 +272,7 @@
         modell: modApi
       });
       if (state.serie) yearReq.serie = state.serie;
+      WomosiUI.setFieldLoading(selYearPkw, true);
       WomosiApi.fetchJson('/fk-search', yearReq).then(function (data) {
         var vals = uniqSorted(
           (Array.isArray(data) ? data : [])
@@ -1120,6 +1130,7 @@
           typ: state.segment === 'wohnmobil' ? (state.typKey || '') : ''
         });
       if (state.segment === 'pkw' && state.serie) hq.serie = state.serie;
+      WomosiUI.setFieldLoading(selHer, true);
       WomosiApi.fetchJson('/fk-search', hq).then(function (data) {
         var vals = uniqSorted(
           (Array.isArray(data) ? data : [])
@@ -1151,6 +1162,7 @@
       var bq = seatFirst
         ? WomosiApi.seatSerieParams({ mode: 'options', field: 'basis', hersteller: state.hersteller })
         : { mode: 'options', field: 'basis', typ: state.typKey || '', hersteller: state.hersteller || '' };
+      WomosiUI.setFieldLoading(selBasis, true);
       WomosiApi.fetchJson('/fk-search', bq).then(function (data) {
         var vals = uniqSorted(
           (Array.isArray(data) ? data : [])
@@ -1185,6 +1197,7 @@
           hersteller: state.hersteller || ''
         });
         if (state.serie) modellReq.serie = state.serie;
+        WomosiUI.setFieldLoading(selMod, true);
         WomosiApi.fetchJson('/fk-search', modellReq).then(function (data) {
           var vals = uniqSorted(
             (Array.isArray(data) ? data : [])
@@ -1231,6 +1244,7 @@
       var mq = seatFirstMod
         ? WomosiApi.seatSerieParams({ mode: 'options', field: 'modell', hersteller: state.hersteller, basis: state.basis })
         : { mode: 'options', field: 'modell', typ: state.typKey || '', hersteller: state.hersteller || '', basis: state.basis || '' };
+      WomosiUI.setFieldLoading(selMod, true);
       WomosiApi.fetchJson('/fk-search', mq).then(function (data) {
         var vals = uniqSorted(
           (Array.isArray(data) ? data : [])
