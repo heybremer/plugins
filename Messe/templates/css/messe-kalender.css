@@ -111,6 +111,22 @@
   border-color: #197149;
 }
 
+.messe-kalender-event-card.is-past {
+  background: #f3f4f6;
+  border-style: dashed;
+  filter: grayscale(0.35);
+}
+
+.messe-kalender-event-card.is-past .messe-kalender-event-title,
+.messe-kalender-event-card.is-past .messe-kalender-event-date {
+  color: #6b7280;
+}
+
+.messe-kalender-event-card.is-past .messe-kalender-status-badge {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
 .messe-kalender-calendar-container {
   margin-top: 16px;
 }

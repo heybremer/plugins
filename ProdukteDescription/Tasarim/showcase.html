@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Produkt Showcase – Tasarım Önizleme</title>
+<link rel="stylesheet" href="showcase.css">
+</head>
+<body style="margin:0;padding:2rem;background:#f0f2f5;font-family:system-ui,sans-serif;">
+
+<div class="pds-root" id="pds-demo">
+
+  <!-- ── TABS ──────────────────────────────────────────── -->
+  <div class="pds-tabbar" role="tablist" aria-label="Produktdetails">
+    <button class="pds-tab is-active" role="tab" aria-selected="true" aria-controls="pds-panel-0" data-tab="0">
+      <svg class="pds-tab-icon" viewBox="0 0 20 20" fill="currentColor"><polygon points="7,4 17,10 7,16"/></svg>
+      Video
+    </button>
+    <button class="pds-tab" role="tab" aria-selected="false" aria-controls="pds-panel-1" data-tab="1">
+      <svg class="pds-tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="3" width="16" height="13" rx="2"/><path d="M2 7h16"/></svg>
+      Produktbilder
+    </button>
+  </div>
+
+  <!-- ── PANEL 0: VIDEO ──────────────────────────────── -->
+  <div class="pds-panel is-active" id="pds-panel-0" role="tabpanel">
+    <div class="pds-video-panel">
+      <div class="pds-video-wrap">
+        <iframe
+          src="https://www.youtube.com/embed/RmdNi7K9-lM?rel=0&modestbranding=1&color=white"
+          title="Produktvideo"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+          loading="lazy"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PANEL 1: BILDER ──────────────────────────────── -->
+  <div class="pds-panel" id="pds-panel-1" role="tabpanel" hidden>
+    <div class="pds-image-panel">
+      <div class="pds-image-slider" data-pds-slider>
+        <button class="pds-arrow pds-arrow-prev" data-pds-prev aria-label="Zurück">&#8249;</button>
+        <div class="pds-viewport">
+          <div class="pds-track">
+            <figure class="pds-slide is-active">
+              <img src="assets/slide-produktvielfalt.png" alt="Produktvielfalt" loading="lazy">
+            </figure>
+            <figure class="pds-slide">
+              <img src="assets/slide-ergonomie.png" alt="Ergonomie" loading="lazy">
+            </figure>
+            <figure class="pds-slide">
+              <img src="assets/slide-schutz.png" alt="360° Schutz" loading="lazy">
+            </figure>
+            <figure class="pds-slide">
+              <img src="assets/slide-airbag.png" alt="Airbag" loading="lazy">
+            </figure>
+            <figure class="pds-slide">
+              <img src="assets/slide-lager.png" alt="Lager &amp; Montage" loading="lazy">
+            </figure>
+            <figure class="pds-slide">
+              <img src="assets/slide-support.png" alt="Support" loading="lazy">
+            </figure>
+            <figure class="pds-slide">
+              <img src="assets/slide-produktion.png" alt="Produktion" loading="lazy">
+            </figure>
+          </div>
+        </div>
+        <button class="pds-arrow pds-arrow-next" data-pds-next aria-label="Weiter">&#8250;</button>
+      </div>
+      <div class="pds-dots" data-pds-dots aria-label="Bildauswahl"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="showcase.js"></script>
+</body>
+</html>

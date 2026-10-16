@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jtlshopplugin>
+    <Name>MesseList</Name>
+    <Description>Öffentliche Messe-Preisliste (Token-Link) für Familie-Serie DS1–DS9 Lagerartikel mit Stückzahl und Rabatt.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>MesseList</PluginID>
+    <CreateDate>2026-09-07</CreateDate>
+    <Version>1.4.5</Version>
+    <Bootstrap>Plugin\MesseList\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jtlshopplugin>
+    <Name>ChatGPTAds</Name>
+    <Description>OpenAI Ads Pixel und order_created Conversion Tracking für JTL-Shop 5.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.2.0</ShopVersion>
+    <PluginID>ChatGPTAds</PluginID>
+    <CreateDate>2026-09-24</CreateDate>
+    <Version>1.0.1</Version>
+    <Bootstrap>Plugin\ChatGPTAds\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>

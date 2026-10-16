@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jtlshopplugin>
+    <Name>RyzeAI</Name>
+    <Description>RyzeAI Pixel wird einmal pro Seite in den HTML-Head eingefügt.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.2.0</ShopVersion>
+    <PluginID>RyzeAI</PluginID>
+    <CreateDate>2026-09-25</CreateDate>
+    <Version>1.0.2</Version>
+    <Bootstrap>Plugin\RyzeAI\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>

@@ -34,11 +34,18 @@ try {
             bShowWohnmobil TINYINT(1) NOT NULL DEFAULT 1
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
     );
-    // Backward compatible alters (if table existed before)
-    try { $db->executeQuery("ALTER TABLE twomosi_markefiltre_settings ADD COLUMN nRefreshDow INT NOT NULL DEFAULT 0"); } catch (\Throwable $e) {}
-    try { $db->executeQuery("ALTER TABLE twomosi_markefiltre_settings ADD COLUMN nRefreshHour INT NOT NULL DEFAULT 3"); } catch (\Throwable $e) {}
-    try { $db->executeQuery("ALTER TABLE twomosi_markefiltre_settings ADD COLUMN bShowPKW TINYINT(1) NOT NULL DEFAULT 1"); } catch (\Throwable $e) {}
-    try { $db->executeQuery("ALTER TABLE twomosi_markefiltre_settings ADD COLUMN bShowWohnmobil TINYINT(1) NOT NULL DEFAULT 1"); } catch (\Throwable $e) {}
+    $mfSettingsAlters = [
+        'nRefreshDow'     => 'INT NOT NULL DEFAULT 0',
+        'nRefreshHour'    => 'INT NOT NULL DEFAULT 3',
+        'bShowPKW'        => 'TINYINT(1) NOT NULL DEFAULT 1',
+        'bShowWohnmobil'  => 'TINYINT(1) NOT NULL DEFAULT 1',
+    ];
+    foreach ($mfSettingsAlters as $col => $def) {
+        $exists = $db->getSingleObject("SHOW COLUMNS FROM twomosi_markefiltre_settings LIKE '{$col}'");
+        if ($exists === null) {
+            $db->executeQuery("ALTER TABLE twomosi_markefiltre_settings ADD COLUMN {$col} {$def}");
+        }
+    }
     $row = $db->getSingleObject('SELECT kID FROM twomosi_markefiltre_settings ORDER BY dUpdated DESC, kID DESC LIMIT 1');
     if ($row === null) {
         $db->executeQueryPrepared(

@@ -204,11 +204,66 @@ final class MesseDatabase
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
             );
 
+            $yearCol = $db->getSingleObject("SHOW COLUMNS FROM twomosi_messe_event LIKE 'nJahr'");
+            if ($yearCol === null) {
+                $db->executeQuery(
+                    'ALTER TABLE twomosi_messe_event ADD COLUMN nJahr INT NOT NULL DEFAULT 0 AFTER cDateText'
+                );
+            }
+            $needYear = $db->getObjects(
+                'SELECT kID, cDateText FROM twomosi_messe_event WHERE nJahr = 0 OR nJahr IS NULL'
+            ) ?: [];
+            foreach ($needYear as $yr) {
+                $parsed = self::yearFromDateText((string)($yr->cDateText ?? ''));
+                if ($parsed > 0) {
+                    $db->executeQueryPrepared(
+                        'UPDATE twomosi_messe_event SET nJahr = :y WHERE kID = :id',
+                        ['y' => $parsed, 'id' => (int)($yr->kID ?? 0)]
+                    );
+                }
+            }
+
+            foreach ([
+                'dStart' => 'ALTER TABLE twomosi_messe_event ADD COLUMN dStart DATE NULL',
+                'dEnde' => 'ALTER TABLE twomosi_messe_event ADD COLUMN dEnde DATE NULL',
+            ] as $column => $sql) {
+                $exists = $db->getSingleObject("SHOW COLUMNS FROM twomosi_messe_event LIKE '" . $column . "'");
+                if ($exists === null) {
+                    $db->executeQuery($sql);
+                }
+            }
+            try {
+                $missingDates = $db->getObjects(
+                    'SELECT kID, cDateText FROM twomosi_messe_event WHERE dStart IS NULL OR dEnde IS NULL'
+                ) ?: [];
+                foreach ($missingDates as $row) {
+                    $start = self::parseEventStartDate((string)($row->cDateText ?? ''));
+                    $end = self::parseEventEndDate((string)($row->cDateText ?? ''));
+                    if ($start === null || $end === null) {
+                        continue;
+                    }
+                    $db->executeQueryPrepared(
+                        'UPDATE twomosi_messe_event SET dStart = :s, dEnde = :e WHERE kID = :id',
+                        [
+                            's' => $start->format('Y-m-d'),
+                            'e' => $end->format('Y-m-d'),
+                            'id' => (int)($row->kID ?? 0),
+                        ]
+                    );
+                }
+            } catch (\Throwable $e) {
+                // Dates can be filled later from the dashboard.
+            }
+
             // Idempotent migrations (columns may be missing on older installs)
             $cols = [
                 'cPageSlug' => "ALTER TABLE twomosi_messe_settings ADD COLUMN cPageSlug VARCHAR(128) NOT NULL DEFAULT 'messe-kalender' AFTER nActive",
                 'cHeadline' => "ALTER TABLE twomosi_messe_settings ADD COLUMN cHeadline VARCHAR(255) NOT NULL DEFAULT 'Messe Kalender 2026' AFTER cPageSlug",
                 'cSubtitle' => "ALTER TABLE twomosi_messe_settings ADD COLUMN cSubtitle VARCHAR(500) NOT NULL DEFAULT '' AFTER cHeadline",
+                'nHomepageActive' => "ALTER TABLE twomosi_messe_settings ADD COLUMN nHomepageActive TINYINT(1) NOT NULL DEFAULT 0 AFTER cSubtitle",
+                'cHomepageInjectSelector' => "ALTER TABLE twomosi_messe_settings ADD COLUMN cHomepageInjectSelector VARCHAR(255) NOT NULL DEFAULT '' AFTER nHomepageActive",
+                'cHomepageInjectMode' => "ALTER TABLE twomosi_messe_settings ADD COLUMN cHomepageInjectMode VARCHAR(16) NOT NULL DEFAULT 'after' AFTER cHomepageInjectSelector",
+                'nHomepageLimit' => "ALTER TABLE twomosi_messe_settings ADD COLUMN nHomepageLimit INT NOT NULL DEFAULT 6 AFTER cHomepageInjectMode",
             ];
             foreach ($cols as $col => $sql) {
                 $exists = $db->getSingleObject("SHOW COLUMNS FROM twomosi_messe_settings LIKE '{$col}'");
@@ -217,12 +272,44 @@ final class MesseDatabase
                 }
             }
 
+            $db->executeQuery(
+                "UPDATE twomosi_messe_settings
+                    SET cHeadline = 'Messe Kalender 2027'
+                  WHERE cHeadline = 'Messe Kalender 2026'"
+            );
+
+            // Startseiten-Widget verursachte DOM-Konflikte mit anderen Homepage-Injektoren
+            // (kategorien/logos verschwanden, da derselbe Selector wie CardProduct/MarkeFiltre/
+            // Top10List verwendet wurde, aber ohne Teilnahme am HomepageInjector-Ordering).
+            // Einmalige, dauerhafte Korrektur über Migrations-Marker-Spalte.
+            $fixCol = $db->getSingleObject("SHOW COLUMNS FROM twomosi_messe_settings LIKE 'nHomepageFixApplied'");
+            if ($fixCol === null) {
+                $db->executeQuery(
+                    'ALTER TABLE twomosi_messe_settings ADD COLUMN nHomepageFixApplied TINYINT(1) NOT NULL DEFAULT 0'
+                );
+                $db->executeQuery(
+                    'UPDATE twomosi_messe_settings SET nHomepageActive = 0, nHomepageFixApplied = 1'
+                );
+            }
+
+            // Eigentliche Ursache (unnötige tlink-Schreibvorgänge auf jedem Request) wurde
+            // behoben -> Startseiten-Widget einmalig wieder sicher aktivieren.
+            $reCol = $db->getSingleObject("SHOW COLUMNS FROM twomosi_messe_settings LIKE 'nHomepageReenabled'");
+            if ($reCol === null) {
+                $db->executeQuery(
+                    'ALTER TABLE twomosi_messe_settings ADD COLUMN nHomepageReenabled TINYINT(1) NOT NULL DEFAULT 0'
+                );
+                $db->executeQuery(
+                    'UPDATE twomosi_messe_settings SET nHomepageActive = 1, nHomepageReenabled = 1'
+                );
+            }
+
             $row = $db->getSingleObject('SELECT kID FROM twomosi_messe_settings ORDER BY kID ASC LIMIT 1');
             if ($row === null) {
                 $s = new \stdClass();
                 $s->nActive = 1;
                 $s->cPageSlug = 'messe-kalender';
-                $s->cHeadline = 'Messe Kalender 2026';
+                $s->cHeadline = 'Messe Kalender 2027';
                 $s->cSubtitle = 'Die Messen, an denen wir als Bremer-Sitzbezüge GmbH teilnehmen werden';
                 $s->dUpdated = date('Y-m-d H:i:s');
                 $db->insert('twomosi_messe_settings', $s);
@@ -238,6 +325,7 @@ final class MesseDatabase
                     $o->cTitle = (string)$ev['cTitle'];
                     $o->cLocation = (string)$ev['cLocation'];
                     $o->cDateText = (string)$ev['cDateText'];
+                    $o->nJahr = self::yearFromDateText((string)$ev['cDateText']);
                     $o->cStand = (string)$ev['cStand'];
                     $o->cWebsiteUrl = (string)$ev['cWebsiteUrl'];
                     $o->cDirectionsUrl = (string)($ev['cDirectionsUrl'] ?? '');
@@ -276,15 +364,15 @@ final class MesseDatabase
             if ($slug === '') {
                 $slug = 'messe-kalender';
             }
-            $headline = $s !== null ? \trim((string)($s->cHeadline ?? 'Messe Kalender 2026')) : 'Messe Kalender 2026';
+            $headline = $s !== null ? \trim((string)($s->cHeadline ?? 'Messe Kalender')) : 'Messe Kalender';
             if ($headline === '') {
-                $headline = 'Messe Kalender 2026';
+                $headline = 'Messe Kalender';
             }
             $active = $s !== null ? (int)($s->nActive ?? 1) : 1;
 
             // If a link already exists for this plugin, keep it.
             $existing = $db->getSingleObject(
-                'SELECT tlink.kLink
+                'SELECT tlink.kLink, pld.cTemplate, pld.cFullscreenTemplate
                    FROM tlink
                    JOIN tpluginlinkdatei pld ON pld.kLink = tlink.kLink
                   WHERE tlink.kPlugin = :pid
@@ -299,6 +387,16 @@ final class MesseDatabase
                 ]
             );
             $kLink = $existing !== null ? (int)($existing->kLink ?? 0) : 0;
+
+            // Already correctly configured -> stop here, no further writes needed on
+            // every single request (avoids unnecessary tlink/cache churn on every pageview).
+            if (
+                $kLink > 0
+                && (string)($existing->cTemplate ?? '') === 'messe_kalender.tpl'
+                && (string)($existing->cFullscreenTemplate ?? '') === '_DBNULL_'
+            ) {
+                return;
+            }
 
             // If mapping not found, try resolve LinkID by SEO (kLink) for current slug.
             if ($kLink <= 0) {
@@ -378,6 +476,251 @@ final class MesseDatabase
         } catch (\Throwable $e) {
             // ignore
         }
+    }
+
+    /**
+     * @return array{active:int,slug:string,headline:string,subtitle:string,homepageActive:int,homepageInjectSelector:string,homepageInjectMode:string,homepageLimit:int}
+     */
+    public static function fetchSettings(): array
+    {
+        $defaults = [
+            'active' => 1,
+            'slug' => 'messe-kalender',
+            'headline' => 'Messe Kalender',
+            'subtitle' => 'Die Messen, an denen wir als Bremer-Sitzbezüge GmbH teilnehmen werden',
+            'homepageActive' => 0,
+            'homepageInjectSelector' => '',
+            'homepageInjectMode' => 'after',
+            'homepageLimit' => 6,
+        ];
+        try {
+            $db = Shop::Container()->getDB();
+            $row = $db->getSingleObject('SELECT * FROM twomosi_messe_settings ORDER BY kID ASC LIMIT 1');
+            if ($row === null) {
+                return $defaults;
+            }
+            $slug = \trim((string)($row->cPageSlug ?? 'messe-kalender'));
+            if ($slug === '') {
+                $slug = $defaults['slug'];
+            }
+            $mode = \trim((string)($row->cHomepageInjectMode ?? 'after'));
+            if (!\in_array($mode, ['after', 'before', 'prepend', 'append'], true)) {
+                $mode = 'after';
+            }
+            $limit = (int)($row->nHomepageLimit ?? 6);
+            if ($limit < 1) {
+                $limit = 6;
+            }
+            if ($limit > 24) {
+                $limit = 24;
+            }
+
+            return [
+                'active' => (int)($row->nActive ?? 1),
+                'slug' => $slug,
+                'headline' => (string)($row->cHeadline ?? $defaults['headline']),
+                'subtitle' => (string)($row->cSubtitle ?? $defaults['subtitle']),
+                'homepageActive' => (int)($row->nHomepageActive ?? 1),
+                'homepageInjectSelector' => (string)($row->cHomepageInjectSelector ?? ''),
+                'homepageInjectMode' => $mode,
+                'homepageLimit' => $limit,
+            ];
+        } catch (\Throwable $e) {
+            return $defaults;
+        }
+    }
+
+    public static function calendarPageUrl(array $settings): string
+    {
+        $slug = \ltrim((string)($settings['slug'] ?? 'messe-kalender'), '/');
+        if ($slug === '') {
+            $slug = 'messe-kalender';
+        }
+        try {
+            $shopUrl = \rtrim((string)Shop::getURL(), '/');
+            $shopBasePath = (string)(\parse_url($shopUrl, \PHP_URL_PATH) ?? '');
+            $shopBasePath = \rtrim($shopBasePath, '/');
+
+            return $shopBasePath . '/' . $slug;
+        } catch (\Throwable $e) {
+            return '/' . $slug;
+        }
+    }
+
+    /**
+     * @return array<int, array{month:string,title:string,location:string,date:string,stand:string,website:string,directions:string}>
+     */
+    public static function fetchUpcomingEvents(int $limit = 6): array
+    {
+        if ($limit < 1) {
+            $limit = 6;
+        }
+        if ($limit > 24) {
+            $limit = 24;
+        }
+
+        $today = new \DateTimeImmutable('today');
+        $scored = [];
+
+        foreach (self::fetchActiveEvents() as $ev) {
+            $start = self::parseEventStartDate((string)($ev['date'] ?? ''));
+            $end = self::parseEventEndDate((string)($ev['date'] ?? ''));
+            if ($end === null && $start === null) {
+                continue;
+            }
+            $endCmp = $end ?? $start;
+            if ($endCmp < $today) {
+                continue;
+            }
+            $scored[] = [
+                'ev' => $ev,
+                'sort' => ($start ?? $endCmp)->getTimestamp(),
+            ];
+        }
+
+        \usort($scored, static function (array $a, array $b): int {
+            return $a['sort'] <=> $b['sort'];
+        });
+
+        $out = [];
+        foreach (\array_slice($scored, 0, $limit) as $row) {
+            $out[] = $row['ev'];
+        }
+
+        return $out;
+    }
+
+    public static function eventStartIso(string $dateText): string
+    {
+        $date = self::parseEventStartDate($dateText);
+
+        return $date !== null ? $date->format('Y-m-d') : '';
+    }
+
+    public static function eventEndIso(string $dateText): string
+    {
+        $date = self::parseEventEndDate($dateText);
+
+        return $date !== null ? $date->format('Y-m-d') : '';
+    }
+
+    private static function parseEventEndDate(string $dateText): ?\DateTimeImmutable
+    {
+        $matches = self::extractDateMatches($dateText);
+        if ($matches === []) {
+            return null;
+        }
+        $last = $matches[\count($matches) - 1];
+
+        return self::dateFromParts((int)$last['day'], (int)$last['month'], (int)$last['year']);
+    }
+
+    private static function parseEventStartDate(string $dateText): ?\DateTimeImmutable
+    {
+        $s = \trim($dateText);
+        if ($s === '') {
+            return null;
+        }
+
+        $end = self::parseEventEndDate($s);
+        if ($end === null) {
+            return null;
+        }
+
+        // Bereiche wie "9–11.01.2026" oder "17.–25.01.2026"
+        if (\preg_match('/^(\d{1,2})\s*[.\-–]+\s*(\d{1,2})[.\-–]+(\d{1,2})[.\-–]+(\d{4})/u', $s, $m)) {
+            $start = self::dateFromParts((int)$m[1], (int)$m[3], (int)$m[4]);
+            if ($start !== null) {
+                return $start;
+            }
+        }
+
+        return $end;
+    }
+
+    /**
+     * @return array<int, array{day:int,month:int,year:int}>
+     */
+    private static function extractDateMatches(string $dateText): array
+    {
+        $s = \trim($dateText);
+        if ($s === '') {
+            return [];
+        }
+        if (!\preg_match_all('/(\d{1,2})\D+(\d{1,2})\D+(\d{4})/u', $s, $matches, \PREG_SET_ORDER)) {
+            return [];
+        }
+        $out = [];
+        foreach ($matches as $m) {
+            $out[] = [
+                'day' => (int)$m[1],
+                'month' => (int)$m[2],
+                'year' => (int)$m[3],
+            ];
+        }
+
+        return $out;
+    }
+
+    private static function dateFromParts(int $day, int $month, int $year): ?\DateTimeImmutable
+    {
+        if ($day < 1 || $day > 31 || $month < 1 || $month > 12 || $year < 1970) {
+            return null;
+        }
+        try {
+            return new \DateTimeImmutable(\sprintf('%04d-%02d-%02d', $year, $month, $day));
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * @return array<int, array{month:string,title:string,location:string,date:string,stand:string,website:string,directions:string,year:int}>
+     */
+    public static function fetchActiveEvents(): array
+    {
+        try {
+            $db = Shop::Container()->getDB();
+            $rows = $db->getObjects(
+                'SELECT cMonth, cTitle, cLocation, cDateText, nJahr, cStand, cWebsiteUrl, cDirectionsUrl
+                   FROM twomosi_messe_event
+                  WHERE nActive = 1
+               ORDER BY nJahr ASC, nSort ASC, kID ASC'
+            );
+            if (!\is_array($rows)) {
+                return [];
+            }
+            $out = [];
+            foreach ($rows as $r) {
+                $date = (string)($r->cDateText ?? '');
+                $year = (int)($r->nJahr ?? 0);
+                if ($year < 1970) {
+                    $year = self::yearFromDateText($date);
+                }
+                $out[] = [
+                    'month' => (string)($r->cMonth ?? ''),
+                    'title' => (string)($r->cTitle ?? ''),
+                    'location' => (string)($r->cLocation ?? ''),
+                    'date' => $date,
+                    'stand' => (string)($r->cStand ?? ''),
+                    'website' => (string)($r->cWebsiteUrl ?? ''),
+                    'directions' => (string)($r->cDirectionsUrl ?? ''),
+                    'year' => $year,
+                ];
+            }
+
+            return $out;
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    public static function yearFromDateText(string $dateText): int
+    {
+        if (\preg_match('/(20\d{2})/', $dateText, $m)) {
+            return (int)$m[1];
+        }
+        return 0;
     }
 }
 

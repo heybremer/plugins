@@ -1,0 +1,326 @@
+/* ============================================================
+   BremerDesc — bremer-desc.css
+   Alle Selektoren unter .bd-showcase scoped → kein Konflikt
+   mit JTL Bootstrap / Theme-CSS
+   ============================================================ */
+
+/* ── CSS-Variablen (scoped, kein :root) ───────────────────── */
+.bd-showcase {
+  --bd-accent:  #0b3e27;
+  --bd-bg:      #ffffff;
+  --bd-surface: #f8f8fc;
+  --bd-border:  rgba(0,0,0,.09);
+  --bd-text:    #1e1b4b;
+  --bd-muted:   #6b7280;
+  --bd-radius:  14px;
+  --bd-shadow:  0 4px 32px rgba(0,0,0,.10);
+}
+
+/* ── Root ─────────────────────────────────────────────────── */
+.bd-showcase {
+  max-width: 100%;
+  margin: 1.5rem 0;
+  background: var(--bd-bg);
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  box-shadow: var(--bd-shadow);
+  overflow: hidden;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: var(--bd-text);
+  box-sizing: border-box;
+}
+
+.bd-showcase *, .bd-showcase *::before, .bd-showcase *::after {
+  box-sizing: border-box;
+}
+
+/* ── Tab bar ──────────────────────────────────────────────── */
+.bd-showcase__tabbar {
+  display: flex;
+  background: var(--bd-surface);
+  border-bottom: 1px solid var(--bd-border);
+  padding: 0 1rem;
+  gap: 0;
+  overflow-x: auto;
+}
+
+.bd-showcase__tab {
+  display: inline-flex !important;
+  align-items: center;
+  gap: .4rem;
+  padding: .85rem 1.2rem;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 3px solid transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  font-size: .88rem;
+  font-weight: 500;
+  color: var(--bd-muted) !important;
+  white-space: nowrap;
+  transition: color .18s, border-color .18s;
+  line-height: 1;
+  text-decoration: none !important;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.bd-showcase__tab:hover {
+  color: var(--bd-accent) !important;
+  background: transparent !important;
+}
+
+.bd-showcase__tab--active {
+  color: var(--bd-accent) !important;
+  border-bottom-color: var(--bd-accent) !important;
+  font-weight: 700 !important;
+}
+
+.bd-showcase__tab-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+/* ── Panels ───────────────────────────────────────────────── */
+.bd-showcase__panel        { display: none !important; }
+.bd-showcase__panel--active { display: block !important; }
+
+/* ── Video panel ──────────────────────────────────────────── */
+.bd-showcase__video-wrap-outer {
+  padding: 1.25rem 1.5rem;
+}
+
+.bd-showcase__video-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0f0f0f;
+  box-shadow: 0 6px 32px rgba(124,58,237,.16);
+}
+
+.bd-showcase__video-wrap iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* ── Image panel ──────────────────────────────────────────── */
+.bd-showcase__image-panel {
+  padding: 0;
+}
+
+.bd-showcase__slider {
+  position: relative;
+}
+
+.bd-showcase__viewport {
+  width: 100%;
+  background: #f4f4f4;
+  overflow: hidden;
+}
+
+.bd-showcase__track {
+  width: 100%;
+}
+
+.bd-showcase__slide {
+  display: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bd-showcase__slide--active {
+  display: block;
+}
+
+.bd-showcase__slide img {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: #f4f4f4;
+  cursor: zoom-in;
+}
+
+/* ── Arrows ───────────────────────────────────────────────── */
+.bd-showcase__arrow {
+  position: absolute !important;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50% !important;
+  border: none !important;
+  background: rgba(0,0,0,.48) !important;
+  color: #fff !important;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
+  backdrop-filter: blur(4px);
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.bd-showcase__arrow--prev { left: .75rem; }
+.bd-showcase__arrow--next { right: .75rem; }
+
+.bd-showcase__arrow:hover:not(:disabled) {
+  background: rgba(124,58,237,.82) !important;
+}
+
+.bd-showcase__arrow:disabled {
+  opacity: .2;
+  cursor: not-allowed;
+}
+
+/* ── Dots ─────────────────────────────────────────────────── */
+.bd-showcase__dots {
+  display: flex;
+  justify-content: center;
+  gap: .4rem;
+  padding: .6rem 0;
+  background: var(--bd-bg);
+  border-top: 1px solid var(--bd-border);
+}
+
+.bd-showcase__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: #d1d5db;
+  cursor: pointer;
+  transition: background .15s, transform .15s;
+}
+
+.bd-showcase__dot--active {
+  background: var(--bd-accent);
+  transform: scale(1.3);
+}
+
+/* ── Lightbox ─────────────────────────────────────────────── */
+.bd-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0,0,0,.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 5rem;
+  animation: bd-lb-in .18s ease;
+  cursor: default;
+}
+
+@keyframes bd-lb-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.bd-lightbox__img {
+  max-width: 100%;
+  max-height: 90vh;
+  width: auto;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.6);
+  display: block;
+  pointer-events: none;
+  transition: opacity .18s;
+}
+
+/* Kapat butonu */
+.bd-lightbox__close {
+  position: fixed;
+  top: 1rem;
+  right: 1.25rem;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  background: rgba(255,255,255,.15);
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  transition: background .15s;
+  z-index: 100001;
+}
+.bd-lightbox__close:hover { background: rgba(255,255,255,.32); }
+
+/* ← → navigasyon okları */
+.bd-lightbox__nav {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100001;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+  transition: background .15s, transform .15s;
+}
+.bd-lightbox__nav:hover {
+  background: rgba(124,58,237,.75);
+  transform: translateY(-50%) scale(1.08);
+}
+.bd-lightbox__nav--prev { left: 1rem; }
+.bd-lightbox__nav--next { right: 1rem; }
+
+/* Resim sayacı  "2 / 5" */
+.bd-lightbox__counter {
+  position: fixed;
+  bottom: 1.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255,255,255,.75);
+  font-size: .85rem;
+  font-family: system-ui, sans-serif;
+  background: rgba(0,0,0,.4);
+  padding: .25rem .75rem;
+  border-radius: 999px;
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+  z-index: 100001;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .bd-lightbox { padding: 1rem 3.2rem; }
+  .bd-lightbox__nav { width: 2.4rem; height: 2.4rem; font-size: 1.5rem; }
+  .bd-lightbox__nav--prev { left: .4rem; }
+  .bd-lightbox__nav--next { right: .4rem; }
+}
+
+/* ── Mobile ───────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .bd-showcase__tabbar { padding: 0 .4rem; }
+  .bd-showcase__tab { padding: .7rem .8rem; font-size: .82rem; }
+  .bd-showcase__video-wrap-outer { padding: .8rem; }
+  .bd-showcase__arrow { width: 2rem; height: 2rem; font-size: 1.2rem; }
+}

@@ -26,6 +26,11 @@
                 const stand = String(e.stand || '');
                 const website = String(e.website || '');
                 const directions = String(e.directions || '');
+                let year = parseInt(e.year, 10) || 0;
+                if (!year) {
+                    const ym = date.match(/(20\d{2})/);
+                    year = ym ? parseInt(ym[1], 10) : 0;
+                }
                 return {
                     month,
                     title,
@@ -33,6 +38,7 @@
                     date,
                     stand,
                     website,
+                    year,
                     directions: directions || (location && title ? getDirectionsUrl(location, title) : '')
                 };
             });
@@ -42,9 +48,14 @@
     }
 
     const messeKalenderData = loadEventsFromJson();
+    let currentYear = 'all';
+    let currentMonth = 'all';
+    let currentStatus = 'upcoming';
 
     // Initialize the calendar
     function initMesseKalender() {
+        setupYearFilters();
+        setupStatusFilters();
         renderMesseKalender();
         setupMesseKalenderFilters();
         setupMesseKalenderEventDetails();
@@ -57,7 +68,7 @@
     }
 
     // Render all events in the calendar
-    function renderMesseKalender(filterMonth = 'all') {
+    function renderMesseKalender(filterMonth = currentMonth) {
         const timeline = document.getElementById('messe-kalender-timeline');
         if (!timeline) return;
 
@@ -74,6 +85,13 @@
         // Group events by month
         const eventsByMonth = {};
         messeKalenderData.forEach(event => {
+            const past = isEventCompleted(event.date);
+            if (currentStatus === 'past' ? !past : past) {
+                return;
+            }
+            if (currentYear !== 'all' && String(event.year) !== String(currentYear)) {
+                return;
+            }
             if (!eventsByMonth[event.month]) {
                 eventsByMonth[event.month] = [];
             }
@@ -81,7 +99,7 @@
         });
 
         // Sort months
-        const monthOrder = ['januar', 'februar', 'märz', 'august', 'september', 'oktober', 'november'];
+        const monthOrder = ['januar', 'februar', 'märz', 'april', 'mai', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'dezember'];
         const sortedMonths = Object.keys(eventsByMonth).sort((a, b) => {
             const ai = monthOrder.indexOf(a);
             const bi = monthOrder.indexOf(b);
@@ -112,6 +130,15 @@
         // Setup intersection observer for scroll animations
         setupMesseKalenderScrollAnimations();
 
+        if (!timeline.children.length) {
+            const empty = document.createElement('div');
+            empty.className = 'messe-kalender-event-card';
+            empty.innerHTML = '<div class="messe-kalender-event-content"><div class="messe-kalender-event-title">'
+                + (currentStatus === 'past' ? 'Keine beendeten Messen' : 'Keine kommenden Messen')
+                + '</div></div>';
+            timeline.appendChild(empty);
+        }
+
         // Update countdowns after rendering
         setTimeout(updateCountdowns, 100);
     }
@@ -119,7 +146,7 @@
     // Create an event card element
     function createMesseKalenderEventCard(event, month, isFirstInMonth) {
         const card = document.createElement('div');
-        card.className = 'messe-kalender-event-card';
+        card.className = 'messe-kalender-event-card' + (isEventCompleted(event.date) ? ' is-past' : '');
         card.dataset.month = month;
 
         const monthLabel = `<div class="messe-kalender-event-month">${capitalizeFirst(month)}</div>`;
@@ -160,9 +187,70 @@
         return card;
     }
 
+    function setupYearFilters() {
+        const wrap = document.getElementById('messe-kalender-year-filters');
+        if (!wrap) return;
+        const years = [];
+        messeKalenderData.forEach(function (e) {
+            const y = parseInt(e.year, 10) || 0;
+            if (y >= 1970 && years.indexOf(y) === -1) {
+                years.push(y);
+            }
+        });
+        years.sort(function (a, b) { return a - b; });
+        if (years.length < 2) {
+            wrap.style.display = 'none';
+            return;
+        }
+        wrap.innerHTML = '';
+        const allBtn = document.createElement('button');
+        allBtn.type = 'button';
+        allBtn.className = 'messe-kalender-filter-btn active';
+        allBtn.dataset.year = 'all';
+        allBtn.innerHTML = '<span>Alle Jahre</span>';
+        wrap.appendChild(allBtn);
+        years.forEach(function (y) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'messe-kalender-filter-btn';
+            btn.dataset.year = String(y);
+            btn.innerHTML = '<span>' + y + '</span>';
+            wrap.appendChild(btn);
+        });
+        wrap.querySelectorAll('.messe-kalender-filter-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                wrap.querySelectorAll('.messe-kalender-filter-btn').forEach(function (b) {
+                    b.classList.remove('active');
+                });
+                btn.classList.add('active');
+                currentYear = btn.dataset.year;
+                renderMesseKalender(currentMonth);
+            });
+        });
+    }
+
     // Setup filter buttons
+    function setupStatusFilters() {
+        const wrap = document.getElementById('messe-kalender-status-filters');
+        if (!wrap) return;
+        wrap.querySelectorAll('[data-status]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                wrap.querySelectorAll('[data-status]').forEach(function (b) {
+                    b.classList.remove('active');
+                });
+                btn.classList.add('active');
+                currentStatus = btn.dataset.status || 'upcoming';
+                document.body.classList.toggle('messe-kalender-show-past', currentStatus === 'past');
+                renderMesseKalender(currentMonth);
+            });
+        });
+    }
+
     function setupMesseKalenderFilters() {
-        const filterButtons = document.querySelectorAll('.messe-kalender-filter-btn');
+        const monthWrap = document.getElementById('messe-kalender-month-filters');
+        const filterButtons = monthWrap
+            ? monthWrap.querySelectorAll('.messe-kalender-filter-btn')
+            : [];
 
         filterButtons.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -172,8 +260,8 @@
                 btn.classList.add('active');
 
                 // Filter events by month
-                const month = btn.dataset.month;
-                renderMesseKalender(month);
+                currentMonth = btn.dataset.month || 'all';
+                renderMesseKalender(currentMonth);
             });
         });
     }
@@ -261,19 +349,34 @@
         return `${mins} Minuten`;
     }
 
+    function dateFromParts(day, month, year) {
+        day = parseInt(day, 10);
+        month = parseInt(month, 10);
+        year = parseInt(year, 10);
+        if (!day || !month || !year || month > 12 || day > 31) return null;
+        return new Date(year, month - 1, day);
+    }
+
     function parseEventDate(dateStr) {
-        // Original template uses various formats like 9–11.01.2026 or 06.-08-11-2026
+        return parseEventEnd(dateStr);
+    }
+
+    function parseEventEnd(dateStr) {
         const s = String(dateStr || '').trim();
         if (!s) return null;
-
-        // Try to find dd.mm.yyyy at end
-        let m = s.match(/(\d{1,2})\D+(\d{1,2})\D+(\d{4})/);
-        if (!m) return null;
-        const day = parseInt(m[1], 10);
-        const month = parseInt(m[2], 10);
-        const year = parseInt(m[3], 10);
-        if (!day || !month || !year) return null;
-        return new Date(year, month - 1, day);
+        const dotted = Array.from(s.matchAll(/(\d{1,2})\.(\d{1,2})\.(\d{4})/g));
+        if (dotted.length) {
+            const last = dotted[dotted.length - 1];
+            return dateFromParts(last[1], last[2], last[3]);
+        }
+        const range = s.match(/(\d{1,2})\s*[.\-–]+\s*(\d{1,2})[.\-–]+(\d{1,2})[.\-–]+(\d{4})/);
+        if (range) {
+            return dateFromParts(range[2], range[3], range[4]);
+        }
+        const matches = Array.from(s.matchAll(/(\d{1,2})[.\-](\d{1,2})[.\-](\d{4})/g));
+        if (!matches.length) return null;
+        const last = matches[matches.length - 1];
+        return dateFromParts(last[1], last[2], last[3]);
     }
 
     function updateCountdowns() {

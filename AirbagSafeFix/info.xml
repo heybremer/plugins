@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jtlshopplugin>
+    <Name>AirbagSafeFix</Name>
+    <Description>Registrierungsformular für Airbag Safe Fix Sicherheitsregistrierung. Eingaben im Admin-Dashboard einsehbar.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>AirbagSafeFix</PluginID>
+    <CreateDate>2026-06-24</CreateDate>
+    <Version>1.0.7</Version>
+    <Bootstrap>Plugin\AirbagSafeFix\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>

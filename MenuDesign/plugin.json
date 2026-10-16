@@ -1,0 +1,15 @@
+{
+  "name": "MenuDesign",
+  "label": "Menu Design (Kategorie-Menü)",
+  "description": "Modernisiert das Kategorie-/Megamenü im Frontend: klare Typografie, bessere Dropdowns und mobile Navigation.",
+  "author": "Womosi",
+  "url": "https://womosi.de",
+  "version": "1.0.12",
+  "minShopVersion": "5.2.0",
+  "maxShopVersion": "5.99.99",
+  "requires": [],
+  "bootstrap": "Plugin\\MenuDesign\\Bootstrap",
+  "hooks": [],
+  "adminMenu": [],
+  "dependencies": []
+}

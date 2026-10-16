@@ -66,6 +66,12 @@ class MarkeFiltreController
                                                   AND (ms_her.cName = 'Fahrzeug-Marke' OR ms_her.cName = 'Fahrzeug Marke')
                  INNER JOIN tmerkmalwertsprache tmws_her ON tmws_her.kMerkmalWert = mw_her.kMerkmalWert
                                                         AND tmws_her.kSprache     = :lid
+             INNER JOIN tartikelmerkmal am_mod ON am_mod.kArtikel = a.kArtikel
+             INNER JOIN tmerkmalwert mw_mod    ON mw_mod.kMerkmalWert = am_mod.kMerkmalWert
+             INNER JOIN tmerkmal m_mod         ON m_mod.kMerkmal = mw_mod.kMerkmal
+             INNER JOIN tmerkmalsprache ms_mod ON ms_mod.kMerkmal = m_mod.kMerkmal
+                                              AND ms_mod.kSprache = :lid
+                                              AND (ms_mod.cName = 'Fahrzeug-Modell' OR ms_mod.cName = 'Fahrzeug Modell')
                   WHERE a.nIstVater = 0
                     AND TRIM(tmws_her.cWert) <> ''
                     AND tmws_her.cWert NOT REGEXP '^[0-9]+$'
@@ -76,7 +82,7 @@ class MarkeFiltreController
                     INNER JOIN tmerkmal m_typ         ON m_typ.kMerkmal = mw_typ.kMerkmal
                     INNER JOIN tmerkmalsprache ms_typ ON ms_typ.kMerkmal = m_typ.kMerkmal
                                                      AND ms_typ.kSprache = :lid
-                                                     AND (ms_typ.cName = 'Wohnmobil-Aufbauart' OR ms_typ.cName = 'Wohnmobil Aufbauart' OR (ms_typ.cName LIKE '%Aufbauart%'))
+                                                     AND (ms_typ.cName = 'Wohnmobil-Aufbauart' OR ms_typ.cName = 'Wohnmobil Aufbauart' OR ms_typ.cName LIKE '%Aufbauart%')
                          WHERE am_typ.kArtikel = a.kArtikel
                     )
                ORDER BY tmws_her.cWert ASC

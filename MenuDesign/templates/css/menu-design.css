@@ -1,0 +1,652 @@
+/**
+ * MenuDesign — NOVA / Bootstrap Kategorie- & Megamenü
+ * Scoped unter body.womosi-menu-design
+ */
+
+body.womosi-menu-design {
+    --md-text: #1e293b;
+    --md-text-muted: #64748b;
+    --md-bg-panel: #ffffff;
+    --md-border: rgba(15, 23, 42, 0.08);
+    --md-shadow: 0 16px 40px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(15, 23, 42, 0.06);
+    --md-transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    --md-nav-height: 2.75rem;
+    --md-z-dropdown: 2147483600;
+    --md-z-header-open: 2147483500;
+}
+
+/* FilterKonfiguratorSearch / Hero: immer unter Header-Stapel */
+body.womosi-menu-design #jtl-nav-wrapper,
+body.womosi-menu-design header[role="banner"] {
+    z-index: var(--md-z-header-open) !important;
+}
+
+body.womosi-menu-design #main-wrapper,
+body.womosi-menu-design #content-wrapper,
+body.womosi-menu-design .index-filter-konfigurator,
+body.womosi-menu-design .womosi-konfigurator,
+body.womosi-menu-design #womosi-fk-konfigurator-anchor,
+body.womosi-menu-design .videoblinder,
+body.womosi-menu-design #rabatt-header-bar {
+    position: relative;
+    z-index: 0 !important;
+}
+
+body.womosi-menu-design .dropdown-menu[data-md-fixed="1"],
+body.womosi-menu-design .md-dropdown-portal.md-dropdown-portal-visible {
+    position: fixed !important;
+    z-index: var(--md-z-dropdown) !important;
+    transform: none !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    background: var(--md-bg-panel, #fff) !important;
+    box-shadow: var(--md-shadow) !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    float: none !important;
+    overflow-x: hidden !important;
+}
+
+/* ===== Portal-Megamenü: Inhalt volle Breite ===== */
+
+/* Konfigurator / Main unter offenem Menü */
+body.womosi-menu-design.md-nav-dropdown-open .index-filter-konfigurator,
+body.womosi-menu-design.md-nav-dropdown-open .womosi-konfigurator,
+body.womosi-menu-design.md-nav-dropdown-open #main-wrapper,
+body.womosi-menu-design.md-nav-dropdown-open .videoblinder,
+body.womosi-menu-design.md-nav-dropdown-open #rabatt-header-bar {
+    z-index: 0 !important;
+    pointer-events: none;
+}
+
+body.womosi-menu-design.md-nav-dropdown-open .md-dropdown-portal-visible,
+body.womosi-menu-design.md-nav-dropdown-open .md-dropdown-portal-visible * {
+    pointer-events: auto;
+}
+
+/* NOVA Backdrop hinter dem Menü */
+body.womosi-menu-design.md-nav-dropdown-open .modal-backdrop.md-backdrop-behind-menu,
+body.womosi-menu-design.md-nav-dropdown-open .modal-backdrop.zindex-dropdown {
+    z-index: 2147483640 !important;
+    opacity: 0.12 !important;
+}
+
+/* Portal-Menü: dropdown-body + container dürfen nicht klemmen */
+.md-dropdown-portal.md-dropdown-portal-visible .dropdown-body {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    overflow: visible !important;
+}
+
+.md-dropdown-portal.md-dropdown-portal-visible .subcategory-wrapper,
+.md-dropdown-portal.md-dropdown-portal-visible .subcategory-wrapper.container,
+.md-dropdown-portal.md-dropdown-portal-visible .subcategory-wrapper.container-fluid {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.md-dropdown-portal.md-dropdown-portal-visible .subcategory-wrapper > .row,
+.md-dropdown-portal.md-dropdown-portal-visible .subcategory-wrapper .lg-row-lg {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: -0.75rem !important;
+    margin-right: -0.75rem !important;
+}
+
+/* Spalten: volle Bootstrap-Flexbox, nicht abschneiden */
+.md-dropdown-portal.md-dropdown-portal-visible .subcategory-wrapper .col-lg-4,
+.md-dropdown-portal.md-dropdown-portal-visible .subcategory-wrapper [class*="col-lg"],
+.md-dropdown-portal.md-dropdown-portal-visible .subcategory-wrapper [class*="col-xl"] {
+    display: block !important;
+    flex: 0 0 25% !important;
+    max-width: 25% !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+}
+
+/* d-lg-none Spalte (mobile "Kategorie anzeigen") auf Desktop versteckt lassen */
+@media (min-width: 992px) {
+    .md-dropdown-portal.md-dropdown-portal-visible .subcategory-wrapper .d-lg-none {
+        display: none !important;
+    }
+}
+
+/* Dropdown-Items im Portal */
+.md-dropdown-portal.md-dropdown-portal-visible .dropdown-item {
+    padding: 0.45rem 0.5rem !important;
+    white-space: normal !important;
+    font-size: 0.875rem;
+    color: #1e293b;
+    display: block;
+}
+
+.md-dropdown-portal.md-dropdown-portal-visible .dropdown-item:hover {
+    background: rgba(21, 101, 192, 0.08) !important;
+    color: #1565c0 !important;
+    text-decoration: none;
+}
+
+body.womosi-menu-design .md-menu-placeholder {
+    display: block !important;
+}
+
+/*
+ * NOVA: #mainNavigation.nav-scrollbar hat overflow:hidden (clippt Megamenü).
+ * Zusätzlich: .navbar-collapse feste Höhe (~69px) schneidet Dropdown ab.
+ */
+@media (min-width: 992px) {
+    body.womosi-menu-design header,
+    body.womosi-menu-design #header-wrapper,
+    body.womosi-menu-design #jtl-nav-wrapper,
+    body.womosi-menu-design .hide-navbar,
+    body.womosi-menu-design .navbar,
+    body.womosi-menu-design .navbar-collapse,
+    body.womosi-menu-design .navbar-nav,
+    body.womosi-menu-design .nav-wrapper,
+    body.womosi-menu-design .main-nav-wrapper,
+    body.womosi-menu-design #mainNavigation,
+    body.womosi-menu-design #mainNavigation.nav-scrollbar,
+    body.womosi-menu-design .md-enhanced-nav,
+    body.womosi-menu-design .md-enhanced-nav .nav-mobile-body,
+    body.womosi-menu-design .md-enhanced-nav .nav-scrollbar-inner {
+        overflow: visible !important;
+    }
+
+    body.womosi-menu-design #mainNavigation.navbar-collapse,
+    body.womosi-menu-design .md-enhanced-nav.navbar-collapse {
+        height: auto !important;
+        max-height: none !important;
+        min-height: 0;
+    }
+
+    /* Horizontales Scrollen der Kategorien bleibt auf der inneren Leiste */
+    body.womosi-menu-design #mainNavigation .nav-scrollbar-inner,
+    body.womosi-menu-design .md-enhanced-nav .nav-scrollbar-inner {
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+    }
+
+    body.womosi-menu-design.md-nav-dropdown-open header,
+    body.womosi-menu-design.md-nav-dropdown-open header.sticky-top,
+    body.womosi-menu-design.md-nav-dropdown-open #header-wrapper,
+    body.womosi-menu-design.md-nav-dropdown-open #jtl-nav-wrapper {
+        position: relative;
+        z-index: var(--md-z-header-open) !important;
+        overflow: visible !important;
+    }
+
+    body.womosi-menu-design .md-enhanced-nav {
+        position: relative;
+        z-index: calc(var(--md-z-header-open) - 5);
+        overflow: visible !important;
+    }
+
+    /* NOVA Megamenü: .dropdown-full → position:static, Panel volle Breite */
+    body.womosi-menu-design .md-enhanced-nav .nav-item.dropdown-full,
+    body.womosi-menu-design #mainNavigation .nav-item.dropdown-full {
+        position: static !important;
+    }
+
+    body.womosi-menu-design .md-enhanced-nav .nav-item.dropdown,
+    body.womosi-menu-design .md-enhanced-nav .nav-item.md-has-children {
+        position: relative;
+    }
+
+    body.womosi-menu-design .md-enhanced-nav .nav-item.dropdown-full.dropdown,
+    body.womosi-menu-design .md-enhanced-nav .nav-item.dropdown-full.md-has-children {
+        position: static !important;
+    }
+
+    body.womosi-menu-design .md-enhanced-nav .nav-item.show,
+    body.womosi-menu-design .md-enhanced-nav .nav-item.md-open,
+    body.womosi-menu-design .md-enhanced-nav .nav-item.hover {
+        z-index: calc(var(--md-z-dropdown) - 1);
+    }
+
+    body.womosi-menu-design .md-enhanced-nav .dropdown-menu,
+    body.womosi-menu-design .md-enhanced-nav .mega-menu,
+    body.womosi-menu-design .md-enhanced-nav .mega-dropdown-menu,
+    body.womosi-menu-design .md-enhanced-nav .dropdown-menu.show,
+    body.womosi-menu-design #mainNavigation .dropdown-menu.show {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        z-index: var(--md-z-dropdown) !important;
+        will-change: opacity, transform;
+    }
+
+    body.womosi-menu-design .md-enhanced-nav .nav-item:not(.dropdown-full) > .dropdown-menu,
+    body.womosi-menu-design #mainNavigation .nav-item:not(.dropdown-full) > .dropdown-menu {
+        position: absolute !important;
+        top: 100% !important;
+        left: 0;
+        float: none;
+    }
+
+    /* NOVA .dropdown-full Megamenü — volle Breite unter der Nav-Leiste */
+    body.womosi-menu-design .md-enhanced-nav .dropdown-full > .dropdown-menu,
+    body.womosi-menu-design #mainNavigation .dropdown-full > .dropdown-menu,
+    body.womosi-menu-design .md-enhanced-nav .dropdown-full > .dropdown-menu.show {
+        position: absolute !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        top: 100% !important;
+        margin-top: 0 !important;
+        transform: none !important;
+    }
+
+    /* Hero/Konfigurator unter dem offenen Menü */
+    body.womosi-menu-design.md-nav-dropdown-open #main-wrapper,
+    body.womosi-menu-design.md-nav-dropdown-open #content-wrapper,
+    body.womosi-menu-design.md-nav-dropdown-open #content,
+    body.womosi-menu-design.md-nav-dropdown-open .index-filter-konfigurator,
+    body.womosi-menu-design.md-nav-dropdown-open .womosi-konfigurator,
+    body.womosi-menu-design.md-nav-dropdown-open .videoblinder,
+    body.womosi-menu-design.md-nav-dropdown-open #rabatt-header-bar {
+        position: relative;
+        z-index: 1 !important;
+    }
+}
+
+/* —— Hauptnavigation (Desktop) —— */
+body.womosi-menu-design .md-enhanced-nav {
+    position: relative;
+}
+
+body.womosi-menu-design .md-enhanced-nav > .navbar-nav,
+body.womosi-menu-design .md-enhanced-nav .navbar-nav {
+    gap: 0.15rem;
+    align-items: stretch;
+}
+
+body.womosi-menu-design .md-enhanced-nav .nav-item {
+    position: relative;
+}
+
+body.womosi-menu-design .md-enhanced-nav .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.55rem 0.95rem !important;
+    font-size: 0.94rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--md-text) !important;
+    border-radius: var(--md-radius);
+    transition: color var(--md-transition), background var(--md-transition), box-shadow var(--md-transition);
+    white-space: nowrap;
+}
+
+body.womosi-menu-design .md-enhanced-nav .nav-link:hover,
+body.womosi-menu-design .md-enhanced-nav .nav-link:focus-visible {
+    color: var(--md-accent) !important;
+    background: var(--md-accent-soft);
+    outline: none;
+}
+
+body.womosi-menu-design .md-enhanced-nav .nav-item.active > .nav-link,
+body.womosi-menu-design .md-enhanced-nav .nav-link.active {
+    color: var(--md-accent) !important;
+    background: var(--md-accent-soft);
+    font-weight: 600;
+}
+
+body.womosi-menu-design .md-enhanced-nav .nav-item.md-has-children > .nav-link::after,
+body.womosi-menu-design .md-enhanced-nav .dropdown-toggle::after {
+    content: '';
+    width: 7px;
+    height: 7px;
+    margin-left: 0.15rem;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg) translateY(-1px);
+    opacity: 0.55;
+    transition: transform var(--md-transition), opacity var(--md-transition);
+    border-top: none;
+    vertical-align: middle;
+}
+
+body.womosi-menu-design .md-enhanced-nav .nav-item.show > .nav-link::after,
+body.womosi-menu-design .md-enhanced-nav .nav-item.md-open > .nav-link::after {
+    transform: rotate(-135deg) translateY(1px);
+    opacity: 1;
+}
+
+/* Dropdown / Megamenü Panel */
+body.womosi-menu-design .md-enhanced-nav .dropdown-menu {
+    margin-top: 0.35rem !important;
+    padding: 0.85rem 1rem !important;
+    border: 1px solid var(--md-border) !important;
+    border-radius: calc(var(--md-radius) + 2px) !important;
+    background: var(--md-bg-panel) !important;
+    box-shadow: var(--md-shadow) !important;
+    min-width: 14rem;
+    animation: mdMenuFadeIn 0.2s ease;
+}
+
+@keyframes mdMenuFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+body.womosi-menu-design .md-enhanced-nav .dropdown-item {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.9rem;
+    font-weight: 450;
+    color: var(--md-text) !important;
+    border-radius: calc(var(--md-radius) - 2px);
+    transition: background var(--md-transition), color var(--md-transition), padding-left var(--md-transition);
+}
+
+body.womosi-menu-design .md-enhanced-nav .dropdown-item:hover,
+body.womosi-menu-design .md-enhanced-nav .dropdown-item:focus {
+    background: var(--md-accent-soft) !important;
+    color: var(--md-accent) !important;
+}
+
+body.womosi-menu-design .md-enhanced-nav .dropdown-item.active,
+body.womosi-menu-design .md-enhanced-nav .dropdown-item:active {
+    background: var(--md-accent) !important;
+    color: #fff !important;
+}
+
+/* Megamenü: mehrspaltig */
+body.womosi-menu-design[data-md-mega="1"] .md-enhanced-nav .dropdown-menu.md-mega-panel,
+body.womosi-menu-design[data-md-mega="1"] .md-enhanced-nav .mega-menu,
+body.womosi-menu-design[data-md-mega="1"] .md-enhanced-nav .mega-dropdown-menu {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: 0.25rem 1.25rem;
+    min-width: min(92vw, 52rem) !important;
+    max-width: 56rem;
+    padding: 1.1rem 1.25rem !important;
+}
+
+body.womosi-menu-design[data-md-mega="1"] .md-enhanced-nav .dropdown-menu.md-mega-panel .dropdown-header,
+body.womosi-menu-design[data-md-mega="1"] .md-enhanced-nav .mega-menu .dropdown-header {
+    grid-column: 1 / -1;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--md-text-muted);
+    padding: 0 0 0.35rem !important;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid var(--md-border);
+}
+
+/* Stil-Varianten */
+body.womosi-menu-design.md-style-minimal {
+    --md-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+body.womosi-menu-design.md-style-minimal .md-enhanced-nav .nav-link {
+    font-weight: 450;
+    padding: 0.45rem 0.75rem !important;
+}
+
+body.womosi-menu-design.md-style-bold .md-enhanced-nav .nav-link {
+    font-weight: 600;
+    text-transform: none;
+    font-size: 0.97rem;
+}
+
+body.womosi-menu-design.md-style-bold .md-enhanced-nav .nav-link:hover {
+    box-shadow: inset 0 -2px 0 var(--md-accent);
+    background: transparent;
+}
+
+/* —— Desktop mega menu: premium card grid —— */
+@media (min-width: 992px) {
+    body.womosi-menu-design .md-dropdown-portal.md-dropdown-portal-visible {
+        border-top: 3px solid var(--md-accent) !important;
+        background:
+            radial-gradient(circle at 15% 0%, var(--md-accent-soft), transparent 32%),
+            #f8faf9 !important;
+        box-shadow: 0 24px 55px rgba(15, 23, 42, 0.16) !important;
+    }
+
+    body.womosi-menu-design .md-dropdown-portal-visible .dropdown-body {
+        padding: 1.1rem 0 1.4rem !important;
+    }
+
+    body.womosi-menu-design .md-dropdown-portal-visible .subcategory-wrapper {
+        max-width: 1320px !important;
+        margin: 0 auto !important;
+        padding: 0 1rem !important;
+    }
+
+    body.womosi-menu-design .md-dropdown-portal-visible .subcategory-wrapper > .row {
+        align-items: stretch;
+        row-gap: 0.8rem;
+    }
+
+    body.womosi-menu-design .md-dropdown-portal-visible .subcategory-wrapper > .row > [class*="col-"] {
+        padding: 0 0.4rem !important;
+    }
+
+    body.womosi-menu-design .md-dropdown-portal-visible .submenu-headline,
+    body.womosi-menu-design .md-dropdown-portal-visible .subcategory-wrapper > .row > [class*="col-"] > a {
+        display: flex !important;
+        align-items: center;
+        min-height: 58px;
+        padding: 0.9rem 1rem !important;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--md-text) !important;
+        font-size: 0.92rem;
+        font-weight: 600;
+        line-height: 1.35;
+        text-decoration: none !important;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        transition:
+            color var(--md-transition),
+            border-color var(--md-transition),
+            box-shadow var(--md-transition),
+            transform var(--md-transition);
+    }
+
+    body.womosi-menu-design .md-dropdown-portal-visible .submenu-headline:hover,
+    body.womosi-menu-design .md-dropdown-portal-visible .submenu-headline:focus-visible,
+    body.womosi-menu-design .md-dropdown-portal-visible .subcategory-wrapper > .row > [class*="col-"] > a:hover,
+    body.womosi-menu-design .md-dropdown-portal-visible .subcategory-wrapper > .row > [class*="col-"] > a:focus-visible {
+        color: var(--md-accent) !important;
+        border-color: var(--md-accent);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+        transform: translateY(-2px);
+    }
+}
+
+/* —— Mobile / Offcanvas —— */
+@media (max-width: 991.98px) {
+    body.womosi-menu-design[data-md-mobile="1"] #mainNavigation.md-enhanced-nav {
+        width: min(90vw, 380px);
+        max-width: 380px;
+        padding: 0;
+        background: #fff;
+        box-shadow: 18px 0 48px rgba(15, 23, 42, 0.18);
+    }
+
+    body.womosi-menu-design[data-md-mobile="1"] #mainNavigation .nav-mobile-header {
+        min-height: 64px;
+        padding: 0 1.1rem;
+        border-bottom: 1px solid var(--md-border);
+        background: linear-gradient(135deg, #fff 0%, #f7faf8 100%);
+    }
+
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .navbar-nav {
+        flex-direction: column;
+        gap: 0;
+        width: 100%;
+        padding: 0;
+    }
+
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .nav-item {
+        width: 100%;
+        border-bottom: 1px solid var(--md-border);
+    }
+
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .nav-link {
+        width: 100%;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.95rem 1.25rem !important;
+        min-height: 54px;
+        border-radius: 0;
+        font-size: 0.96rem;
+        line-height: 1.35;
+        color: var(--md-text) !important;
+    }
+
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .nav-link:hover,
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .nav-link:focus,
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .nav-item.md-open > .nav-link {
+        color: var(--md-accent) !important;
+        background: var(--md-accent-soft);
+    }
+
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .nav-mobile-heading,
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .text-truncate {
+        min-width: 0;
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+    }
+
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .nav-item.md-has-children > .nav-link::after,
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .dropdown-toggle::after {
+        content: '' !important;
+        font-family: inherit !important;
+        box-sizing: border-box;
+        flex: 0 0 8px;
+        width: 8px;
+        height: 8px;
+        margin: 0 2px 3px auto;
+        border: 0;
+        border-right: 2px solid currentColor;
+        border-bottom: 2px solid currentColor;
+        transform: rotate(45deg);
+        opacity: 0.6;
+    }
+
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .nav-item.md-open > .nav-link::after,
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .nav-item.show > .nav-link::after {
+        margin-bottom: -3px;
+        transform: rotate(225deg);
+        opacity: 1;
+    }
+
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .dropdown-menu {
+        position: static !important;
+        float: none !important;
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: #f6f8f7 !important;
+        padding: 0.35rem 0 0.55rem 1rem !important;
+        display: none;
+    }
+
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .nav-item.md-open > .dropdown-menu,
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .nav-item.show > .dropdown-menu {
+        display: block !important;
+    }
+
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .dropdown-item {
+        padding: 0.7rem 1rem !important;
+        min-height: 46px;
+        display: flex;
+        align-items: center;
+    }
+
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .subcategory-wrapper {
+        padding-right: 0.75rem;
+    }
+
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .subcategory-wrapper > .nav {
+        margin: 0;
+    }
+
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .subcategory-wrapper .nav-item {
+        border-color: rgba(15, 23, 42, 0.07);
+    }
+
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .submenu-headline,
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .subcategory-wrapper .d-lg-none > a {
+        display: flex !important;
+        align-items: center;
+        gap: 0.75rem;
+        min-height: 50px;
+        padding: 0.75rem 1rem !important;
+        color: var(--md-text) !important;
+        font-size: 0.93rem;
+        line-height: 1.35;
+    }
+
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .subcategory-wrapper .d-lg-none > a {
+        color: var(--md-accent) !important;
+        background: rgba(255, 255, 255, 0.7);
+    }
+}
+
+/* NOVA-spezifische Wrapper */
+body.womosi-menu-design #jtl-nav-wrapper .md-enhanced-nav,
+body.womosi-menu-design #mainNavigation.md-enhanced-nav,
+body.womosi-menu-design header .md-enhanced-nav {
+    border-bottom: none;
+}
+
+body.womosi-menu-design .md-enhanced-nav .md-submenu-toggle {
+    display: none;
+}
+
+@media (max-width: 991.98px) {
+    body.womosi-menu-design[data-md-mobile="1"] .md-enhanced-nav .nav-item.md-has-children > .nav-link {
+        cursor: pointer;
+    }
+}
+
+/* Barrierefreiheit */
+body.womosi-menu-design .md-enhanced-nav .nav-link:focus-visible,
+body.womosi-menu-design .md-enhanced-nav .dropdown-item:focus-visible {
+    outline: 2px solid var(--md-accent);
+    outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    body.womosi-menu-design .md-enhanced-nav .dropdown-menu {
+        animation: none;
+    }
+    body.womosi-menu-design .md-enhanced-nav .nav-link,
+    body.womosi-menu-design .md-enhanced-nav .dropdown-item {
+        transition: none;
+    }
+}

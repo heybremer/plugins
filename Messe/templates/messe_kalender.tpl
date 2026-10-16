@@ -1,21 +1,31 @@
 <div class="messe-kalender-wrapper" data-messe-kalender="1">
   <div class="messe-kalender-container">
     <div class="messe-kalender-header" role="banner">
-      <h1 style="color: white;">{$mkHeadline|default:'Messe Kalender 2026'|escape:'html'}</h1>
+      <h1 style="color: white;">{$mkHeadline|default:'Messe Kalender'|escape:'html'}</h1>
       <p class="messe-kalender-subtitle">
         {$mkSubtitle|default:''|escape:'html'}
       </p>
     </div>
 
-    <div class="messe-kalender-filter-section">
+    <div class="messe-kalender-filter-section" id="messe-kalender-status-filters">
+      <button class="messe-kalender-filter-btn active" data-status="upcoming" type="button"><span>Kommende Messen</span></button>
+      <button class="messe-kalender-filter-btn" data-status="past" type="button"><span>Beendete Messen</span></button>
+    </div>
+    <div class="messe-kalender-filter-section" id="messe-kalender-year-filters"></div>
+    <div class="messe-kalender-filter-section" id="messe-kalender-month-filters">
       <button class="messe-kalender-filter-btn active" data-month="all" type="button"><span>Alle</span></button>
       <button class="messe-kalender-filter-btn" data-month="januar" type="button"><span>Januar</span></button>
       <button class="messe-kalender-filter-btn" data-month="februar" type="button"><span>Februar</span></button>
       <button class="messe-kalender-filter-btn" data-month="märz" type="button"><span>März</span></button>
+      <button class="messe-kalender-filter-btn" data-month="april" type="button"><span>April</span></button>
+      <button class="messe-kalender-filter-btn" data-month="mai" type="button"><span>Mai</span></button>
+      <button class="messe-kalender-filter-btn" data-month="juni" type="button"><span>Juni</span></button>
+      <button class="messe-kalender-filter-btn" data-month="juli" type="button"><span>Juli</span></button>
       <button class="messe-kalender-filter-btn" data-month="august" type="button"><span>August</span></button>
       <button class="messe-kalender-filter-btn" data-month="september" type="button"><span>September</span></button>
       <button class="messe-kalender-filter-btn" data-month="oktober" type="button"><span>Oktober</span></button>
       <button class="messe-kalender-filter-btn" data-month="november" type="button"><span>November</span></button>
+      <button class="messe-kalender-filter-btn" data-month="dezember" type="button"><span>Dezember</span></button>
     </div>
 
     <div class="messe-kalender-calendar-container">
@@ -45,4 +55,3 @@
 
   <script type="application/json" id="messe-kalender-data">{$mkDataJson|default:'{}' nofilter}</script>
 </div>
-

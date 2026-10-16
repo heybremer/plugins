@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jtlshopplugin>
+    <Name>BremerDesc</Name>
+    <Description>Produkt-Showcase mit Video-Tab (YouTube) und Bilder-Slider mit Lightbox für Artikel- und Startseite.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>BremerDesc</PluginID>
+    <CreateDate>2026-06-04</CreateDate>
+    <Version>1.0.29</Version>
+    <Bootstrap>Plugin\BremerDesc\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>

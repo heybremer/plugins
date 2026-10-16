@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jtlshopplugin>
+    <Name>MenuDesign</Name>
+    <Description>Modernes, professionelles Kategorie-Menü (Megamenü &amp; Mobile) für JTL-Shop NOVA.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>MenuDesign</PluginID>
+    <CreateDate>2026-05-21</CreateDate>
+    <Version>1.0.12</Version>
+    <Bootstrap>Plugin\MenuDesign\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>

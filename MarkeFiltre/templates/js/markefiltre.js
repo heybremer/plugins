@@ -389,17 +389,39 @@
       var el = e.target;
       if (!el || !el.closest) return;
 
-      // Brand click: pre-fill konfigurator with brand + Serie C, navigate to homepage.
+      // Marka tıklaması: Fahrzeug-Marke karakteristik sayfasına git (PKW ve Wohnmobil).
       var brandEl = el.closest('a.mf-brand[data-mf-name]');
       if (brandEl && root.contains(brandEl)) {
         e.preventDefault();
-        var segKey = brandEl.dataset.mfSegment || state.activeSet;
-        var name = brandEl.dataset.mfName || brandEl.textContent || '';
+        var segKey = String(brandEl.dataset.mfSegment || state.activeSet || '').toLowerCase();
+        var name = String(brandEl.dataset.mfName || brandEl.textContent || '').trim();
         var listUrl = '';
         try {
           listUrl = String(brandEl.getAttribute('href') || brandEl.href || '').trim();
         } catch (_) {}
-        mfOpenKonfigWithBrand(segKey, name, listUrl);
+        try {
+          var payload = {
+            step: 2,
+            segment: segKey === 'pkw' ? 'pkw' : 'wohnmobil',
+            hersteller: name,
+            basis: '',
+            modell: '',
+            modellCustom: '',
+            year: '',
+            seatId: '',
+            seatLabel: '',
+            serie: '',
+            typKey: '',
+            typLabel: '',
+            forceSerieSelect: 0,
+            mfPreset: ''
+          };
+          window.localStorage.setItem('womosi_fk_state_v1', JSON.stringify(payload));
+        } catch (_) {}
+        if (listUrl && listUrl !== '#') {
+          window.location.href = listUrl;
+          return;
+        }
         return;
       }
 

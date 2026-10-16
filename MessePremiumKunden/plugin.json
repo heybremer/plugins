@@ -1,0 +1,15 @@
+{
+  "name": "MessePremiumKunden",
+  "label": "Messe Premium Kunden",
+  "description": "Messe-Registrierung für Premium-Kunden inkl. Foto-Upload, Datenschutz und automatischem JTL-Kupon.",
+  "author": "Womosi",
+  "url": "https://womosi.de",
+  "version": "1.0.2",
+  "minShopVersion": "5.2.0",
+  "maxShopVersion": "5.99.99",
+  "requires": [],
+  "bootstrap": "Plugin\\MessePremiumKunden\\Bootstrap",
+  "hooks": [],
+  "adminMenu": [],
+  "dependencies": []
+}

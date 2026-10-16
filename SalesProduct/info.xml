@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jtlshopplugin>
+    <Name>SalesProduct</Name>
+    <Description>Bestellungen nach Marketing-Kanal zuordnen (Google Ads, SEO, UTM usw.).</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>SalesProduct</PluginID>
+    <CreateDate>2026-05-06</CreateDate>
+    <Version>1.0.17</Version>
+    <Bootstrap>Plugin\SalesProduct\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>

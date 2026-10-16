@@ -1,6 +1,7 @@
 {if isset($apActive) && (int)$apActive === 0}
 <div data-actionproduct-disabled="1" style="display:none;"></div>
 {else}
+<div class="videoblinder">
 <div class="container opc-Container" data-actionproduct="1">
     <div class="aktion-container">
         <div class="aktion-banner">
@@ -127,5 +128,6 @@
             {/foreach}
         </div>
     </div>
+</div>
 </div>
 {/if}

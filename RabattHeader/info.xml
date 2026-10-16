@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jtlshopplugin>
+    <Name>RabattHeader</Name>
+    <Description>Header-Banner mit Rabatt-Text und kopierbarem Gutscheincode. Text und Code im Admin anpassbar.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>RabattHeader</PluginID>
+    <CreateDate>2026-05-21</CreateDate>
+    <Version>1.0.4</Version>
+    <Bootstrap>Plugin\RabattHeader\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>

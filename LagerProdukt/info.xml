@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jtlshopplugin>
+    <Name>LagerProdukt</Name>
+    <Description>Shop-Seiten mit JTL-Header/Footer. Produkte per Art.-Nr. (SKU) je Seite.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>LagerProdukt</PluginID>
+    <CreateDate>2026-09-09</CreateDate>
+    <Version>1.0.34</Version>
+    <Bootstrap>Plugin\LagerProdukt\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>

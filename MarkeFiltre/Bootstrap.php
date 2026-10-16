@@ -2,6 +2,10 @@
 
 namespace Plugin\MarkeFiltre;
 
+require_once __DIR__ . '/src/BrandListLink.php';
+require_once __DIR__ . '/src/KonfigJumpUrl.php';
+require_once __DIR__ . '/src/Controller/MarkeFiltreController.php';
+
 use JTL\Events\Dispatcher;
 use JTL\Plugin\Bootstrapper;
 use JTL\Router\Router;
@@ -232,17 +236,19 @@ class Bootstrap extends Bootstrapper
                 }
             }
             $mfVer = \preg_replace('/[^0-9A-Za-z._-]/', '', $mfVer);
-            if ($mfVer === '') {
-                $mfVer = '0';
+            if ($mfVer === '' || \version_compare($mfVer, '1.1.33', '<')) {
+                $mfVer = '1.1.33';
             }
             $n = (int) $scripts->length;
             for ($i = 0; $i < $n; $i++) {
                 $node = $scripts->eq($i);
                 $src  = (string) $node->attr('src');
-                if ($src === '' || \stripos($src, '-mf') !== false) {
+                if ($src === '') {
                     continue;
                 }
-                if (\preg_match('/([?&])v=([^&]+)/', $src, $m)) {
+                if (\preg_match('/-mf[0-9A-Za-z._-]*/', $src)) {
+                    $newSrc = \preg_replace('/-mf[0-9A-Za-z._-]*/', '-mf' . $mfVer, $src, 1);
+                } elseif (\preg_match('/([?&])v=([^&]+)/', $src)) {
                     $newSrc = \preg_replace('/([?&])v=([^&]+)/', '$1v=$2-mf' . $mfVer, $src, 1);
                 } else {
                     $sep    = \strpos($src, '?') !== false ? '&' : '?';
@@ -584,6 +590,21 @@ class Bootstrap extends Bootstrapper
             );
             $cnt = $cntRow !== null ? (int)($cntRow->cnt ?? 0) : 0;
             $isEmpty = ($cnt <= 0);
+            $genKey = 'brands_query_gen_' . $langID;
+            $genRow = $db->getSingleObject(
+                "SELECT cValue FROM twomosi_markefiltre_meta WHERE cKey = :k LIMIT 1",
+                ['k' => $genKey]
+            );
+            $gen = $genRow !== null ? (string)($genRow->cValue ?? '') : '';
+            if ($gen !== 'pkw-modell-2') {
+                $this->rebuildBrandsCache($langID);
+                $db->executeQueryPrepared(
+                    "INSERT INTO twomosi_markefiltre_meta (cKey, cValue) VALUES (:k, :v)
+                     ON DUPLICATE KEY UPDATE cValue = VALUES(cValue)",
+                    ['k' => $genKey, 'v' => 'pkw-modell-2']
+                );
+                return;
+            }
 
             $sched = $this->getRefreshSchedule();
             $dowTarget = (int)($sched['dow'] ?? 0);
@@ -672,7 +693,7 @@ class Bootstrap extends Bootstrapper
                 ['lid' => $langID]
             ) ?: [];
 
-            // PKW brands = brands on products without Aufbauart
+            // PKW: Fahrzeug-Modell var, Wohnmobil-Aufbauart yok.
             $pkwRows = $db->getObjects(
                 "SELECT DISTINCT tmws_her.kMerkmalWert AS kMerkmalWert, tmws_her.cWert AS name
                    FROM tartikel a
@@ -684,6 +705,12 @@ class Bootstrap extends Bootstrapper
                                               AND (ms_her.cName = 'Fahrzeug-Marke' OR ms_her.cName = 'Fahrzeug Marke')
              INNER JOIN tmerkmalwertsprache tmws_her ON tmws_her.kMerkmalWert = mw_her.kMerkmalWert
                                                     AND tmws_her.kSprache     = :lid
+             INNER JOIN tartikelmerkmal am_mod ON am_mod.kArtikel = a.kArtikel
+             INNER JOIN tmerkmalwert mw_mod    ON mw_mod.kMerkmalWert = am_mod.kMerkmalWert
+             INNER JOIN tmerkmal m_mod         ON m_mod.kMerkmal = mw_mod.kMerkmal
+             INNER JOIN tmerkmalsprache ms_mod ON ms_mod.kMerkmal = m_mod.kMerkmal
+                                              AND ms_mod.kSprache = :lid
+                                              AND (ms_mod.cName = 'Fahrzeug-Modell' OR ms_mod.cName = 'Fahrzeug Modell')
                   WHERE a.nIstVater = 0
                     AND TRIM(tmws_her.cWert) <> ''
                     AND tmws_her.cWert NOT REGEXP '^[0-9]+$'
@@ -694,7 +721,7 @@ class Bootstrap extends Bootstrapper
                     INNER JOIN tmerkmal m_typ         ON m_typ.kMerkmal = mw_typ.kMerkmal
                     INNER JOIN tmerkmalsprache ms_typ ON ms_typ.kMerkmal = m_typ.kMerkmal
                                                      AND ms_typ.kSprache = :lid
-                                                     AND (ms_typ.cName = 'Wohnmobil-Aufbauart' OR ms_typ.cName = 'Wohnmobil Aufbauart' OR (ms_typ.cName LIKE '%Aufbauart%'))
+                                                     AND (ms_typ.cName = 'Wohnmobil-Aufbauart' OR ms_typ.cName = 'Wohnmobil Aufbauart' OR ms_typ.cName LIKE '%Aufbauart%')
                          WHERE am_typ.kArtikel = a.kArtikel
                     )
                ORDER BY tmws_her.cWert ASC
@@ -777,11 +804,7 @@ class Bootstrap extends Bootstrapper
                     bShowWohnmobil TINYINT(1) NOT NULL DEFAULT 1
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
             );
-            // Backward compatible alters (ignore errors if columns exist)
-            try { $db->executeQuery("ALTER TABLE twomosi_markefiltre_settings ADD COLUMN nRefreshDow INT NOT NULL DEFAULT 0"); } catch (\Throwable $e) {}
-            try { $db->executeQuery("ALTER TABLE twomosi_markefiltre_settings ADD COLUMN nRefreshHour INT NOT NULL DEFAULT 3"); } catch (\Throwable $e) {}
-            try { $db->executeQuery("ALTER TABLE twomosi_markefiltre_settings ADD COLUMN bShowPKW TINYINT(1) NOT NULL DEFAULT 1"); } catch (\Throwable $e) {}
-            try { $db->executeQuery("ALTER TABLE twomosi_markefiltre_settings ADD COLUMN bShowWohnmobil TINYINT(1) NOT NULL DEFAULT 1"); } catch (\Throwable $e) {}
+            $this->addSettingsColumnsIfMissing($db);
             $row = $db->getSingleObject("SELECT kID FROM twomosi_markefiltre_settings ORDER BY dUpdated DESC, kID DESC LIMIT 1");
             if ($row === null) {
                 $db->executeQueryPrepared(
@@ -793,6 +816,22 @@ class Bootstrap extends Bootstrapper
             self::$settingsEnsured = true;
         } catch (\Throwable $e) {
             // ignore
+        }
+    }
+
+    private function addSettingsColumnsIfMissing($db): void
+    {
+        $alters = [
+            'nRefreshDow'    => 'INT NOT NULL DEFAULT 0',
+            'nRefreshHour'   => 'INT NOT NULL DEFAULT 3',
+            'bShowPKW'       => 'TINYINT(1) NOT NULL DEFAULT 1',
+            'bShowWohnmobil' => 'TINYINT(1) NOT NULL DEFAULT 1',
+        ];
+        foreach ($alters as $col => $def) {
+            $exists = $db->getSingleObject("SHOW COLUMNS FROM twomosi_markefiltre_settings LIKE '{$col}'");
+            if ($exists === null) {
+                $db->executeQuery("ALTER TABLE twomosi_markefiltre_settings ADD COLUMN {$col} {$def}");
+            }
         }
     }
 

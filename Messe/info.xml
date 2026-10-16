@@ -8,7 +8,7 @@
     <ShopVersion>5.6.0</ShopVersion>
     <PluginID>Messe</PluginID>
     <CreateDate>2026-04-14</CreateDate>
-    <Version>1.0.18</Version>
+    <Version>1.0.31</Version>
     <Bootstrap>Plugin\Messe\Bootstrap</Bootstrap>
     <Install>
         <empty></empty>

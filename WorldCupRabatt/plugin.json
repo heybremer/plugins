@@ -1,0 +1,15 @@
+{
+  "name": "WorldCupRabatt",
+  "label": "World Cup Rabatt (Elfmeterschießen)",
+  "description": "Gamification (World Cup 2026): 3 Elfmeter auf 5/10/15 % Rabatt-Kreise mit Sound. Treffer schaltet einen Gutscheincode frei. Codes und Texte im Admin editierbar.",
+  "author": "Womosi",
+  "url": "https://womosi.de",
+  "version": "1.1.2",
+  "minShopVersion": "5.2.0",
+  "maxShopVersion": "5.99.99",
+  "requires": [],
+  "bootstrap": "Plugin\\WorldCupRabatt\\Bootstrap",
+  "hooks": [],
+  "adminMenu": [],
+  "dependencies": []
+}

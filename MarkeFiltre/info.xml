@@ -8,7 +8,7 @@
     <ShopVersion>5.6.0</ShopVersion>
     <PluginID>MarkeFiltre</PluginID>
     <CreateDate>2026-03-31</CreateDate>
-    <Version>1.1.30</Version>
+    <Version>1.1.33</Version>
     <Bootstrap>Plugin\MarkeFiltre\Bootstrap</Bootstrap>
     <Install>
         <empty></empty>

@@ -24,12 +24,12 @@ final class MesseController
     {
         MesseDatabase::ensureAll();
 
-        $settings = $this->fetchSettings();
+        $settings = MesseDatabase::fetchSettings();
         if ((int)($settings['active'] ?? 1) !== 1) {
             return new EmptyResponse();
         }
 
-        $events = $this->fetchActiveEvents();
+        $events = MesseDatabase::fetchActiveEvents();
         $payload = [
             'events' => $events,
         ];
@@ -47,7 +47,7 @@ final class MesseController
             return new EmptyResponse();
         }
 
-        $this->smarty->assign('mkHeadline', (string)($settings['headline'] ?? 'Messe Kalender 2026'));
+        $this->smarty->assign('mkHeadline', (string)($settings['headline'] ?? 'Messe Kalender'));
         $this->smarty->assign('mkSubtitle', (string)($settings['subtitle'] ?? ''));
         $this->smarty->assign('mkDataJson', $json);
 
@@ -74,72 +74,6 @@ final class MesseController
                 ->withHeader('Cache-Control', 'no-store');
         } catch (\Throwable $e) {
             return new EmptyResponse();
-        }
-    }
-
-    /**
-     * @return array{active:int,slug:string,headline:string,subtitle:string}
-     */
-    private function fetchSettings(): array
-    {
-        $defaults = [
-            'active' => 1,
-            'slug' => 'messe-kalender',
-            'headline' => 'Messe Kalender 2026',
-            'subtitle' => 'Die Messen, an denen wir als Bremer-Sitzbezüge GmbH teilnehmen werden',
-        ];
-        try {
-            $db = Shop::Container()->getDB();
-            $row = $db->getSingleObject('SELECT * FROM twomosi_messe_settings ORDER BY kID ASC LIMIT 1');
-            if ($row === null) {
-                return $defaults;
-            }
-            $slug = \trim((string)($row->cPageSlug ?? 'messe-kalender'));
-            if ($slug === '') {
-                $slug = $defaults['slug'];
-            }
-            return [
-                'active' => (int)($row->nActive ?? 1),
-                'slug' => $slug,
-                'headline' => (string)($row->cHeadline ?? $defaults['headline']),
-                'subtitle' => (string)($row->cSubtitle ?? $defaults['subtitle']),
-            ];
-        } catch (\Throwable $e) {
-            return $defaults;
-        }
-    }
-
-    /**
-     * @return array<int, array{month:string,title:string,location:string,date:string,stand:string,website:string,directions:string}>
-     */
-    private function fetchActiveEvents(): array
-    {
-        try {
-            $db = Shop::Container()->getDB();
-            $rows = $db->getObjects(
-                'SELECT cMonth, cTitle, cLocation, cDateText, cStand, cWebsiteUrl, cDirectionsUrl
-                   FROM twomosi_messe_event
-                  WHERE nActive = 1
-               ORDER BY nSort ASC, kID ASC'
-            );
-            if (!\is_array($rows)) {
-                return [];
-            }
-            $out = [];
-            foreach ($rows as $r) {
-                $out[] = [
-                    'month' => (string)($r->cMonth ?? ''),
-                    'title' => (string)($r->cTitle ?? ''),
-                    'location' => (string)($r->cLocation ?? ''),
-                    'date' => (string)($r->cDateText ?? ''),
-                    'stand' => (string)($r->cStand ?? ''),
-                    'website' => (string)($r->cWebsiteUrl ?? ''),
-                    'directions' => (string)($r->cDirectionsUrl ?? ''),
-                ];
-            }
-            return $out;
-        } catch (\Throwable $e) {
-            return [];
         }
     }
 }

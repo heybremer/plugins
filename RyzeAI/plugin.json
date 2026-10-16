@@ -1,0 +1,15 @@
+{
+  "name": "RyzeAI",
+  "label": "RyzeAI",
+  "description": "RyzeAI Pixel wird einmal pro Seite in den HTML-Head eingefügt.",
+  "author": "Womosi",
+  "url": "https://womosi.de",
+  "version": "1.0.2",
+  "minShopVersion": "5.2.0",
+  "maxShopVersion": "5.99.99",
+  "requires": [],
+  "bootstrap": "Plugin\\RyzeAI\\Bootstrap",
+  "hooks": [],
+  "adminMenu": [],
+  "dependencies": []
+}

@@ -1,0 +1,15 @@
+{
+  "name": "MesseList",
+  "label": "Messe List",
+  "description": "Öffentliche Messe-Preisliste (Token-Link) für Familie-Serie DS1–DS9 Lagerartikel mit Stückzahl und Rabatt.",
+  "author": "Womosi",
+  "url": "https://womosi.de",
+    "version": "1.4.5",
+  "minShopVersion": "5.2.0",
+  "maxShopVersion": "5.99.99",
+  "requires": [],
+  "bootstrap": "Plugin\\MesseList\\Bootstrap",
+  "hooks": [],
+  "adminMenu": [],
+  "dependencies": []
+}

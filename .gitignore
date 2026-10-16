@@ -7,3 +7,13 @@
 # Local credentials and notes
 sifre*.md
 hata.md
+
+# Third-party plugins
+ws5_googletracking/
+
+# Local dumps, debug output and notes in repo root
+/*.sql
+/*.json
+/out*.html
+/desktop.ini
+/airbagsafefix.md

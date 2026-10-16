@@ -1,0 +1,15 @@
+{
+  "name": "RabattHeader",
+  "label": "Rabatt Header (Banner + Gutscheincode)",
+  "description": "Zeigt im Header einen Rabatt-Hinweis mit kopierbarem Kampagnencode. Text und Code im Admin editierbar.",
+  "author": "Womosi",
+  "url": "https://womosi.de",
+  "version": "1.0.4",
+  "minShopVersion": "5.2.0",
+  "maxShopVersion": "5.99.99",
+  "requires": [],
+  "bootstrap": "Plugin\\RabattHeader\\Bootstrap",
+  "hooks": [],
+  "adminMenu": [],
+  "dependencies": []
+}

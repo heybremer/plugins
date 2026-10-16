@@ -1,0 +1,145 @@
+/* Messe – Startseiten-Widget (kompakt) */
+.messe-home {
+  margin: 2rem 0;
+  padding: 0;
+}
+
+.messe-home-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 12px;
+}
+
+.messe-home-header {
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.messe-home-title {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 900;
+  color: #0b3e27;
+  letter-spacing: -0.02em;
+}
+
+.messe-home-subtitle {
+  margin: 0 auto;
+  max-width: 720px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #6c757d;
+}
+
+.messe-home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.messe-home-card {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.messe-home-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.1);
+}
+
+.messe-home-card-month {
+  background: linear-gradient(90deg, #0b3e27, #197149);
+  color: #fff;
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.messe-home-card-body {
+  padding: 14px 16px 16px;
+}
+
+.messe-home-card-date {
+  font-size: 13px;
+  font-weight: 800;
+  color: #197149;
+  margin-bottom: 6px;
+}
+
+.messe-home-card-title {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1.3;
+  color: #111827;
+}
+
+.messe-home-card-location,
+.messe-home-card-stand {
+  margin: 0 0 6px;
+  font-size: 0.88rem;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+.messe-home-label {
+  font-weight: 800;
+  color: #374151;
+}
+
+.messe-home-card-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #197149;
+  text-decoration: none;
+}
+
+.messe-home-card-link:hover {
+  text-decoration: underline;
+}
+
+.messe-home-footer {
+  margin-top: 1.25rem;
+  text-align: center;
+}
+
+.messe-home-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #0b3e27, #197149);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.92rem;
+  text-decoration: none;
+  box-shadow: 0 6px 20px rgba(25, 113, 73, 0.28);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.messe-home-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(25, 113, 73, 0.35);
+  color: #fff;
+  text-decoration: none;
+}
+
+@media (max-width: 575px) {
+  .messe-home {
+    margin: 1.25rem 0;
+  }
+
+  .messe-home-grid {
+    grid-template-columns: 1fr;
+  }
+}

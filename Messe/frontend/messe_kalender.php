@@ -17,26 +17,32 @@ if (!isset($smarty)) {
 try {
     $db = Shop::Container()->getDB();
     $sr = $db->getSingleObject('SELECT * FROM twomosi_messe_settings ORDER BY kID ASC LIMIT 1');
-    $headline = $sr !== null ? (string)($sr->cHeadline ?? 'Messe Kalender 2026') : 'Messe Kalender 2026';
+    $headline = $sr !== null ? (string)($sr->cHeadline ?? 'Messe Kalender') : 'Messe Kalender';
     $subtitle = $sr !== null ? (string)($sr->cSubtitle ?? '') : '';
 
     $rows = $db->getObjects(
-        'SELECT cMonth, cTitle, cLocation, cDateText, cStand, cWebsiteUrl, cDirectionsUrl
+        'SELECT cMonth, cTitle, cLocation, cDateText, nJahr, cStand, cWebsiteUrl, cDirectionsUrl
            FROM twomosi_messe_event
           WHERE nActive = 1
-       ORDER BY nSort ASC, kID ASC'
+       ORDER BY nJahr ASC, nSort ASC, kID ASC'
     ) ?: [];
     $events = [];
     if (is_array($rows)) {
         foreach ($rows as $r) {
+            $date = (string)($r->cDateText ?? '');
+            $year = (int)($r->nJahr ?? 0);
+            if ($year < 1970) {
+                $year = MesseDatabase::yearFromDateText($date);
+            }
             $events[] = [
                 'month' => (string)($r->cMonth ?? ''),
                 'title' => (string)($r->cTitle ?? ''),
                 'location' => (string)($r->cLocation ?? ''),
-                'date' => (string)($r->cDateText ?? ''),
+                'date' => $date,
                 'stand' => (string)($r->cStand ?? ''),
                 'website' => (string)($r->cWebsiteUrl ?? ''),
                 'directions' => (string)($r->cDirectionsUrl ?? ''),
+                'year' => $year,
             ];
         }
     }

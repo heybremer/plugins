@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jtlshopplugin>
+    <Name>SeatFilter</Name>
+    <Description>3-stufige Filteransicht: Sitz → Serie → Artikel. Zeigt Produkte basierend auf Sitz- und Serienauswahl.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>SeatFilter</PluginID>
+    <CreateDate>2026-06-23</CreateDate>
+    <Version>1.0.4</Version>
+    <Bootstrap>Plugin\SeatFilter\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jtlshopplugin>
+    <Name>MeGoogleTracking</Name>
+    <Description>Google Analytics 4, Google Ads Conversion Tracking, Google Tag Manager und Consent Mode v2 für JTL-Shop 5.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.2.0</ShopVersion>
+    <PluginID>MeGoogleTracking</PluginID>
+    <CreateDate>2026-06-30</CreateDate>
+    <Version>1.2.2</Version>
+    <Bootstrap>Plugin\MeGoogleTracking\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>

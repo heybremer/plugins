@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jtlshopplugin>
+    <Name>Messe Premium Kunden</Name>
+    <Description>Registrierungsformular für Messe-Premium-Kunden. Daten und Fotos im Backend, automatischer JTL-Kupon per E-Mail.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>MessePremiumKunden</PluginID>
+    <CreateDate>2026-08-17</CreateDate>
+    <Version>1.0.2</Version>
+    <Bootstrap>Plugin\MessePremiumKunden\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>
