@@ -3,3 +3,7 @@
 
 # Local archives (plugin folders already in repo)
 *.zip
+
+# Local credentials and notes
+sifre*.md
+hata.md
