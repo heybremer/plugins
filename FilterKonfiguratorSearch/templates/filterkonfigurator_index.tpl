@@ -2,7 +2,7 @@
 {assign var='fkSegWm' value=$fkBanner->nSegmentWmActive|default:1}
 {assign var='fkSegPkw' value=$fkBanner->nSegmentPkwActive|default:1}
 <script>
-    // Backend base URL (unterstÃ¼tzt Subfolder wie /WomosiWeb)
+    // Backend base URL (unterstützt Subfolder wie /WomosiWeb)
     window.WomosiFkBase = '{$ShopURL}';
     window.WomosiFkSegments = {ldelim}"wm":{$fkSegWm},"pkw":{$fkSegPkw}{rdelim};
 </script>
@@ -19,7 +19,7 @@
                     <a class="konfig-banner-btn" href="{$fkBanner->cSub2ButtonUrl|default:'#'|escape:'html'}">{$fkBanner->cSub2ButtonLabel|default:'Aktivieren'|escape:'html'}</a> <br>
                 {/if}
                 {if $fkBanner->nSub3Active == 1}
-                    {$fkBanner->cSub3|default:'20. bis 22. MÃ¤rz 2026 | HanseMesse Rostock'|escape:'html'}
+                    {$fkBanner->cSub3|default:'20. bis 22. März 2026 | HanseMesse Rostock'|escape:'html'}
                 {/if}
             </p>
         </div>
@@ -194,21 +194,21 @@
                             <label for="hersteller">Fahrzeug-Marke<span class="req" id="reqHer">*</span></label>
                             <div class="fk-control">
                                 <select id="hersteller"></select>
-                                <button type="button" class="fk-clear-btn" aria-label="Fahrzeug-Marke lÃ¶schen" data-clear-target="#hersteller">Ã—</button>
+                                <button type="button" class="fk-clear-btn" aria-label="Fahrzeug-Marke löschen" data-clear-target="#hersteller">×</button>
                             </div>
                         </div>
                         <div class="field fk-wm-only">
                             <label for="basisfahrzeug">Wohnmobil-Fahrgestell<span class="req" id="reqBasis">*</span></label>
                             <div class="fk-control">
                                 <select id="basisfahrzeug"></select>
-                                <button type="button" class="fk-clear-btn" aria-label="Wohnmobil-Fahrgestell lÃ¶schen" data-clear-target="#basisfahrzeug">Ã—</button>
+                                <button type="button" class="fk-clear-btn" aria-label="Wohnmobil-Fahrgestell löschen" data-clear-target="#basisfahrzeug">×</button>
                             </div>
                         </div>
                         <div class="field">
                             <label for="modell">Fahrzeug-Modell<span class="req" id="reqModell">*</span></label>
                             <div class="fk-control">
                                 <select id="modell"></select>
-                                <button type="button" class="fk-clear-btn" aria-label="Fahrzeug-Modell lÃ¶schen" data-clear-target="#modell">Ã—</button>
+                                <button type="button" class="fk-clear-btn" aria-label="Fahrzeug-Modell löschen" data-clear-target="#modell">×</button>
                             </div>
                         </div>
                         <div class="field fk-baujahr-field">
@@ -216,11 +216,11 @@
                             <label class="fk-pkw-only" for="baujahr_pkw">Baujahr<span class="req">*</span></label>
                             <div class="fk-control fk-wm-only">
                                 <input id="baujahr" inputmode="numeric" pattern="\\d*" placeholder="z.B. 2021" type="text">
-                                <button type="button" class="fk-clear-btn" aria-label="Baujahr lÃ¶schen" data-clear-target="#baujahr">Ã—</button>
+                                <button type="button" class="fk-clear-btn" aria-label="Baujahr löschen" data-clear-target="#baujahr">×</button>
                             </div>
                             <div class="fk-control fk-pkw-only">
                                 <select id="baujahr_pkw" aria-label="Baujahr"></select>
-                                <button type="button" class="fk-clear-btn" aria-label="Baujahr lÃ¶schen" data-clear-target="#baujahr_pkw">Ã—</button>
+                                <button type="button" class="fk-clear-btn" aria-label="Baujahr löschen" data-clear-target="#baujahr_pkw">×</button>
                             </div>
                         </div>
                     </div>
@@ -229,7 +229,7 @@
                             <label for="modell_custom">Ihr Modell nicht dabei?</label>
                             <div class="fk-control">
                                 <input id="modell_custom" type="text" placeholder="Bitte tragen Sie Ihr Modell ein">
-                                <button type="button" class="fk-clear-btn" aria-label="Eigene Modellbezeichnung lÃ¶schen" data-clear-target="#modell_custom">Ã—</button>
+                                <button type="button" class="fk-clear-btn" aria-label="Eigene Modellbezeichnung löschen" data-clear-target="#modell_custom">×</button>
                             </div>
                         </div>
                     </div>
@@ -254,7 +254,7 @@
                     <h2 class="fk-wm-only" id="fk-wm-serie-title">Step 4 &ndash; Serie ausw&auml;hlen</h2>
                     <h2 class="fk-pkw-only">Step 2 &ndash; Serie ausw&auml;hlen</h2>
                     <div class="hint" id="serieHint">W&auml;hle die passende Serie &ndash; tippe auf eine Kachel.</div>
-                    <!-- Verstecktes Text-Dropdown fÃ¼r Fallback / Logik -->
+                    <!-- Verstecktes Text-Dropdown für Fallback / Logik -->
                    <div class="fields hidden">
    <div class="fields">
     <div class="field">
@@ -265,7 +265,7 @@
 </div>
                     <!-- Visuelle Serie-Auswahl -->
                     <div class="tile-grid serie-grid" id="serieGrid"></div>
-                    <!-- Kein Ergebnis: MaÃŸanfertigung-Formular -->
+                    <!-- Kein Ergebnis: Maßanfertigung-Formular -->
                     <div id="serieEmptyFallback" class="serie-fallback hidden">
                         <div class="serie-fallback-text">
                             <p><strong>Kein passender Sitzbezug im Konfigurator gefunden?</strong></p>
@@ -321,7 +321,7 @@
         <div class="fk-status-icon" id="fkSuccessIcon">âœ“</div>
         <h3 id="fkSuccessTitle">Erfolg</h3>
         <p id="fkSuccessMessage"></p>
-        <button type="button" class="fk-status-close" id="fkSuccessClose">SchlieÃŸen</button>
+        <button type="button" class="fk-status-close" id="fkSuccessClose">Schließen</button>
     </div>
 </div>
 <script>
@@ -483,7 +483,7 @@
                 }
             }
 
-            // Autocomplete alanlarÄ±nÄ± hazÄ±rla
+            // Autocomplete alanlarını hazırla
             setupAutocomplete('hersteller', 'hersteller_ac', 'hersteller_panel', 'hersteller');
             setupAutocomplete('basis', 'basis_ac', 'basis_panel', 'basisfahrzeug');
             setupAutocomplete('modell', 'modell_ac', 'modell_panel', 'modell');
@@ -508,7 +508,7 @@
                     if (toStep2Btn) {
                         toStep2Btn.disabled = false;
                     }
-                    // Fahrzeugtyp seÃ§ilince otomatik Step 2'ye geÃ§
+                    // Fahrzeugtyp seçilince otomatik Step 2'ye geç
                     setStep(2);
                 });
             }
