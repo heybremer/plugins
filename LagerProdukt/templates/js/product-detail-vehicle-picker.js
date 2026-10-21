@@ -263,7 +263,7 @@
       if (prefix && !/serie/i.test(prefix)) {
         prefix += ' Serie';
       }
-      return [prefix, seatName(), brand.value, model.value].filter(Boolean).join(' ');
+      return [prefix, seatName(), brand.value, basisValue(), model.value].filter(Boolean).join(' ');
     }
 
     function seriesVariants() {

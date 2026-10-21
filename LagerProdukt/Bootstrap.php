@@ -103,15 +103,15 @@ class Bootstrap extends Bootstrapper
             $pickerCss = $doc->find('link[href*="product-detail-vehicle-picker.css"]')->eq(0);
             if ($pickerCss->length > 0) {
                 $href = (string)$pickerCss->attr('href');
-                if ($href !== '' && \strpos($href, 'lpv=1.0.28') === false) {
-                    $pickerCss->attr('href', $href . (\strpos($href, '?') === false ? '?' : '&') . 'lpv=1.0.28');
+                if ($href !== '' && \strpos($href, 'lpv=1.0.29') === false) {
+                    $pickerCss->attr('href', $href . (\strpos($href, '?') === false ? '?' : '&') . 'lpv=1.0.29');
                 }
             }
             $pickerScript = $doc->find('script[src*="product-detail-vehicle-picker.js"]')->eq(0);
             if ($pickerScript->length > 0) {
                 $src = (string)$pickerScript->attr('src');
-                if ($src !== '' && \strpos($src, 'lpv=1.0.28') === false) {
-                    $pickerScript->attr('src', $src . (\strpos($src, '?') === false ? '?' : '&') . 'lpv=1.0.28');
+                if ($src !== '' && \strpos($src, 'lpv=1.0.29') === false) {
+                    $pickerScript->attr('src', $src . (\strpos($src, '?') === false ? '?' : '&') . 'lpv=1.0.29');
                 }
             }
             $smarty->assign('lpDetailVariants', $context);
