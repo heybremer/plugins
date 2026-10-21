@@ -103,15 +103,15 @@ class Bootstrap extends Bootstrapper
             $pickerCss = $doc->find('link[href*="product-detail-vehicle-picker.css"]')->eq(0);
             if ($pickerCss->length > 0) {
                 $href = (string)$pickerCss->attr('href');
-                if ($href !== '' && \strpos($href, 'lpv=1.0.29') === false) {
-                    $pickerCss->attr('href', $href . (\strpos($href, '?') === false ? '?' : '&') . 'lpv=1.0.29');
+                if ($href !== '' && \strpos($href, 'lpv=1.0.30') === false) {
+                    $pickerCss->attr('href', $href . (\strpos($href, '?') === false ? '?' : '&') . 'lpv=1.0.30');
                 }
             }
             $pickerScript = $doc->find('script[src*="product-detail-vehicle-picker.js"]')->eq(0);
             if ($pickerScript->length > 0) {
                 $src = (string)$pickerScript->attr('src');
-                if ($src !== '' && \strpos($src, 'lpv=1.0.29') === false) {
-                    $pickerScript->attr('src', $src . (\strpos($src, '?') === false ? '?' : '&') . 'lpv=1.0.29');
+                if ($src !== '' && \strpos($src, 'lpv=1.0.30') === false) {
+                    $pickerScript->attr('src', $src . (\strpos($src, '?') === false ? '?' : '&') . 'lpv=1.0.30');
                 }
             }
             $smarty->assign('lpDetailVariants', $context);
@@ -179,7 +179,7 @@ class Bootstrap extends Bootstrapper
         $shopUrl = Shop::getURL();
         $page    = LagerProduktService::currentPage();
         $pid = $page['kID'] ?? 0;
-        $smarty->assign('lpCssUrl', $shopUrl . '/plugins/LagerProdukt/templates/css/lager-produkt.css?v=1.0.34');
+        $smarty->assign('lpCssUrl', $shopUrl . '/plugins/LagerProdukt/templates/css/lager-produkt.css?v=1.0.35');
         $smarty->assign('lpJsUrl', $shopUrl . '/plugins/LagerProdukt/templates/js/lager-produkt.js?v=1.0.34');
         $smarty->assign('lpHeadline', $page['cName'] ?? self::TITLE);
         $smarty->assign('lpCategoryName', $page['cName'] ?? '');

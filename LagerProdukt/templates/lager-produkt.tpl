@@ -1,18 +1,17 @@
 {if !isset($lpPageRendered)}
 {assign var=lpPageRendered value=1}
-<link rel="stylesheet" href="{$lpCssUrl}&amp;lpv=1.0.34">
+<link rel="stylesheet" href="{$lpCssUrl}&amp;lpv=1.0.36">
 <div id="lp-page" class="lp-wrap">
     <header class="lp-header">
-        <div class="lp-header-mark" aria-hidden="true">
-            <span class="lp-header-number">{$lpProducts|@count}</span>
-            <span>Produkte<br>auf Lager</span>
+        <div class="lp-header-info">
+            <span class="lp-header-kicker">Sofort lieferbar</span>
+            <p class="lp-header-title">
+                <strong class="lp-header-number">{$lpProducts|@count}</strong>
+                <span>Produkte auf Lager</span>
+            </p>
         </div>
         {if $lpProducts|@count > 0}
         <div class="lp-toolbar">
-            <label class="lp-search" for="lpSearch">
-                <span class="lp-search-icon" aria-hidden="true"></span>
-                <input type="search" id="lpSearch" placeholder="Serie oder Art.-Nr. suchen…" autocomplete="off">
-            </label>
             <label class="lp-sort" for="lpSort">
                 <span>Sortierung</span>
                 <select id="lpSort">
@@ -211,5 +210,5 @@
         <p class="lp-empty lp-none" id="lpNone" hidden>Keine Treffer für Ihre Suche.</p>
     {/if}
 </div>
-<script src="{$lpJsUrl}&amp;lpv=1.0.34" defer></script>
+<script src="{$lpJsUrl}&amp;lpv=1.0.36" defer></script>
 {/if}

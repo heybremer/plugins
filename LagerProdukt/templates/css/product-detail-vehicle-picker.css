@@ -4,95 +4,148 @@ h1.product-title + .info-essential,
   padding: 0;
 }
 
-body.lp-lager-detail .price_wrapper {
+body.lp-lager-detail #product-offer .price_wrapper {
   position: relative;
-  isolation: isolate;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 8px 18px;
-  overflow: hidden;
-  margin: 16px 0 20px;
-  padding: 42px 20px 17px;
-  border: 1px solid rgba(201, 251, 56, .26);
-  border-radius: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 16px;
+  margin: 14px 0 18px;
+  padding: 16px 18px;
+  border: 1px solid rgba(201, 251, 56, .24);
+  border-radius: 14px;
   background:
-    linear-gradient(115deg, rgba(255, 255, 255, .07), transparent 46%),
+    linear-gradient(115deg, rgba(255, 255, 255, .06), transparent 50%),
     #181a15;
-  box-shadow:
-    0 18px 36px rgba(24, 26, 21, .18),
-    inset 0 1px 0 rgba(255, 255, 255, .08);
+  box-shadow: 0 12px 28px rgba(24, 26, 21, .16);
   color: #fff;
 }
 
-body.lp-lager-detail .price_wrapper::before {
-  position: absolute;
-  top: 14px;
-  left: 20px;
-  z-index: 1;
-  padding-left: 14px;
+body.lp-lager-detail #product-offer .price_wrapper::before {
+  flex: 1 0 100%;
+  padding-left: 15px;
+  background: radial-gradient(circle, #c9fb38 0 3px, transparent 4px) no-repeat 0 50% / 8px 8px;
   color: #c9fb38;
   content: "LAGERPREIS";
   font-size: .64rem;
   font-weight: 900;
   letter-spacing: .16em;
-  line-height: 1;
+  line-height: 1.2;
 }
 
-body.lp-lager-detail .price_wrapper::after {
-  position: absolute;
-  top: 15px;
-  left: 20px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #c9fb38;
-  box-shadow: 0 0 0 5px rgba(201, 251, 56, .12);
-  content: "";
-}
-
-body.lp-lager-detail .price_wrapper .price {
-  position: relative;
-  z-index: 1;
-  grid-row: 2;
+body.lp-lager-detail #product-offer .price_wrapper .price {
   margin: 0;
   color: #fff;
   font: inherit;
-  line-height: .9;
+  line-height: 1;
 }
 
-body.lp-lager-detail .price_wrapper .price > span {
+body.lp-lager-detail #product-offer .price_wrapper .price > span {
   color: #fff;
-  font-size: clamp(2.25rem, 6vw, 3.35rem);
+  font-size: clamp(2rem, 4.5vw, 2.6rem);
   font-weight: 900;
-  letter-spacing: -.055em;
-  text-shadow: 0 2px 16px rgba(0, 0, 0, .18);
+  letter-spacing: -.04em;
 }
 
-body.lp-lager-detail .price_wrapper .price-note {
-  position: relative;
-  z-index: 1;
-  grid-column: 2;
-  grid-row: 2;
-  margin: 0;
-  padding: 7px 10px;
-  border: 1px solid rgba(255, 255, 255, .12);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, .07);
-  color: rgba(255, 255, 255, .68);
-  font-size: .68rem;
-  line-height: 1.2;
-  white-space: nowrap;
+body.lp-lager-detail #product-offer .price_wrapper .price-note {
+  display: flex;
+  flex: 1 1 200px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0 0 3px;
+  color: rgba(255, 255, 255, .62);
+  font-size: .74rem;
+  line-height: 1.3;
 }
 
-body.lp-lager-detail .price_wrapper .price-note .vat_info {
+body.lp-lager-detail #product-offer .price_wrapper .price-note .vat_info {
   color: inherit;
 }
 
-body.lp-lager-detail .price_wrapper meta {
+body.lp-lager-detail #product-offer .price_wrapper .suggested-price {
+  color: rgba(255, 255, 255, .62);
+  font-size: 0;
+}
+
+body.lp-lager-detail #product-offer .price_wrapper .suggested-price::before {
+  margin-right: 5px;
+  content: "UVP";
+  font-size: .74rem;
+}
+
+body.lp-lager-detail #product-offer .price_wrapper .suggested-price .value {
+  font-size: .74rem;
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 255, 255, .5);
+}
+
+body.lp-lager-detail #product-offer .price_wrapper .yousave {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #c9fb38;
+  color: #181a15;
+  font-size: 0;
+  line-height: 1;
+}
+
+body.lp-lager-detail #product-offer .price_wrapper .yousave::before {
+  margin-right: 4px;
+  content: "Sie sparen";
+  font-size: .68rem;
+  font-weight: 800;
+}
+
+body.lp-lager-detail #product-offer .price_wrapper .yousave .percent {
   display: none;
 }
 
+body.lp-lager-detail #product-offer .price_wrapper .yousave .value {
+  font-size: .68rem;
+  font-weight: 900;
+}
+
+body.lp-lager-detail #product-offer .price_wrapper meta,
+body.lp-lager-detail .item-slider-price .price_wrapper meta,
+body.lp-lager-detail .item-slider-price .price-note:not(:has(*)) {
+  display: none;
+}
+
+body.lp-lager-detail .item-slider-price .price_wrapper {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin: 8px auto 4px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #f4f2ea;
+  color: #151711;
+}
+
+body.lp-lager-detail .item-slider-price .price {
+  margin: 0;
+  color: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+body.lp-lager-detail .item-slider-price .footnote-reference {
+  margin-left: 1px;
+  color: #8a8d84;
+  font-size: .7em;
+  font-weight: 600;
+  vertical-align: super;
+}
+
+body.lp-lager-detail .item-slider-price .price-note {
+  color: #74786f;
+  font-size: .68rem;
+}
 #lp-vehicle-picker {
   --lpvp-ink: #20231d;
   --lpvp-muted: #74786f;
@@ -216,21 +269,13 @@ body.lp-lager-detail .price_wrapper meta {
 }
 
 @media (max-width: 767px) {
-  body.lp-lager-detail .price_wrapper {
-    grid-template-columns: 1fr;
-    gap: 10px;
-    padding: 40px 16px 15px;
+  body.lp-lager-detail #product-offer .price_wrapper {
+    padding: 14px 15px;
   }
 
-  body.lp-lager-detail .price_wrapper::before,
-  body.lp-lager-detail .price_wrapper::after {
-    left: 16px;
-  }
-
-  body.lp-lager-detail .price_wrapper .price-note {
-    grid-column: 1;
-    grid-row: 3;
-    justify-self: start;
+  body.lp-lager-detail #product-offer .price_wrapper .yousave {
+    top: 10px;
+    right: 12px;
   }
 
   #lp-vehicle-picker .lpvp-fields {
