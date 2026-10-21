@@ -131,6 +131,7 @@
         seat: seat || '',
         seatName: seatName || '',
         brand: seat ? (prev.brand || '') : '',
+        basis: seat ? (prev.basis || '') : '',
         model: seat ? (prev.model || '') : '',
         series: prev.series || '',
         title: prev.title || ''

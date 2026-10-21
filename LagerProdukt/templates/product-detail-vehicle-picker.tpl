@@ -24,9 +24,15 @@
             </select>
         </label>
         <label>
+            <span>Wohnmobil-Fahrgestell</span>
+            <select data-lpvp="basis" aria-label="Wohnmobil-Fahrgestell" disabled>
+                <option value="">Zuerst Marke wählen</option>
+            </select>
+        </label>
+        <label>
             <span>Fahrzeug-Modell</span>
             <select data-lpvp="modell" aria-label="Fahrzeug-Modell" disabled>
-                <option value="">Zuerst Marke wählen</option>
+                <option value="">Zuerst Fahrgestell wählen</option>
             </select>
         </label>
     </div>

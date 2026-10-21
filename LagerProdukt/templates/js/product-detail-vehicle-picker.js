@@ -152,9 +152,11 @@
     var stored = readStoredChoice() || {};
     var selectedSeat = String(root.getAttribute('data-selected-seat') || queryParam('sitz') || stored.seat || '').trim();
     var selectedBrand = String(queryParam('hersteller') || stored.brand || '').trim();
+    var selectedBasis = String(queryParam('basis') || stored.basis || '').trim();
     var selectedModel = String(queryParam('modell') || stored.model || '').trim();
     var seat = root.querySelector('[data-lpvp="sitz"]');
     var brand = root.querySelector('[data-lpvp="hersteller"]');
+    var basis = root.querySelector('[data-lpvp="basis"]');
     var model = root.querySelector('[data-lpvp="modell"]');
     var result = root.querySelector('[data-lpvp-result]');
     var message = root.querySelector('[data-lpvp-message]');
@@ -169,11 +171,24 @@
       productName = originalTitle;
     }
 
+    function basisValue() {
+      return basis ? basis.value : '';
+    }
+
+    function basisReady() {
+      return !basis || !!basis.value || basis.options.length <= 1;
+    }
+
+    function isComplete() {
+      return !!(seat.value && brand.value && basisReady() && model.value);
+    }
+
     function persistChoice() {
       writeStoredChoice({
         seat: seat.value,
         seatName: seatName(),
         brand: brand.value,
+        basis: basisValue(),
         model: model.value,
         series: currentSeries,
         title: buildTitle()
@@ -181,7 +196,7 @@
     }
 
     function applyCurrentTitle() {
-      if (!seat.value || !brand.value || !model.value) {
+      if (!isComplete()) {
         restorePageTitle();
         return '';
       }
@@ -206,6 +221,11 @@
           } else {
             url.searchParams.delete('hersteller');
           }
+          if (basisValue()) {
+            url.searchParams.set('basis', basisValue());
+          } else {
+            url.searchParams.delete('basis');
+          }
           if (model.value) {
             url.searchParams.set('modell', model.value);
           } else {
@@ -222,7 +242,7 @@
       message.textContent = '';
       link.hidden = true;
       link.removeAttribute('href');
-      if (!seat.value || !brand.value || !model.value) {
+      if (!isComplete()) {
         restorePageTitle();
       }
     }
@@ -250,7 +270,7 @@
       var code = seriesParam();
       var raw = groupName;
       var list = [];
-      [code, raw, code ? ('Serie ' + code) : '', raw ? raw.replace(/\s+/g, '') : ''].forEach(function (value) {
+      [code ? (code + '-Serie') : '', code, raw, code ? ('Serie ' + code) : '', raw ? raw.replace(/\s+/g, '') : ''].forEach(function (value) {
         var item = String(value || '').trim();
         if (item && list.indexOf(item) === -1) {
           list.push(item);
@@ -318,15 +338,70 @@
     function afterSelectionChange() {
       persistChoice();
       decorateVariantLinks();
-      if (seat.value && brand.value && model.value) {
+      if (isComplete()) {
         applyCurrentTitle();
       }
     }
 
+    function withBasis(params) {
+      if (basisValue()) {
+        params.basis = basisValue();
+      }
+      return params;
+    }
+
     function loadModels(preferredModel) {
-      fill(model, [], brand.value ? 'Wird geladen…' : 'Zuerst Marke wählen');
+      var waiting = !brand.value ? 'Zuerst Marke wählen' : (!basisReady() ? 'Zuerst Fahrgestell wählen' : '');
+      fill(model, [], waiting || 'Wird geladen…');
       model.disabled = true;
+      if (waiting) {
+        afterSelectionChange();
+        return Promise.resolve([]);
+      }
+      var attempts = [];
+      seatVariants().forEach(function (sitz) {
+        seriesVariants().forEach(function (serie) {
+          attempts.push(withBasis({
+            mode: 'options',
+            field: 'modell',
+            sitz: sitz,
+            serie: serie,
+            hersteller: brand.value
+          }));
+        });
+      });
+      seriesVariants().forEach(function (serie) {
+        attempts.push(withBasis({
+          mode: 'options',
+          field: 'modell',
+          serie: serie,
+          hersteller: brand.value
+        }));
+      });
+      attempts.push(withBasis({
+        mode: 'options',
+        field: 'modell',
+        hersteller: brand.value
+      }));
+      return loadFirst(model, attempts, 'Bitte wählen').then(function (values) {
+        keepValue(model, preferredModel);
+        afterSelectionChange();
+        if (isComplete()) {
+          checkCompatibility();
+        }
+        return values;
+      });
+    }
+
+    function loadBasis(preferredBasis, preferredModel) {
+      fill(model, [], 'Zuerst Fahrgestell wählen');
+      model.disabled = true;
+      if (!basis) {
+        return loadModels(preferredModel);
+      }
       if (!brand.value) {
+        fill(basis, [], 'Zuerst Marke wählen');
+        basis.disabled = true;
         afterSelectionChange();
         return Promise.resolve([]);
       }
@@ -335,7 +410,7 @@
         seriesVariants().forEach(function (serie) {
           attempts.push({
             mode: 'options',
-            field: 'modell',
+            field: 'basis',
             sitz: sitz,
             serie: serie,
             hersteller: brand.value
@@ -345,29 +420,35 @@
       seriesVariants().forEach(function (serie) {
         attempts.push({
           mode: 'options',
-          field: 'modell',
+          field: 'basis',
           serie: serie,
           hersteller: brand.value
         });
       });
       attempts.push({
         mode: 'options',
-        field: 'modell',
+        field: 'basis',
         hersteller: brand.value
       });
-      return loadFirst(model, attempts, 'Bitte wählen').then(function (values) {
-        keepValue(model, preferredModel);
-        afterSelectionChange();
-        if (seat.value && brand.value && model.value) {
-          checkCompatibility();
+      return loadFirst(basis, attempts, 'Bitte wählen').then(function (values) {
+        if (!values.length) {
+          fill(basis, [], 'Nicht erforderlich');
+          basis.disabled = true;
+        } else if (!keepValue(basis, preferredBasis) && values.length === 1) {
+          basis.value = values[0];
         }
-        return values;
+        afterSelectionChange();
+        return loadModels(preferredModel);
       });
     }
 
-    function loadBrands(preferredBrand, preferredModel) {
+    function loadBrands(preferredBrand, preferredModel, preferredBasis) {
       fill(model, [], 'Zuerst Marke wählen');
       model.disabled = true;
+      if (basis) {
+        fill(basis, [], 'Zuerst Marke wählen');
+        basis.disabled = true;
+      }
       if (!seat.value) {
         fill(brand, [], 'Zuerst Sitztyp wählen');
         brand.disabled = true;
@@ -397,7 +478,7 @@
         keepValue(brand, preferredBrand);
         afterSelectionChange();
         if (brand.value) {
-          return loadModels(preferredModel);
+          return loadBasis(preferredBasis, preferredModel);
         }
         return values;
       });
@@ -406,27 +487,27 @@
     function checkCompatibility() {
       var id = ++requestId;
       resetResult();
-      if (!seat.value || !brand.value || !model.value) return;
+      if (!isComplete()) return;
       message.textContent = 'Kompatibilität wird geprüft…';
       result.hidden = false;
-      fetchJson(endpoint, {
+      fetchJson(endpoint, withBasis({
         sitz: seat.value,
         serie: seriesParam(),
         hersteller: brand.value,
         modell: model.value
-      }).then(function (rows) {
+      })).then(function (rows) {
         if (id !== requestId) return;
         var items = Array.isArray(rows) ? rows : [];
         var matching = items.find(function (item) {
           return seriesCode(item && item.serie) === currentSeries;
         });
         if (!matching) {
-          return fetchJson(endpoint, {
+          return fetchJson(endpoint, withBasis({
             sitz: seatName(),
             serie: seriesParam(),
             hersteller: brand.value,
             modell: model.value
-          }).then(function (altRows) {
+          })).then(function (altRows) {
             return { items: Array.isArray(altRows) ? altRows : items };
           });
         }
@@ -483,7 +564,7 @@
       seat.value = seats[0].code;
     }
     if (seat.value) {
-      loadBrands(selectedBrand, selectedModel);
+      loadBrands(selectedBrand, selectedModel, selectedBasis);
     } else {
       decorateVariantLinks();
     }
@@ -492,15 +573,24 @@
       persistChoice();
       decorateVariantLinks();
       resetResult();
-      loadBrands(brand.value, model.value);
+      loadBrands(brand.value, model.value, basisValue());
     });
 
     brand.addEventListener('change', function () {
       persistChoice();
       decorateVariantLinks();
       resetResult();
-      loadModels(model.value);
+      loadBasis('', '');
     });
+
+    if (basis) {
+      basis.addEventListener('change', function () {
+        persistChoice();
+        decorateVariantLinks();
+        resetResult();
+        loadModels('');
+      });
+    }
 
     model.addEventListener('change', function () {
       afterSelectionChange();
@@ -513,7 +603,7 @@
         return;
       }
       var storedTitle = (readStoredChoice() || {}).title || buildTitle();
-      if (seat.value && brand.value && model.value && storedTitle) {
+      if (isComplete() && storedTitle) {
         injectCartTitle(storedTitle);
       }
     });
