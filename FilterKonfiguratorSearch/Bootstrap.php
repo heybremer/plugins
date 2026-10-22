@@ -92,8 +92,8 @@ class Bootstrap extends Bootstrapper
                 $assetVersion = '1.14.70';
             }
             $assetVersion = \preg_replace('/[^0-9A-Za-z._-]/', '', $assetVersion) ?: '1.14.70';
-            if (\version_compare($assetVersion, '1.14.93', '<')) {
-                $assetVersion = '1.14.93';
+            if (\version_compare($assetVersion, '1.14.99', '<')) {
+                $assetVersion = '1.14.99';
             }
             foreach ([
                 ['selector' => 'script[src*="fk-micro-konfigurator.js"]', 'attr' => 'src'],
@@ -1256,8 +1256,8 @@ class Bootstrap extends Bootstrapper
         } catch (\Throwable $e) {
         }
 
-        $vehicle = ['marke' => [], 'modell' => [], 'baujahr' => []];
-        if ($segment === 'pkw' && $kParent > 0) {
+        $vehicle = ['marke' => [], 'modell' => [], 'baujahr' => [], 'basis' => [], 'sitz' => []];
+        if ($segment !== '' && $kParent > 0) {
             try {
                 $ids = [$kArtikel => $kArtikel, $kParent => $kParent];
                 foreach ($db->getObjects('SELECT kArtikel FROM tartikel WHERE kVaterArtikel = :p LIMIT 300', ['p' => $kParent]) as $r) {
@@ -1270,11 +1270,17 @@ class Bootstrap extends Bootstrapper
                        JOIN tmerkmalsprache ms ON ms.kMerkmal = am.kMerkmal AND ms.kSprache = :lid
                        JOIN tmerkmalwertsprache mws ON mws.kMerkmalWert = am.kMerkmalWert AND mws.kSprache = :lid
                       WHERE am.kArtikel IN ($in)
-                        AND ms.cName IN ('Fahrzeug-Marke', 'Fahrzeug-Modell', 'Baujahr')
-                      LIMIT 300",
+                        AND ms.cName IN ('Fahrzeug-Marke', 'Fahrzeug-Modell', 'Baujahr', 'Wohnmobil-Fahrgestell', 'kompatible Sitze')
+                      LIMIT 600",
                     ['lid' => $langID]
                 );
-                $map = ['Fahrzeug-Marke' => 'marke', 'Fahrzeug-Modell' => 'modell', 'Baujahr' => 'baujahr'];
+                $map = [
+                    'Fahrzeug-Marke'        => 'marke',
+                    'Fahrzeug-Modell'       => 'modell',
+                    'Baujahr'               => 'baujahr',
+                    'Wohnmobil-Fahrgestell' => 'basis',
+                    'kompatible Sitze'      => 'sitz',
+                ];
                 foreach ($rows as $r) {
                     $key = $map[(string)$r->cName] ?? '';
                     $val = \trim((string)$r->cWert);

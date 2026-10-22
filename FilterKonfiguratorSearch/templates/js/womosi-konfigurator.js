@@ -433,6 +433,12 @@
 
     WomosiState.saveStateCache = function () {
       try {
+        // Keine leere Auswahl speichern (z. B. nach „Alles löschen“): Eintrag entfernen.
+        if (!state.typKey && !state.hersteller && !state.basis && !state.modell && !state.modellCustom
+          && !state.year && !state.seatId && !state.serie) {
+          window.localStorage.removeItem(FK_STATE_CACHE_KEY);
+          return;
+        }
         var payload = {
           step: state.step || 1,
           segment: state.segment || 'wohnmobil',

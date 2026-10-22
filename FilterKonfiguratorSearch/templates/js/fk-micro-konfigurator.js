@@ -476,8 +476,32 @@
       return false;
     }
 
+    function seatCode(v) {
+      var m = String(v || '').match(/(\d{1,2})/);
+      return m ? String(parseInt(m[1], 10)) : String(v || '').trim().toLowerCase();
+    }
+
+    function seatInList(list, value) {
+      if (!Array.isArray(list) || !value) return false;
+      var c = seatCode(value);
+      for (var i = 0; i < list.length; i++) {
+        if (seatCode(list[i]) === c) return true;
+      }
+      return false;
+    }
+
     function pageVehicleMatches() {
-      if (!isPkw || !pageVehicle || !state.hersteller || !state.modell || !state.baujahr) return null;
+      if (!pageVehicle || !state.hersteller || !state.modell) return null;
+      if (!isPkw) {
+        if (!state.sitz || !state.basis) return null;
+        var seats = Array.isArray(pageVehicle.sitz) ? pageVehicle.sitz : [];
+        var chassis = Array.isArray(pageVehicle.basis) ? pageVehicle.basis : [];
+        return inList(pageVehicle.marke, state.hersteller)
+          && inList(pageVehicle.modell, state.modell)
+          && (!chassis.length || inList(chassis, state.basis))
+          && (!seats.length || seatInList(seats, state.sitz));
+      }
+      if (!state.baujahr) return null;
       var years = Array.isArray(pageVehicle.baujahr) ? pageVehicle.baujahr : [];
       return inList(pageVehicle.marke, state.hersteller)
         && inList(pageVehicle.modell, state.modell)
@@ -500,7 +524,8 @@
         if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(fitNote, anchor.nextSibling);
         else root.appendChild(fitNote);
       }
-      var vehicle = [state.hersteller, state.modell, state.baujahr].join(' ');
+      var vehicle = (isPkw ? [state.hersteller, state.modell, state.baujahr] : [state.hersteller, state.basis, state.modell])
+        .filter(Boolean).join(' ');
       fitNote.hidden = false;
       fitNote.classList.toggle('is-match', !!match);
       fitNote.classList.toggle('is-mismatch', !match);
@@ -1056,7 +1081,8 @@
     function navigateToSelectedSerie() {
       var code = String(selSerie && selSerie.value || '').trim();
       if (!code) return;
-      if (isPkw && pageSerie && code.toLowerCase() === pageSerie.toLowerCase() && pageVehicleMatches()) {
+      var serieKey = function (v) { return String(v || '').replace(/[\s\-]*Serie\s*$/i, '').toLowerCase(); };
+      if (pageSerie && serieKey(code) === serieKey(pageSerie) && pageVehicleMatches()) {
         var buy = document.getElementById('buy_form');
         if (buy && buy.scrollIntoView) buy.scrollIntoView({ behavior: 'smooth', block: 'start' });
         return;
