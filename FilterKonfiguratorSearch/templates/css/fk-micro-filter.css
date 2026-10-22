@@ -580,3 +580,13 @@
 .fk-micro-detail-wrap {
   margin: 0 0 1.5rem;
 }
+
+.fk-micro-detail-wrap > .fk-selection-micro {
+  margin-top: 0;
+}
+
+@media (max-width: 767.98px) {
+  .fk-micro-detail-wrap {
+    margin-bottom: 1rem;
+  }
+}

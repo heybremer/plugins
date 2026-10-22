@@ -92,8 +92,8 @@ class Bootstrap extends Bootstrapper
                 $assetVersion = '1.14.70';
             }
             $assetVersion = \preg_replace('/[^0-9A-Za-z._-]/', '', $assetVersion) ?: '1.14.70';
-            if (\version_compare($assetVersion, '1.14.90', '<')) {
-                $assetVersion = '1.14.90';
+            if (\version_compare($assetVersion, '1.14.91', '<')) {
+                $assetVersion = '1.14.91';
             }
             foreach ([
                 ['selector' => 'script[src*="fk-micro-konfigurator.js"]', 'attr' => 'src'],
@@ -561,7 +561,10 @@ class Bootstrap extends Bootstrapper
                     $micro = $this->fkBuildMicroFilterHtml($items, '', $this->fkGetKonfiguratorChangeUrl(), $detailCategoryId);
                     if ($micro !== '') {
                         $micro = '<div class="fk-micro-detail-wrap">' . $micro . '</div>';
-                        $detail = $doc->find('#result-wrapper .product-detail, .product-detail')->eq(0);
+                        $detail = $doc->find('#result-wrapper form#buy_form, form#buy_form')->eq(0);
+                        if ($detail->length === 0) {
+                            $detail = $doc->find('#result-wrapper .product-detail, .product-detail')->eq(0);
+                        }
                         if ($detail->length > 0) {
                             $detail->before($micro);
                         } else {

@@ -727,6 +727,7 @@
       KT: { label: 'Serie KT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/kt-serie.avif' },
       K: { label: 'Serie K', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/k-serie.webp' },
       VK: { label: 'Serie VK', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/vk-serie.webp' },
+      GM: { label: 'Serie GM', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/media/image/product/468701/md/autositzbezuege-schonbezuege-fuer-audi-a1-bj-2010-18-in-verschiedenen-farben_4.jpg' },
       S1: { label: 'Serie 01', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/serie-01.avif' },
       AH: { label: 'Serie AH', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/ah-serie.avif' },
       GT: { label: 'Serie GT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/gt-serie.avif' },
@@ -2299,8 +2300,31 @@
 
     WomosiUI.resetPkwBaujahrSelect();
 
+    WomosiUI.showRestoredNote = function () {
+      if (!state.hersteller && !state.seatId && !state.typKey) return;
+      var firstStepper = container.querySelector('.stepper');
+      if (!firstStepper || container.querySelector('.fk-restored-note')) return;
+      var note = document.createElement('div');
+      note.className = 'fk-restored-note';
+      note.setAttribute('role', 'status');
+      note.innerHTML = '<span>Ihre letzte Auswahl wurde wiederhergestellt.</span>'
+        + '<button type="button" class="fk-restored-reset">Neu starten</button>';
+      firstStepper.parentNode.insertBefore(note, firstStepper);
+      note.querySelector('.fk-restored-reset').addEventListener('click', function () {
+        var btn = state.segment === 'pkw' ? resetBtnPkw : resetBtn;
+        if (btn) btn.click();
+      });
+      [resetBtn, resetBtnPkw].forEach(function (b) {
+        if (b) b.addEventListener('click', function () {
+          if (note.parentNode) note.parentNode.removeChild(note);
+        });
+      });
+    }
+
     // IMPORTANT: restore first, otherwise initial empty state overwrites cache.
-    if (!WomosiState.restoreStateCache()) {
+    if (WomosiState.restoreStateCache()) {
+      WomosiUI.showRestoredNote();
+    } else {
       WomosiState.clampSegmentToAllowed();
       WomosiUI.applySegmentToDom();
       if (state.segment === 'pkw') {

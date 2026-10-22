@@ -1071,6 +1071,41 @@ body > .ac-overlay.active {
   box-shadow: none;
 }
 
+.womosi-konfigurator .fk-restored-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #14532d;
+  background: #ecfdf3;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+}
+
+.womosi-konfigurator .fk-restored-reset {
+  padding: 4px 10px !important;
+  min-height: auto !important;
+  font-size: 0.75rem !important;
+  font-weight: 700;
+  color: #14532d;
+  background: #fff;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.womosi-konfigurator .fk-restored-reset:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  transform: none;
+}
+
 /* ===== ACTIONS ===== */
 .womosi-konfigurator .actions {
   display: flex;

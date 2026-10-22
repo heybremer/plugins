@@ -35,6 +35,7 @@
     KT: { label: 'Serie KT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/kt-serie.avif' },
     K: { label: 'Serie K', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/k-serie.webp' },
     VK: { label: 'Serie VK', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/vk-serie.webp' },
+    GM: { label: 'Serie GM', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/media/image/product/468701/md/autositzbezuege-schonbezuege-fuer-audi-a1-bj-2010-18-in-verschiedenen-farben_4.jpg' },
     S1: { label: 'Serie 01', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/serie-01.avif' },
     AH: { label: 'Serie AH', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/ah-serie.avif' },
     GT: { label: 'Serie GT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/gt-serie.avif' },
