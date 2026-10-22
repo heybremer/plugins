@@ -10,14 +10,13 @@
   var FK_STATE_KEY = 'womosi_fk_state_v1';
   var FK_MODELL_CUSTOM = '__FK_MODELL_CUSTOM__';
 
-  // Konfigurator bağlamı olmayan sayfada (seriden bağımsız gezinme): state'i temizle, hiçbir dinamik başlık uygulama.
+  // Konfigurator bağlamı olmayan sayfada (seriden bağımsız gezinme): dinamik başlık uygulama, son seçim korunur.
   try {
     var _qs = window.location.search || '';
     var _path = window.location.pathname || '';
     var _hasCfgQs = /[?&](segment|typ|hersteller|basis|modell|baujahr|sitz|fkCustomModell|fkNichtInListe)=/i.test(_qs);
     var _hasFilterPath = _path.indexOf('__') !== -1;
     if (!_hasCfgQs && !_hasFilterPath) {
-      try { window.localStorage.removeItem(FK_STATE_KEY); } catch (e) {}
       return;
     }
   } catch (e) {}

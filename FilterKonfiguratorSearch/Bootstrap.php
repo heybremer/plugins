@@ -92,11 +92,13 @@ class Bootstrap extends Bootstrapper
                 $assetVersion = '1.14.70';
             }
             $assetVersion = \preg_replace('/[^0-9A-Za-z._-]/', '', $assetVersion) ?: '1.14.70';
-            if (\version_compare($assetVersion, '1.14.89', '<')) {
-                $assetVersion = '1.14.89';
+            if (\version_compare($assetVersion, '1.14.90', '<')) {
+                $assetVersion = '1.14.90';
             }
             foreach ([
                 ['selector' => 'script[src*="fk-micro-konfigurator.js"]', 'attr' => 'src'],
+                ['selector' => 'script[src*="fk-liste-title.js"]', 'attr' => 'src'],
+                ['selector' => 'script[src*="fk-manual-model-cart.js"]', 'attr' => 'src'],
                 ['selector' => 'link[href*="fk-micro-filter.css"]', 'attr' => 'href'],
             ] as $asset) {
                 $nodes = $doc->find($asset['selector']);
@@ -547,6 +549,27 @@ class Bootstrap extends Bootstrapper
                     $activeFilters = $doc->find('.active-filters');
                     if ($activeFilters->length > 0) {
                         $activeFilters->attr('style', 'display: none !important;');
+                    }
+                }
+            }
+
+            if ($pt === \PAGE_ARTIKEL) {
+                /** @var JTLSmarty|null $smarty */
+                $smarty = isset($args['smarty']) && $args['smarty'] instanceof JTLSmarty ? $args['smarty'] : null;
+                $detailCategoryId = $this->fkMicroResolveProductCategoryId($smarty);
+                if ($detailCategoryId > 0) {
+                    $micro = $this->fkBuildMicroFilterHtml($items, '', $this->fkGetKonfiguratorChangeUrl(), $detailCategoryId);
+                    if ($micro !== '') {
+                        $micro = '<div class="fk-micro-detail-wrap">' . $micro . '</div>';
+                        $detail = $doc->find('#result-wrapper .product-detail, .product-detail')->eq(0);
+                        if ($detail->length > 0) {
+                            $detail->before($micro);
+                        } else {
+                            $rw = $doc->find('#result-wrapper')->eq(0);
+                            if ($rw->length > 0) {
+                                $rw->prepend($micro);
+                            }
+                        }
                     }
                 }
             }
@@ -1120,6 +1143,60 @@ class Bootstrap extends Bootstrapper
         }
 
         return \implode(',', \array_values($ids));
+    }
+
+    /**
+     * Artikeldetail: erste Kategorie des Artikels (bzw. Vaterartikels) im erlaubten Mikro-Kategoriebaum.
+     * Lager-Artikel mit eigenem Fahrzeug-Picker werden übersprungen.
+     */
+    private function fkMicroResolveProductCategoryId(?JTLSmarty $smarty): int
+    {
+        if ($smarty === null) {
+            return 0;
+        }
+        $article = $smarty->getTemplateVars('Artikel');
+        if (!\is_object($article)) {
+            return 0;
+        }
+        $kArtikel = (int)($article->kArtikel ?? 0);
+        $kVater   = (int)($article->kVaterArtikel ?? 0);
+        if ($kArtikel <= 0) {
+            return 0;
+        }
+        try {
+            if (\class_exists('\Plugin\LagerProdukt\LagerProduktService')
+                && \Plugin\LagerProdukt\LagerProduktService::getProductDetailVariantContext((string)($article->cArtNr ?? '')) !== null
+            ) {
+                return 0;
+            }
+        } catch (\Throwable $e) {
+        }
+        $allowedIds = [];
+        foreach (preg_split('/[\s,;]+/', $this->fkMicroMergeAllowedCategoriesCsv()) as $p) {
+            $n = (int)trim((string)$p);
+            if ($n > 0) {
+                $allowedIds[$n] = $n;
+            }
+        }
+        if ($allowedIds === []) {
+            return 0;
+        }
+        try {
+            $db   = $this->fkMicroShopDb();
+            $rows = $db->getObjects(
+                'SELECT DISTINCT kKategorie FROM tkategorieartikel WHERE kArtikel IN (:a, :v) LIMIT 50',
+                ['a' => $kArtikel, 'v' => $kVater > 0 ? $kVater : $kArtikel]
+            );
+            foreach ($rows as $row) {
+                $cid = (int)($row->kKategorie ?? 0);
+                if ($cid > 0 && $this->fkMicroCategoryIsAllowedInTree($db, $cid, \array_values($allowedIds))) {
+                    return $cid;
+                }
+            }
+        } catch (\Throwable $e) {
+        }
+
+        return 0;
     }
 
     /**

@@ -9,14 +9,13 @@
   var FK_MODELL_CUSTOM = '__FK_MODELL_CUSTOM__';
   var FK_QS_KEYS = ['segment', 'typ', 'hersteller', 'basis', 'modell', 'baujahr', 'sitz', 'fkCustomModell', 'fkNichtInListe'];
 
-  // Konfigurator bağlamı yoksa (ne GET-parametreleri ne de __-SEO filtresi yok): state'i temizle ve hiçbir şey yapma.
+  // Konfigurator bağlamı yoksa (ne GET-parametreleri ne de __-SEO filtresi yok): hiçbir şey yapma, son seçim korunur.
   try {
     var _qs = window.location.search || '';
     var _path = window.location.pathname || '';
     var _hasCfgQs = /[?&](segment|typ|hersteller|basis|modell|baujahr|sitz|fkCustomModell|fkNichtInListe)=/i.test(_qs);
     var _hasFilterPath = _path.indexOf('__') !== -1;
     if (!_hasCfgQs && !_hasFilterPath) {
-      try { window.localStorage.removeItem(FK_STATE_KEY); } catch (e) {}
       return;
     }
   } catch (e) {}

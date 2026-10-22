@@ -576,3 +576,7 @@
     flex: 1 1 100%;
   }
 }
+
+.fk-micro-detail-wrap {
+  margin: 0 0 1.5rem;
+}

@@ -441,6 +441,39 @@
       var yearField = selYear && selYear.closest('.fk-micro-field');
       if (yearField) yearField.classList.toggle('is-selected', isPkw && !!String(state.baujahr || '').trim());
       numberSteps();
+      persistState();
+    }
+
+    var persistReady = false;
+    function persistState() {
+      if (!persistReady) return;
+      try {
+        var raw = window.localStorage.getItem(FK_STATE_KEY);
+        var s = raw ? JSON.parse(raw) : {};
+        if (!s || typeof s !== 'object') s = {};
+        var custom = String(state.fkCustomModell || '') === '1';
+        var typKey = isPkw ? '' : (state.typ || '');
+        var seatId = isPkw ? '' : (state.sitz || '');
+        if (String(s.typKey || '') !== typKey) s.typLabel = '';
+        if (String(s.seatId || '') !== seatId) s.seatLabel = '';
+        s.segment = isPkw ? 'pkw' : 'wohnmobil';
+        s.typKey = typKey;
+        s.hersteller = state.hersteller || '';
+        s.basis = isPkw ? '' : (state.basis || '');
+        s.modell = custom ? '' : (state.modell || '');
+        s.modellCustom = custom ? (state.modell || '') : '';
+        s.year = isPkw ? (state.baujahr || '') : '';
+        s.seatId = seatId;
+        s.serie = state.serie || '';
+        if (isPkw) {
+          s.flowMode = 'vehicle-first';
+          s.step = (s.hersteller && state.modell && s.year) ? 4 : 2;
+        } else {
+          s.flowMode = 'seat-first';
+          s.step = s.seatId ? 4 : 1;
+        }
+        window.localStorage.setItem(FK_STATE_KEY, JSON.stringify(s));
+      } catch (e) { }
     }
 
     function numberSteps() {
@@ -1159,8 +1192,11 @@
       if (state.baujahr && selYear) selYear.value = state.baujahr;
       if (state.sitz && selSitz) selSitz.value = state.sitz;
       if (state.serie && selSerie) selSerie.value = state.serie;
+      persistReady = true;
       updateSelectionMarks();
       updateStatus(seriesCache.length);
+    }, function () {
+      persistReady = true;
     });
   }
 
