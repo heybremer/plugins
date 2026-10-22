@@ -37,6 +37,8 @@ final class SeriesMetaRuntime
             'KT300' => ['label' => 'Serie KT3', 'color' => '#f5f5f5', 'img' => ''],
             'KT3'   => ['label' => 'Serie KT3', 'color' => '#f5f5f5', 'img' => ''],
             'KT'    => ['label' => 'Serie KT', 'color' => '#f5f5f5', 'img' => ''],
+            'K'     => ['label' => 'Serie K', 'color' => '#f5f5f5', 'img' => 'https://bremer-sitzbezuege.de/mediafiles/seat/k-serie.webp'],
+            'VK'    => ['label' => 'Serie VK', 'color' => '#f5f5f5', 'img' => 'https://bremer-sitzbezuege.de/mediafiles/seat/vk-serie.webp'],
             'AH'    => ['label' => 'Serie AH', 'color' => '#f5f5f5', 'img' => ''],
             'GT'    => ['label' => 'Serie GT', 'color' => '#f5f5f5', 'img' => ''],
             'C'     => ['label' => 'Serie C', 'color' => '#f5f5f5', 'img' => ''],

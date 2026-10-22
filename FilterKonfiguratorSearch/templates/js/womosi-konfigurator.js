@@ -725,6 +725,8 @@
       M: { label: 'Serie M', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/m-serie.avif' },
       KT300: { label: 'Serie KT3', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/kt300-serie.avif' },
       KT: { label: 'Serie KT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/kt-serie.avif' },
+      K: { label: 'Serie K', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/k-serie.webp' },
+      VK: { label: 'Serie VK', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/vk-serie.webp' },
       S1: { label: 'Serie 01', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/serie-01.avif' },
       AH: { label: 'Serie AH', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/ah-serie.avif' },
       GT: { label: 'Serie GT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/gt-serie.avif' },
