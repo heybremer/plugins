@@ -2199,6 +2199,14 @@ class FilterKonfiguratorRepository
                 $segJoin = PkwSqlFragments::wmProdukttypFilter('langID');
             }
 
+            if ($segment === 'pkw' && $serieMerkmalName === 'Serie') {
+                return $this->buildSerieItems(
+                    $this->findPkwSeriesRows($childJoins, $segJoin, $params),
+                    $matchedValues,
+                    $selectionQuery
+                );
+            }
+
             $sql = "SELECT DISTINCT serieWert.cWert AS serie,
                            serieSeo.cSeo            AS serieSeo
                       FROM tartikel a
@@ -2224,7 +2232,7 @@ class FilterKonfiguratorRepository
                        AND serieSeo.kSprache = :langID
                      WHERE a.nIstVater = 0
                   ORDER BY serieWert.cWert ASC
-                     LIMIT 24";
+                     LIMIT 100";
     
             $rows = $this->db->getObjects($sql, $params);
             if ((!is_array($rows) || $rows === []) && $segment !== 'pkw') {
@@ -2235,6 +2243,47 @@ class FilterKonfiguratorRepository
         }
 
         /**
+         * PKW-Serien stehen teils als Merkmal "Serie" (z. B. "N3"), teils nur als
+         * Kategoriename (z. B. "N3-Serie"). Beide Quellen auf den Merkmal-Namen
+         * normalisieren und doppelte Serien entfernen.
+         *
+         * @param array<int,object> $merkmalRows
+         * @param array<int,object> $categoryRows
+         * @return array<int,object>
+         */
+        private function mergePkwSeriesRows(array $merkmalRows, array $categoryRows): array
+        {
+            $merged = [];
+            foreach ($merkmalRows as $row) {
+                $serie = \trim((string)($row->serie ?? ''));
+                if ($serie !== '') {
+                    $merged[\mb_strtolower($serie)] = $row;
+                }
+            }
+            foreach ($categoryRows as $row) {
+                $serie = self::stripSerieSuffix((string)($row->serie ?? ''));
+                $key   = \mb_strtolower($serie);
+                if ($serie === '' || isset($merged[$key])) {
+                    continue;
+                }
+                $merged[$key] = (object)[
+                    'serie'    => $serie,
+                    'serieSeo' => (string)($row->serieSeo ?? ''),
+                ];
+            }
+            \uasort($merged, static function ($a, $b): int {
+                return \strnatcasecmp((string)$a->serie, (string)$b->serie);
+            });
+
+            return \array_values($merged);
+        }
+
+        public static function stripSerieSuffix(string $name): string
+        {
+            return \trim((string)\preg_replace('/[\s\-]*Serie\s*$/iu', '', \trim($name)));
+        }
+
+        /**
          * Wohnmobil serisi çoğu üründe "Serie" merkmalı değil, kategori adıdır
          * (ör. PLKT-Serie). Merkmal sorgusu boşsa aynı seçime uyan yaprak
          * kategoriyi seri olarak döndür.
@@ -2242,6 +2291,103 @@ class FilterKonfiguratorRepository
          * @param array<string,mixed> $params
          * @return array<int,object>
          */
+        /**
+         * @param array<string,mixed> $params
+         * @return array<int,object>
+         */
+        private function findPkwSeriesRows(string $joins, string $segJoin, array $params): array
+        {
+            unset($params['serieMerkmalName']);
+            $langParams = ['langID' => $params['langID']];
+            try {
+                // Fahrzeug-Merkmale zuerst ohne Segment-Join auflösen; mit Join wählt MySQL einen sehr langsamen Plan.
+                $idRows = $this->db->getObjects(
+                    "SELECT DISTINCT a.kArtikel FROM tartikel a {$joins} WHERE a.nIstVater = 0 LIMIT 5000",
+                    $params
+                );
+                $ids = [];
+                foreach (\is_array($idRows) ? $idRows : [] as $row) {
+                    $ids[] = (int)$row->kArtikel;
+                }
+                if ($ids === []) {
+                    return [];
+                }
+                $segRows = $this->db->getObjects(
+                    "SELECT DISTINCT a.kArtikel, a.kVaterArtikel
+                       FROM tartikel a
+                       {$segJoin}
+                      WHERE a.kArtikel IN (" . \implode(',', $ids) . ")",
+                    $langParams
+                );
+            } catch (\Throwable $e) {
+                return [];
+            }
+            $ids = [];
+            foreach (\is_array($segRows) ? $segRows : [] as $row) {
+                $ids[(int)$row->kArtikel] = (int)$row->kArtikel;
+                if ((int)$row->kVaterArtikel > 0) {
+                    $ids[(int)$row->kVaterArtikel] = (int)$row->kVaterArtikel;
+                }
+            }
+            if ($ids === []) {
+                return [];
+            }
+            $idList = \implode(',', $ids);
+
+            try {
+                $merkmalRows = $this->db->getObjects(
+                    "SELECT DISTINCT serieWert.cWert AS serie,
+                            serieSeo.cSeo            AS serieSeo
+                       FROM tartikelmerkmal tamSerie
+                 INNER JOIN tmerkmalwert mwSerie
+                         ON mwSerie.kMerkmalWert = tamSerie.kMerkmalWert
+                 INNER JOIN tmerkmalsprache msSerie
+                         ON msSerie.kMerkmal = mwSerie.kMerkmal
+                        AND msSerie.kSprache = :langID
+                        AND msSerie.cName    = 'Serie'
+                 INNER JOIN tmerkmalwertsprache serieWert
+                         ON serieWert.kMerkmalWert = tamSerie.kMerkmalWert
+                        AND serieWert.kSprache     = :langID
+                  LEFT JOIN tseo serieSeo
+                         ON serieSeo.cKey     = 'kMerkmalWert'
+                        AND serieSeo.kKey     = tamSerie.kMerkmalWert
+                        AND serieSeo.kSprache = :langID
+                      WHERE tamSerie.kArtikel IN ({$idList})
+                      LIMIT 100",
+                    $langParams
+                );
+            } catch (\Throwable $e) {
+                $merkmalRows = [];
+            }
+
+            $sql = "SELECT DISTINCT COALESCE(NULLIF(ks.cName, ''), NULLIF(c.cName, '')) AS serie,
+                           seo.cSeo AS serieSeo
+                      FROM tkategorieartikel kaSerie
+                INNER JOIN tkategorie c
+                        ON c.kKategorie = kaSerie.kKategorie
+                 LEFT JOIN tkategoriesprache ks
+                        ON ks.kKategorie = c.kKategorie
+                       AND ks.kSprache = :langID
+                 LEFT JOIN tseo seo
+                        ON seo.cKey = 'kKategorie'
+                       AND seo.kKey = c.kKategorie
+                       AND seo.kSprache = :langID
+                     WHERE kaSerie.kArtikel IN ({$idList})
+                       AND COALESCE(NULLIF(ks.cName, ''), c.cName) LIKE '%Serie%'
+                     LIMIT 100";
+
+            try {
+                $categoryRows = $this->db->getObjects($sql, $langParams);
+            } catch (\Throwable $e) {
+                $categoryRows = [];
+            }
+
+            return $this->mergePkwSeriesRows(
+                \is_array($merkmalRows) ? $merkmalRows : [],
+                \is_array($categoryRows) ? $categoryRows : []
+            );
+        }
+
         private function findWmSeriesCategoryRows(string $joins, string $segJoin, array $params): array
         {
             $sql = "SELECT DISTINCT COALESCE(NULLIF(ks.cName, ''), NULLIF(c.cName, '')) AS serie,
@@ -2263,7 +2409,7 @@ class FilterKonfiguratorRepository
                      WHERE a.nIstVater = 0
                        AND COALESCE(NULLIF(ks.cName, ''), c.cName) LIKE '%Serie%'
                   ORDER BY serie ASC
-                     LIMIT 24";
+                     LIMIT 100";
 
             unset($params['serieMerkmalName']);
 
@@ -2351,7 +2497,7 @@ class FilterKonfiguratorRepository
                         AND cModell     = :modell
                         AND cBaujahr    = :baujahr
                    ORDER BY cSerie ASC
-                      LIMIT 24",
+                      LIMIT 100",
                     [
                         'lid'        => $this->langID > 0 ? $this->langID : 1,
                         'hersteller' => $hersteller,

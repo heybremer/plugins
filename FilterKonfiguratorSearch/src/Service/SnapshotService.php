@@ -295,6 +295,33 @@ class SnapshotService
             $params
         );
 
+        // Viele PKW-Artikel tragen die Serie nur als Kategorie (z. B. "N3-Serie").
+        $catName = "TRIM(COALESCE(NULLIF(ks_ser.cName, ''), c_ser.cName))";
+        $catSerie = "TRIM(TRAILING ' Serie' FROM TRIM(TRAILING '-Serie' FROM {$catName}))";
+        $this->db->executeQueryPrepared(
+            "INSERT IGNORE INTO twomosi_fk_opt_pkw_serie (kSprache, cHersteller, cModell, cBaujahr, cSerie, cSerieLabel)
+             SELECT DISTINCT :lid,
+                    TRIM(tmws_her.cWert),
+                    TRIM(tmws_mod.cWert),
+                    TRIM(tmws_bj.cWert),
+                    {$catSerie},
+                    {$catSerie}
+               {$from}
+               {$this->merkmalJoinSql('her', "ms_her.cName = 'Fahrzeug-Marke'")}
+               {$this->merkmalJoinSql('mod', "ms_mod.cName = 'Fahrzeug-Modell'")}
+               {$this->merkmalJoinSql('bj', $bjName)}
+         INNER JOIN tkategorieartikel ka_ser ON ka_ser.kArtikel = a.kArtikel
+         INNER JOIN tkategorie c_ser ON c_ser.kKategorie = ka_ser.kKategorie
+          LEFT JOIN tkategoriesprache ks_ser ON ks_ser.kKategorie = c_ser.kKategorie
+                AND ks_ser.kSprache = :langID
+              WHERE a.nIstVater = 0
+                AND TRIM(tmws_her.cWert) <> ''
+                AND TRIM(tmws_mod.cWert) <> ''
+                AND TRIM(tmws_bj.cWert) <> ''
+                AND {$catName} LIKE '%Serie%'",
+            $params
+        );
+
         $this->touchPkwSnapshotMeta($lid);
     }
 

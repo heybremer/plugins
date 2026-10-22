@@ -313,7 +313,7 @@ class FilterKonfiguratorController
             if ($useStep4Cache) {
                 $cacheTtlSeconds = 2 * 24 * 60 * 60; // 2 gün
                 $step4CacheKey    = $isPkw
-                    ? md5($langID . '|pkw|' . $herst . '|' . $modell . '|' . $baujahr . '|' . ($fkCustomModell ? 'familie' : 'std'))
+                    ? md5($langID . '|pkw2|' . $herst . '|' . $modell . '|' . $baujahr . '|' . ($fkCustomModell ? 'familie' : 'std'))
                     : md5($langID . '|' . $typ . '|' . $herst . '|' . $basis . '|' . $modell . '|' . $sitz . '|' . ($fkCustomModell ? 'familie' : 'std'));
 
                 try {
