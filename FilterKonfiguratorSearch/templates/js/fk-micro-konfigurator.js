@@ -1205,14 +1205,35 @@
     var roots = document.querySelectorAll(ROOT_SEL);
     if (!roots || !roots.length) return;
     Array.prototype.slice.call(roots).forEach(function (r) {
+      if (r.getAttribute('data-fk-micro-init') === '1') return;
+      r.setAttribute('data-fk-micro-init', '1');
       try { initOne(r); } catch (e) { }
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAll);
-  } else {
+  // JTL ersetzt den Artikelbereich bei Variationswechsel/Zurück per AJAX — neue Mikro-Instanzen nachinitialisieren.
+  function watchForNewRoots() {
+    if (!window.MutationObserver || !document.body) return;
+    var pending = false;
+    new MutationObserver(function () {
+      if (pending) return;
+      pending = true;
+      window.requestAnimationFrame(function () {
+        pending = false;
+        initAll();
+      });
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+
+  function boot() {
     initAll();
+    watchForNewRoots();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
   }
 })();
 
