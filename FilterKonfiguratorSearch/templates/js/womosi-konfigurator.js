@@ -607,23 +607,35 @@
         }
 
         if (state.segment === 'pkw' && state.hersteller) {
-          WomosiApi.loadModell(function () {
-            WomosiApi.loadPkwBaujahr(function () {
-              if (state.year && selYearPkw) {
-                WomosiUI.ensureSelectValue(selYearPkw, state.year);
-                selYearPkw.value = state.year;
-              }
-              if (selYearPkw) {
-                WomosiUI.setClearBtnVisible(selYearPkw, !!selYearPkw.value);
-              }
-              finishRestoreAfterPkwChain();
-            });
-          }, state.modell);
+          // Listen ungefiltert laden (ohne gespeicherte Serie), damit Marke/Modell vollständig wählbar bleiben.
+          var restoreSerie = state.serie;
+          var restoreYear = state.year;
+          state.serie = '';
+          WomosiApi.loadHersteller(function () {
+            WomosiApi.loadModell(function () {
+              WomosiApi.loadPkwBaujahr(function () {
+                state.year = restoreYear || state.year;
+                state.serie = restoreSerie;
+                if (state.year && selYearPkw) {
+                  WomosiUI.ensureSelectValue(selYearPkw, state.year);
+                  selYearPkw.value = state.year;
+                }
+                if (selYearPkw) {
+                  WomosiUI.setClearBtnVisible(selYearPkw, !!selYearPkw.value);
+                }
+                if (selSerie && state.serie) WomosiUI.ensureSelectValue(selSerie, state.serie);
+                finishRestoreAfterPkwChain();
+              });
+            }, state.modell);
+          }, state.hersteller);
         } else {
           WomosiUI.updateSummary();
           WomosiUI.setStep(desiredStep);
           if (desiredStep === 4) {
             WomosiApi.loadSerie();
+          }
+          if (state.segment === 'wohnmobil') {
+            WomosiApi.refillWmLists();
           }
         }
         return true;
@@ -1119,10 +1131,12 @@
       return p;
     }
 
-    WomosiApi.loadHersteller = function () {
+    WomosiApi.loadHersteller = function (doneCb, keepValue) {
       var seatFirst = WomosiState.isWmSeatFirst();
+      var keep = keepValue ? String(keepValue).trim() : '';
       if (seatFirst ? (!state.seatId || !state.serie) : (state.segment === 'wohnmobil' && !state.typKey)) {
         if (selHer) WomosiUI.fillSelect(selHer, []);
+        if (doneCb) doneCb();
         return;
       }
       var hq = seatFirst
@@ -1140,6 +1154,13 @@
             .map(function (row) { return row && row.value ? String(row.value) : ''; })
         );
         WomosiUI.fillSelect(selHer, vals);
+        if (keep) {
+          WomosiUI.ensureSelectValue(selHer, keep);
+          state.hersteller = keep;
+          WomosiUI.setClearBtnVisible(selHer, true);
+          if (doneCb) doneCb();
+          return;
+        }
         state.hersteller = '';
         state.basis = '';
         state.modell = '';
@@ -1151,8 +1172,49 @@
           if (selYearPkw) WomosiUI.setClearBtnVisible(selYearPkw, false);
         }
         WomosiUI.updateSummary();
+        if (doneCb) doneCb();
       }).catch(function () {
         WomosiUI.fillSelect(selHer, []);
+        if (keep) WomosiUI.ensureSelectValue(selHer, keep);
+        if (doneCb) doneCb();
+      });
+    }
+
+    // Wiederherstellung (Wohnmobil): Marke/Fahrgestell/Modell-Listen füllen, ohne die gespeicherte Auswahl zu verwerfen.
+    WomosiApi.refillWmLists = function () {
+      var seatFirst = WomosiState.isWmSeatFirst();
+      if (seatFirst ? (!state.seatId || !state.serie) : !state.typKey) return;
+      function params(extra) {
+        return seatFirst
+          ? WomosiApi.seatSerieParams(extra)
+          : Object.assign({ typ: state.typKey || '' }, extra);
+      }
+      function fill(sel, field, extra, value) {
+        if (!sel) return Promise.resolve();
+        return WomosiApi.fetchJson('/fk-search', params(Object.assign({ mode: 'options', field: field }, extra)))
+          .then(function (data) {
+            var vals = uniqSorted(
+              (Array.isArray(data) ? data : [])
+                .map(function (row) { return row && row.value ? String(row.value) : ''; })
+            );
+            WomosiUI.fillSelect(sel, vals);
+            if (field === 'modell' && !seatFirst) WomosiUI.appendModellNotInListOption(sel);
+            if (value) WomosiUI.ensureSelectValue(sel, value);
+            WomosiUI.setClearBtnVisible(sel, !!sel.value);
+          })
+          .catch(function () {
+            if (value) WomosiUI.ensureSelectValue(sel, value);
+          });
+      }
+      fill(selHer, 'hersteller', {}, state.hersteller).then(function () {
+        if (!state.hersteller) return null;
+        return fill(selBasis, 'basis', { hersteller: state.hersteller }, state.basis);
+      }).then(function () {
+        if (!state.hersteller || !state.basis) return null;
+        return fill(selMod, 'modell', { hersteller: state.hersteller, basis: state.basis }, state.modell);
+      }).then(function () {
+        WomosiUI.syncModellCustomRowVisibility();
+        WomosiUI.updateSummary();
       });
     }
 
