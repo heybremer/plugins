@@ -561,5 +561,5 @@
         }
     })();
 </script>
-<script src="{$ShopURL}/plugins/FilterKonfiguratorSearch/templates/js/womosi-konfigurator.js?v=1.14.95" defer></script>
+<script src="{$ShopURL}/plugins/FilterKonfiguratorSearch/templates/js/womosi-konfigurator.js?v=1.14.97" defer></script>
 

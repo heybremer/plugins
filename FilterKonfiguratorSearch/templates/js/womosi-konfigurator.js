@@ -628,6 +628,12 @@
               });
             }, state.modell);
           }, state.hersteller);
+        } else if (state.segment === 'pkw') {
+          // Gespeicherter PKW-Zustand ohne Marke: Markenliste trotzdem laden.
+          state.serie = '';
+          WomosiApi.loadHersteller();
+          WomosiUI.updateSummary();
+          WomosiUI.setStep(2);
         } else {
           WomosiUI.updateSummary();
           WomosiUI.setStep(desiredStep);
