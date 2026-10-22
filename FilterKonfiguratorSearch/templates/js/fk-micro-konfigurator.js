@@ -333,6 +333,27 @@
         isPkw = (activeTab.getAttribute('data-fk-micro-segment') === 'pkw');
       }
     }
+
+    // Artikelseite: Segment des Artikels hat Vorrang vor gespeicherter Auswahl (ohne URL-Segment);
+    // die gespeicherte Auswahl des anderen Segments bleibt per Tab-Wechsel erreichbar.
+    var pageSegment = String(root.getAttribute('data-fk-page-segment') || '');
+    var pageSerie = String(root.getAttribute('data-fk-page-serie') || '');
+    var pageVehicle = null;
+    try { pageVehicle = JSON.parse(root.getAttribute('data-fk-page-vehicle') || 'null'); } catch (e) { pageVehicle = null; }
+    var parkedSegment = null;
+    var urlSegment = '';
+    try { urlSegment = new URLSearchParams(window.location.search || '').get('segment') || ''; } catch (e) { }
+    if (pageSegment && !urlSegment && (pageSegment === 'pkw') !== !!isPkw) {
+      parkedSegment = {
+        key: isPkw ? 'pkw' : 'wohnmobil',
+        mem: {
+          typ: state.typ || '', hersteller: state.hersteller || '', basis: state.basis || '',
+          modell: state.modell || '', baujahr: state.baujahr || '', sitz: state.sitz || '', serie: state.serie || ''
+        }
+      };
+      isPkw = pageSegment === 'pkw';
+      state = { segment: pageSegment };
+    }
     root.classList.toggle('fk-micro-is-pkw', !!isPkw);
 
     // Segment tabs (Wohnmobil / PKW)
@@ -443,6 +464,49 @@
       if (yearField) yearField.classList.toggle('is-selected', isPkw && !!String(state.baujahr || '').trim());
       numberSteps();
       persistState();
+      updateFitNote();
+    }
+
+    function inList(list, value) {
+      var v = String(value || '').trim().toLowerCase();
+      if (!v || !Array.isArray(list)) return false;
+      for (var i = 0; i < list.length; i++) {
+        if (String(list[i] || '').trim().toLowerCase() === v) return true;
+      }
+      return false;
+    }
+
+    function pageVehicleMatches() {
+      if (!isPkw || !pageVehicle || !state.hersteller || !state.modell || !state.baujahr) return null;
+      var years = Array.isArray(pageVehicle.baujahr) ? pageVehicle.baujahr : [];
+      return inList(pageVehicle.marke, state.hersteller)
+        && inList(pageVehicle.modell, state.modell)
+        && (!years.length || inList(years, state.baujahr));
+    }
+
+    var fitNote = null;
+    function updateFitNote() {
+      var match = pageVehicleMatches();
+      if (match === null) {
+        if (fitNote) fitNote.hidden = true;
+        return;
+      }
+      if (!fitNote) fitNote = root.querySelector('.fk-micro-fit');
+      if (!fitNote) {
+        fitNote = document.createElement('div');
+        fitNote.className = 'fk-micro-fit';
+        fitNote.setAttribute('role', 'status');
+        var anchor = statusDiv || root.firstChild;
+        if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(fitNote, anchor.nextSibling);
+        else root.appendChild(fitNote);
+      }
+      var vehicle = [state.hersteller, state.modell, state.baujahr].join(' ');
+      fitNote.hidden = false;
+      fitNote.classList.toggle('is-match', !!match);
+      fitNote.classList.toggle('is-mismatch', !match);
+      fitNote.textContent = match
+        ? '✔ Dieses Produkt passt zu Ihrem Fahrzeug (' + vehicle + ').'
+        : '⚠ Dieses Produkt passt nicht zu Ihrem Fahrzeug (' + vehicle + '). Bitte wählen Sie unten eine passende Serie.';
     }
 
     var persistReady = false;
@@ -511,6 +575,7 @@
       wohnmobil: { typ: '', hersteller: '', basis: '', modell: '', baujahr: '', sitz: '', serie: '' },
       pkw: { typ: '', hersteller: '', basis: '', modell: '', baujahr: '', sitz: '', serie: '' }
     };
+    if (parkedSegment) segMemory[parkedSegment.key] = parkedSegment.mem;
 
     function snapshotSegmentMemory() {
       var key = isPkw ? 'pkw' : 'wohnmobil';
@@ -991,6 +1056,11 @@
     function navigateToSelectedSerie() {
       var code = String(selSerie && selSerie.value || '').trim();
       if (!code) return;
+      if (isPkw && pageSerie && code.toLowerCase() === pageSerie.toLowerCase() && pageVehicleMatches()) {
+        var buy = document.getElementById('buy_form');
+        if (buy && buy.scrollIntoView) buy.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
       if (!isPkw && !hasCompleteWmSelection()) {
         updateSelectionMarks();
         showRequiredProgress();
@@ -1193,9 +1263,9 @@
       if (state.baujahr && selYear) selYear.value = state.baujahr;
       if (state.sitz && selSitz) selSitz.value = state.sitz;
       if (state.serie && selSerie) selSerie.value = state.serie;
-      persistReady = true;
       updateSelectionMarks();
       updateStatus(seriesCache.length);
+      persistReady = true;
     }, function () {
       persistReady = true;
     });

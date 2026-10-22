@@ -92,8 +92,8 @@ class Bootstrap extends Bootstrapper
                 $assetVersion = '1.14.70';
             }
             $assetVersion = \preg_replace('/[^0-9A-Za-z._-]/', '', $assetVersion) ?: '1.14.70';
-            if (\version_compare($assetVersion, '1.14.92', '<')) {
-                $assetVersion = '1.14.92';
+            if (\version_compare($assetVersion, '1.14.93', '<')) {
+                $assetVersion = '1.14.93';
             }
             foreach ([
                 ['selector' => 'script[src*="fk-micro-konfigurator.js"]', 'attr' => 'src'],
@@ -560,6 +560,10 @@ class Bootstrap extends Bootstrapper
                 if ($detailCategoryId > 0) {
                     $micro = $this->fkBuildMicroFilterHtml($items, '', $this->fkGetKonfiguratorChangeUrl(), $detailCategoryId);
                     if ($micro !== '') {
+                        $ctx = $this->fkMicroProductContext($smarty, $detailCategoryId);
+                        if ($ctx !== '') {
+                            $micro = \preg_replace('/data-fk-micro-dynamic="1"/', 'data-fk-micro-dynamic="1" ' . $ctx, $micro, 1) ?? $micro;
+                        }
                         $micro = '<div class="fk-micro-detail-wrap">' . $micro . '</div>';
                         $detail = $doc->find('#result-wrapper form#buy_form, form#buy_form')->eq(0);
                         if ($detail->length === 0) {
@@ -1200,6 +1204,103 @@ class Bootstrap extends Bootstrapper
         }
 
         return 0;
+    }
+
+    /**
+     * Artikeldetail: Segment (PKW/Wohnmobil), Serie und PKW-Fahrzeugmerkmale des Artikels als data-Attribute.
+     */
+    private function fkMicroProductContext(?JTLSmarty $smarty, int $categoryId): string
+    {
+        $article = $smarty !== null ? $smarty->getTemplateVars('Artikel') : null;
+        if (!\is_object($article)) {
+            return '';
+        }
+        $kArtikel = (int)($article->kArtikel ?? 0);
+        $kVater   = (int)($article->kVaterArtikel ?? 0);
+        $kParent  = $kVater > 0 ? $kVater : $kArtikel;
+        $esc = static function (string $s): string {
+            return \htmlspecialchars($s, \ENT_QUOTES, 'UTF-8');
+        };
+        try {
+            $db = $this->fkMicroShopDb();
+        } catch (\Throwable $e) {
+            return '';
+        }
+        $segment = '';
+        if ($this->fkMicroCategoryIsAllowedInTree($db, $categoryId, [19])) {
+            $segment = 'pkw';
+        } elseif ($this->fkMicroCategoryIsAllowedInTree($db, $categoryId, [24])) {
+            $segment = 'wohnmobil';
+        }
+        $langID = 1;
+        try {
+            $langID = (int)Shop::getLanguageID() ?: 1;
+        } catch (\Throwable $e) {
+        }
+
+        $serie = '';
+        try {
+            $row = $db->getSingleObject(
+                "SELECT COALESCE(NULLIF(ks.cName, ''), k.cName) AS cName
+                   FROM tkategorieartikel ka
+                   JOIN tkategorie k ON k.kKategorie = ka.kKategorie
+              LEFT JOIN tkategoriesprache ks ON ks.kKategorie = k.kKategorie AND ks.kSprache = :lid
+                  WHERE ka.kArtikel IN (:a, :p)
+                    AND COALESCE(NULLIF(ks.cName, ''), k.cName) LIKE '%Serie%'
+                  LIMIT 1",
+                ['lid' => $langID, 'a' => $kArtikel, 'p' => $kParent]
+            );
+            if ($row !== null) {
+                $serie = \trim((string)\preg_replace('/[\s\-]*Serie\s*$/iu', '', (string)$row->cName));
+            }
+        } catch (\Throwable $e) {
+        }
+
+        $vehicle = ['marke' => [], 'modell' => [], 'baujahr' => []];
+        if ($segment === 'pkw' && $kParent > 0) {
+            try {
+                $ids = [$kArtikel => $kArtikel, $kParent => $kParent];
+                foreach ($db->getObjects('SELECT kArtikel FROM tartikel WHERE kVaterArtikel = :p LIMIT 300', ['p' => $kParent]) as $r) {
+                    $ids[(int)$r->kArtikel] = (int)$r->kArtikel;
+                }
+                $in   = \implode(',', \array_map('intval', $ids));
+                $rows = $db->getObjects(
+                    "SELECT DISTINCT ms.cName, mws.cWert
+                       FROM tartikelmerkmal am
+                       JOIN tmerkmalsprache ms ON ms.kMerkmal = am.kMerkmal AND ms.kSprache = :lid
+                       JOIN tmerkmalwertsprache mws ON mws.kMerkmalWert = am.kMerkmalWert AND mws.kSprache = :lid
+                      WHERE am.kArtikel IN ($in)
+                        AND ms.cName IN ('Fahrzeug-Marke', 'Fahrzeug-Modell', 'Baujahr')
+                      LIMIT 300",
+                    ['lid' => $langID]
+                );
+                $map = ['Fahrzeug-Marke' => 'marke', 'Fahrzeug-Modell' => 'modell', 'Baujahr' => 'baujahr'];
+                foreach ($rows as $r) {
+                    $key = $map[(string)$r->cName] ?? '';
+                    $val = \trim((string)$r->cWert);
+                    if ($key !== '' && $val !== '') {
+                        $vehicle[$key][$val] = $val;
+                    }
+                }
+            } catch (\Throwable $e) {
+            }
+        }
+
+        $attrs = '';
+        if ($segment !== '') {
+            $attrs .= ' data-fk-page-segment="' . $segment . '"';
+        }
+        if ($serie !== '') {
+            $attrs .= ' data-fk-page-serie="' . $esc($serie) . '"';
+        }
+        if ($vehicle['marke'] !== [] && $vehicle['modell'] !== []) {
+            $json = \json_encode(\array_map('array_values', $vehicle), \JSON_UNESCAPED_UNICODE);
+            if (\is_string($json)) {
+                $attrs .= ' data-fk-page-vehicle="' . $esc($json) . '"';
+            }
+        }
+
+        return \trim($attrs);
     }
 
     /**
