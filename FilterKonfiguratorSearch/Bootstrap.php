@@ -553,33 +553,8 @@ class Bootstrap extends Bootstrapper
                 }
             }
 
-            if ($pt === \PAGE_ARTIKEL) {
-                /** @var JTLSmarty|null $smarty */
-                $smarty = isset($args['smarty']) && $args['smarty'] instanceof JTLSmarty ? $args['smarty'] : null;
-                $detailCategoryId = $this->fkMicroResolveProductCategoryId($smarty);
-                if ($detailCategoryId > 0) {
-                    $micro = $this->fkBuildMicroFilterHtml($items, '', $this->fkGetKonfiguratorChangeUrl(), $detailCategoryId);
-                    if ($micro !== '') {
-                        $ctx = $this->fkMicroProductContext($smarty, $detailCategoryId);
-                        if ($ctx !== '') {
-                            $micro = \preg_replace('/data-fk-micro-dynamic="1"/', 'data-fk-micro-dynamic="1" ' . $ctx, $micro, 1) ?? $micro;
-                        }
-                        $micro = '<div class="fk-micro-detail-wrap">' . $micro . '</div>';
-                        $detail = $doc->find('#result-wrapper form#buy_form, form#buy_form')->eq(0);
-                        if ($detail->length === 0) {
-                            $detail = $doc->find('#result-wrapper .product-detail, .product-detail')->eq(0);
-                        }
-                        if ($detail->length > 0) {
-                            $detail->before($micro);
-                        } else {
-                            $rw = $doc->find('#result-wrapper')->eq(0);
-                            if ($rw->length > 0) {
-                                $rw->prepend($micro);
-                            }
-                        }
-                    }
-                }
-            }
+            // Artikeldetailseiten: bewusst kein Mikro-Konfigurator (fkMicroProductContext /
+            // fkMicroResolveProductCategoryId bleiben für eine spätere Reaktivierung erhalten).
 
             if (!$hasItems) {
                 return;
