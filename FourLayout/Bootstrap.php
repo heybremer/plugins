@@ -76,7 +76,6 @@ class Bootstrap extends Bootstrapper
                 $selectors = ['div.index-filter-konfigurator'];
             }
 
-            $injected = false;
             foreach ($selectors as $sel) {
                 $target = $doc->find($sel)->eq(0);
                 if ($target->length < 1) {
@@ -92,18 +91,15 @@ class Bootstrap extends Bootstrapper
                     } else {
                         $target->after($html);
                     }
-                    $injected = true;
-                    break;
+                    return;
                 } catch (\Throwable $e) {
                     // try next selector
                 }
             }
 
-            if (!$injected) {
-                $content = $doc->find('div#content, main#main-wrapper, main')->eq(0);
-                if ($content->length > 0) {
-                    $content->prepend($html);
-                }
+            $content = $doc->find('div#content')->eq(0);
+            if ($content->length > 0) {
+                $content->prepend($html);
             }
         });
     }
@@ -115,24 +111,26 @@ class Bootstrap extends Bootstrapper
     {
         $uri   = (string)($_SERVER['REQUEST_URI'] ?? '');
         $query = (string)(\parse_url($uri, \PHP_URL_QUERY) ?? '');
+        $path  = \rtrim((string)(\parse_url($uri, \PHP_URL_PATH) ?? ''), '/');
 
-        // Index-URL mit Suche/Merkmal-Filter ist keine „echte“ Startseite (z. B. ?suche=…&mf=…).
-        if ($query !== '' && \preg_match('/(?:^|&)(suche|mf)=/i', $query) === 1) {
+        // Suche und Filter (mobil oft ?qs=) sind keine Startseite.
+        if ($query !== '' && \preg_match('/(?:^|&)(suche|qs|suchausdruck|search|mf)=/i', $query) === 1) {
             return false;
         }
 
         if (Shop::getPageType() === \PAGE_STARTSEITE) {
             return true;
         }
-        $path = (string)(\parse_url($uri, \PHP_URL_PATH) ?? '');
-        $path = \rtrim($path, '/');
+
+        // Nur die leere Start-URL, falls der Seitentyp nicht gesetzt ist.
+        if ($query !== '') {
+            return false;
+        }
         $shopUrl = \rtrim((string)Shop::getURL(), '/');
-        $shopBasePath = (string)(\parse_url($shopUrl, \PHP_URL_PATH) ?? '');
-        $shopBasePath = \rtrim($shopBasePath, '/');
+        $shopBasePath = \rtrim((string)(\parse_url($shopUrl, \PHP_URL_PATH) ?? ''), '/');
 
         return $path === $shopBasePath
-            || $path === ($shopBasePath . '/index.php')
-            || \str_starts_with($path, $shopBasePath . '/index.php');
+            || $path === ($shopBasePath . '/index.php');
     }
 
     private function ensureTables(): void
