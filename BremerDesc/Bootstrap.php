@@ -535,18 +535,50 @@ class Bootstrap extends Bootstrapper
                 if ($el->length > 0) { $el->after($html); return; }
                 break;
             case 'content_bottom':
-                $el = $doc->find('main .container, main, #content, .content-wrapper')->eq(0);
-                if ($el->length > 0) { $el->append($html); return; }
+                if ($this->injectOutsideBreadcrumb($doc, $html, false)) {
+                    return;
+                }
                 break;
             case 'content_top':
             default:
-                $el = $doc->find('main .container, main, #content, .content-wrapper')->eq(0);
-                if ($el->length > 0) { $el->prepend($html); return; }
+                if ($this->injectOutsideBreadcrumb($doc, $html, true)) {
+                    return;
+                }
                 break;
         }
 
         $body = $doc->find('body')->eq(0);
         if ($body->length > 0) { $body->prepend($html); }
+    }
+
+    /**
+     * Nicht in .breadcrumb-container (erstes main .container). #content ist der Seiteninhalt darunter.
+     */
+    private function injectOutsideBreadcrumb(object $doc, string $html, bool $atTop): bool
+    {
+        $content = $doc->find('#content')->eq(0);
+        if ($content->length > 0) {
+            if ($atTop) {
+                $content->prepend($html);
+            } else {
+                $content->append($html);
+            }
+
+            return true;
+        }
+
+        $crumb = $doc->find('.breadcrumb-container')->eq(0);
+        if ($crumb->length > 0) {
+            if ($atTop) {
+                $crumb->after($html);
+            } else {
+                $crumb->before($html);
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     /* ══════════════════════════════════════════════════════════
