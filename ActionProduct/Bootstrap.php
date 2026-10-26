@@ -178,29 +178,38 @@ class Bootstrap extends Bootstrapper
     {
         $uri   = (string)($_SERVER['REQUEST_URI'] ?? '');
         $query = (string)(\parse_url($uri, \PHP_URL_QUERY) ?? '');
+        $path  = \rtrim((string)(\parse_url($uri, \PHP_URL_PATH) ?? ''), '/');
 
-        // Index-URL mit Suche/Merkmal-Filter ist keine „echte“ Startseite (z. B. ?suche=…&mf=…).
-        if ($query !== '' && \preg_match('/(?:^|&)(suche|mf)=/i', $query) === 1) {
+        // Suche (mobil: /search/?qs=) und Merkmal-Filter sind keine Startseite.
+        if ($query !== '' && \preg_match('/(?:^|&)(suche|qs|suchausdruck|search|mf)=/i', $query) === 1) {
+            return false;
+        }
+        // JTL-Wawi/Admin öffnen Artikel oft als /index.php?a=123 – das ist keine Startseite.
+        if ($query !== '' && \preg_match('/(?:^|&)a=\d+(?:&|$)/', $query) === 1) {
+            return false;
+        }
+
+        $shopUrl = \rtrim((string)Shop::getURL(), '/');
+        $shopBasePath = \rtrim((string)(\parse_url($shopUrl, \PHP_URL_PATH) ?? ''), '/');
+        $rel = $path;
+        if ($shopBasePath !== '' && \str_starts_with($path, $shopBasePath)) {
+            $rel = \substr($path, \strlen($shopBasePath));
+        }
+        $rel = '/' . \ltrim($rel, '/');
+        if ($rel === '/search' || \str_starts_with($rel, '/search/')) {
             return false;
         }
 
         if (Shop::getPageType() === \PAGE_STARTSEITE) {
             return true;
         }
-        $path = (string)(\parse_url($uri, \PHP_URL_PATH) ?? '');
-        $path = \rtrim($path, '/');
-        $shopUrl = \rtrim((string)Shop::getURL(), '/');
-        $shopBasePath = (string)(\parse_url($shopUrl, \PHP_URL_PATH) ?? '');
-        $shopBasePath = \rtrim($shopBasePath, '/');
 
-        // JTL-Wawi/Admin öffnen Artikel oft als /index.php?a=123 – das ist keine Startseite.
-        if ($query !== '' && \preg_match('/(?:^|&)a=\d+(?:&|$)/', $query) === 1) {
+        if ($query !== '') {
             return false;
         }
 
         return $path === $shopBasePath
-            || $path === ($shopBasePath . '/index.php')
-            || \str_starts_with($path, $shopBasePath . '/index.php');
+            || $path === ($shopBasePath . '/index.php');
     }
 
     private function ensureTables(): void
