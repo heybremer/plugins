@@ -92,8 +92,8 @@ class Bootstrap extends Bootstrapper
                 $assetVersion = '1.14.70';
             }
             $assetVersion = \preg_replace('/[^0-9A-Za-z._-]/', '', $assetVersion) ?: '1.14.70';
-            if (\version_compare($assetVersion, '1.14.99', '<')) {
-                $assetVersion = '1.14.99';
+            if (\version_compare($assetVersion, '1.14.102', '<')) {
+                $assetVersion = '1.14.102';
             }
             foreach ([
                 ['selector' => 'script[src*="fk-micro-konfigurator.js"]', 'attr' => 'src'],

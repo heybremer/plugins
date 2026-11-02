@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jtlshopplugin>
+    <Name>MarkePage</Name>
+    <Description>Eigene Seiten (z.B. /PKW_Skoda) mit Produkten, die per Artikelnummer zugeordnet werden.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>MarkePage</PluginID>
+    <CreateDate>2026-11-02</CreateDate>
+    <Version>1.0.0</Version>
+    <Bootstrap>Plugin\MarkePage\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>

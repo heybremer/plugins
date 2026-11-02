@@ -35,6 +35,12 @@
   var requireSeat = !!(seatStart && seatStart.getAttribute('data-require-seat') === '1');
   var activeSeat = '';
   var STORAGE_KEY = 'lp_choice';
+  var VEHICLE_KEY = 'lp_vehicle';
+  var vehicleSuffix = '';
+
+  function displayName(name) {
+    return vehicleSuffix ? name + ' – ' + vehicleSuffix : name;
+  }
 
   function norm(value) {
     return String(value || '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -61,7 +67,7 @@
       image.alt = name;
     }
     if (nameNode) {
-      nameNode.textContent = name;
+      nameNode.textContent = displayName(name);
     }
     if (artNrNode) {
       artNrNode.textContent = 'Art.-Nr. ' + artNr;
@@ -117,6 +123,11 @@
       }
       if (stored.model) {
         parsed.searchParams.set('modell', stored.model);
+      }
+      if (vehicleSuffix) {
+        parsed.searchParams.set('fahrzeug', vehicleSuffix);
+      } else {
+        parsed.searchParams.delete('fahrzeug');
       }
       return parsed.pathname + parsed.search + parsed.hash;
     } catch (e) {
@@ -536,5 +547,177 @@
     });
   }
 
+  /* PKW-Seiten: Marke → Modell → Baujahr. Produkte bleiben unverändert, nur der Titel ändert sich. */
+  function refreshTitles() {
+    products.forEach(function (product) {
+      var card = product.querySelector('.lp-card');
+      var nameNode = card && card.querySelector('.lp-name');
+      if (nameNode) {
+        nameNode.textContent = displayName(card.getAttribute('data-name') || '');
+      }
+    });
+    decorateProductLinks();
+  }
+
+  function initVehicle() {
+    var root = document.getElementById('lpVehicle');
+    if (!root) {
+      return;
+    }
+    var endpoint = root.getAttribute('data-endpoint') || '/fk-search';
+    var brand = document.getElementById('lpVehBrand');
+    var model = document.getElementById('lpVehModel');
+    var year = document.getElementById('lpVehYear');
+    var reset = document.getElementById('lpVehicleReset');
+    var summary = document.getElementById('lpVehicleSummary');
+    if (!brand || !model || !year) {
+      return;
+    }
+
+    function fetchOptions(field, extra) {
+      var params = { mode: 'options', field: field, segment: 'pkw' };
+      Object.keys(extra || {}).forEach(function (key) {
+        if (extra[key]) {
+          params[key] = extra[key];
+        }
+      });
+      var query = Object.keys(params).map(function (key) {
+        return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+      }).join('&');
+      return fetch(endpoint + '?' + query, {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
+      }).then(function (response) {
+        return response.json();
+      }).then(function (rows) {
+        var seen = {};
+        var values = [];
+        (Array.isArray(rows) ? rows : []).forEach(function (row) {
+          var value = String((row && row.value) || '').trim();
+          if (value && !seen[value]) {
+            seen[value] = true;
+            values.push(value);
+          }
+        });
+        values.sort(function (a, b) {
+          return a.localeCompare(b, 'de', { numeric: true, sensitivity: 'base' });
+        });
+        return values;
+      }).catch(function () {
+        return [];
+      });
+    }
+
+    function fill(select, values, placeholder, keep) {
+      select.innerHTML = '';
+      var first = document.createElement('option');
+      first.value = '';
+      first.textContent = values.length ? 'Bitte wählen' : placeholder;
+      select.appendChild(first);
+      values.forEach(function (value) {
+        var option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
+      });
+      select.disabled = values.length === 0;
+      if (keep && values.indexOf(keep) !== -1) {
+        select.value = keep;
+      }
+    }
+
+    function update() {
+      vehicleSuffix = [brand.value, model.value, year.value].filter(Boolean).join(' ');
+      refreshTitles();
+      if (summary) {
+        summary.hidden = vehicleSuffix === '';
+        summary.textContent = vehicleSuffix ? 'Ihr Fahrzeug: ' + vehicleSuffix : '';
+      }
+      if (reset) {
+        reset.hidden = vehicleSuffix === '';
+      }
+      try {
+        window.sessionStorage.setItem(VEHICLE_KEY, JSON.stringify({
+          brand: brand.value, model: model.value, year: year.value
+        }));
+      } catch (e) {}
+    }
+
+    function loadYears(keep) {
+      if (!brand.value || !model.value) {
+        fill(year, [], 'Zuerst Modell wählen');
+        update();
+        return Promise.resolve();
+      }
+      fill(year, [], 'Wird geladen…');
+      return fetchOptions('baujahr', { hersteller: brand.value, modell: model.value }).then(function (values) {
+        fill(year, values, 'Keine Auswahl verfügbar', keep);
+        update();
+      });
+    }
+
+    function loadModels(keepModel, keepYear) {
+      if (!brand.value) {
+        fill(model, [], 'Zuerst Marke wählen');
+        return loadYears('');
+      }
+      fill(model, [], 'Wird geladen…');
+      return fetchOptions('modell', { hersteller: brand.value }).then(function (values) {
+        fill(model, values, 'Keine Auswahl verfügbar', keepModel);
+        return loadYears(keepYear);
+      });
+    }
+
+    var brandSearch = document.getElementById('lpVehBrandSearch');
+    var allBrands = [];
+
+    brand.addEventListener('change', function () {
+      loadModels('', '');
+    });
+    if (brandSearch) {
+      brandSearch.addEventListener('input', function () {
+        var term = norm(brandSearch.value);
+        var matches = allBrands.filter(function (value) {
+          return term === '' || norm(value).indexOf(term) !== -1;
+        });
+        var keep = brand.value;
+        fill(brand, matches, 'Keine Treffer', keep);
+        if (term !== '' && matches.length === 1 && brand.value !== matches[0]) {
+          brand.value = matches[0];
+          loadModels('', '');
+        }
+      });
+    }
+    model.addEventListener('change', function () {
+      loadYears('');
+    });
+    year.addEventListener('change', update);
+    if (reset) {
+      reset.addEventListener('click', function () {
+        brand.value = '';
+        loadModels('', '');
+      });
+    }
+
+    var saved = {};
+    try {
+      saved = JSON.parse(window.sessionStorage.getItem(VEHICLE_KEY) || '{}') || {};
+    } catch (e) {
+      saved = {};
+    }
+    fetchOptions('hersteller', {}).then(function (values) {
+      allBrands = values;
+      if (brandSearch) {
+        brandSearch.disabled = values.length === 0;
+      }
+      fill(brand, values, 'Keine Auswahl verfügbar', saved.brand || '');
+      if (brand.value) {
+        return loadModels(saved.model || '', saved.year || '');
+      }
+      update();
+    });
+  }
+
+  initVehicle();
   apply();
 })();

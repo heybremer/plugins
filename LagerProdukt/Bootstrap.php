@@ -69,6 +69,10 @@ class Bootstrap extends Bootstrapper
                 if (!\in_array($detailJs, $args['cPluginJsHead_arr'], true)) {
                     $args['cPluginJsHead_arr'][] = $detailJs;
                 }
+                $pkwJs = 'plugins/LagerProdukt/templates/js/product-detail-pkw-title.js';
+                if (!\in_array($pkwJs, $args['cPluginJsHead_arr'], true)) {
+                    $args['cPluginJsHead_arr'][] = $pkwJs;
+                }
                 return;
             }
             if (!$this->isOurPage()) {
@@ -115,7 +119,9 @@ class Bootstrap extends Bootstrapper
                 }
             }
             $smarty->assign('lpDetailVariants', $context);
-            if ($doc->find('#lp-vehicle-picker')->length === 0) {
+            // Von PKW-Lagerseite (?fahrzeug=…): Wohnmobil-Fahrzeugcheck nicht einblenden.
+            $pkwVehicle = \trim((string)($_GET['fahrzeug'] ?? '')) !== '';
+            if (!$pkwVehicle && $doc->find('#lp-vehicle-picker')->length === 0) {
                 $pickerHtml = $smarty->fetch('file:' . __DIR__ . '/templates/product-detail-vehicle-picker.tpl');
                 $anchor = $doc->find('ul.info-essential, .info-essential.list-unstyled')->eq(0);
                 if ($anchor->length === 0) {
@@ -179,14 +185,19 @@ class Bootstrap extends Bootstrapper
         $shopUrl = Shop::getURL();
         $page    = LagerProduktService::currentPage();
         $pid = $page['kID'] ?? 0;
-        $smarty->assign('lpCssUrl', $shopUrl . '/plugins/LagerProdukt/templates/css/lager-produkt.css?v=1.0.35');
-        $smarty->assign('lpJsUrl', $shopUrl . '/plugins/LagerProdukt/templates/js/lager-produkt.js?v=1.0.34');
+        $smarty->assign('lpCssUrl', $shopUrl . '/plugins/LagerProdukt/templates/css/lager-produkt.css?v=1.0.38');
+        $smarty->assign('lpJsUrl', $shopUrl . '/plugins/LagerProdukt/templates/js/lager-produkt.js?v=1.0.38');
         $smarty->assign('lpHeadline', $page['cName'] ?? self::TITLE);
         $smarty->assign('lpCategoryName', $page['cName'] ?? '');
         $smarty->assign('lpCategoryFound', $page !== null);
         $smarty->assign('lpProducts', LagerProduktService::loadProducts($pid));
         $smarty->assign('lpGroups', LagerProduktService::loadGroupedProducts($pid));
-        $smarty->assign('lpSeats', LagerProduktService::loadCompatibleSeats($pid));
+        $lpMode = $page['cMode'] ?? LagerProduktService::MODE_SEAT;
+        $smarty->assign('lpMode', $lpMode);
+        $smarty->assign(
+            'lpSeats',
+            $lpMode === LagerProduktService::MODE_PKW ? [] : LagerProduktService::loadCompatibleSeats($pid)
+        );
     }
 
     private function isOurPage(): bool

@@ -33,13 +33,21 @@ if ($tokenOk && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!empty($_POST['lpAddPage'])) {
         $id = LagerProduktService::createPage(
             (string)($_POST['cName'] ?? ''),
-            (string)($_POST['cSlug'] ?? '')
+            (string)($_POST['cSlug'] ?? ''),
+            (string)($_POST['cMode'] ?? LagerProduktService::MODE_SEAT)
         );
         if ($id > 0) {
             $message = 'Seite angelegt.';
             $pageId  = $id;
         } else {
             $error = LagerProduktService::$lastError !== '' ? LagerProduktService::$lastError : 'Seite konnte nicht angelegt werden.';
+        }
+    } elseif (!empty($_POST['lpSetMode'])) {
+        $pageId = (int)($_POST['kPage'] ?? $pageId);
+        if (LagerProduktService::setPageMode($pageId, (string)($_POST['cMode'] ?? ''))) {
+            $message = 'Seitentyp gespeichert.';
+        } else {
+            $error = LagerProduktService::$lastError !== '' ? LagerProduktService::$lastError : 'Seitentyp konnte nicht gespeichert werden.';
         }
     } elseif (!empty($_POST['lpDelPage'])) {
         if (LagerProduktService::deletePage((int)($_POST['kPage'] ?? 0))) {
@@ -197,7 +205,12 @@ foreach ($items as $it) {
                 <label class="lpa-label" for="lpaName">Seitenname</label>
                 <input id="lpaName" type="text" name="cName" class="form-control mb-2" placeholder="z. B. Familie-Serie" required>
                 <label class="lpa-label" for="lpaSlug">URL-Slug</label>
-                <input id="lpaSlug" type="text" name="cSlug" class="form-control mb-3" placeholder="Optional">
+                <input id="lpaSlug" type="text" name="cSlug" class="form-control mb-2" placeholder="Optional">
+                <label class="lpa-label" for="lpaMode">Seitentyp</label>
+                <select id="lpaMode" name="cMode" class="form-control mb-3">
+                    <option value="seat">Wohnmobil (Sitz-Auswahl)</option>
+                    <option value="pkw">PKW (Marke / Modell / Baujahr)</option>
+                </select>
                 <button type="submit" name="lpAddPage" value="1" class="lpa-btn lpa-btn-acid w-100">+ Seite anlegen</button>
             </form>
         </aside>
@@ -212,6 +225,17 @@ foreach ($items as $it) {
                 </div>
                 <a class="lpa-btn" href="<?= lp_h(LagerProduktService::pageUrl($page['cSlug'])) ?>" target="_blank" rel="noopener">Seite ansehen ↗</a>
             </div>
+
+            <form method="post" class="mb-3">
+                <?= $csrf ?>
+                <input type="hidden" name="kPage" value="<?= $pageId ?>">
+                <label class="lpa-label" for="lpaPageMode">Seitentyp</label>
+                <select id="lpaPageMode" name="cMode" class="form-control mb-2">
+                    <option value="seat"<?= ($page['cMode'] ?? 'seat') === 'seat' ? ' selected' : '' ?>>Wohnmobil (Sitz-Auswahl)</option>
+                    <option value="pkw"<?= ($page['cMode'] ?? 'seat') === 'pkw' ? ' selected' : '' ?>>PKW (Marke / Modell / Baujahr)</option>
+                </select>
+                <button type="submit" name="lpSetMode" value="1" class="lpa-btn w-100">Seitentyp speichern</button>
+            </form>
 
             <form method="post" class="mb-3">
                 <?= $csrf ?>

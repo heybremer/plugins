@@ -616,3 +616,12 @@
     margin-bottom: 1rem;
   }
 }
+
+/* Galeri: flex kutu .inner top:auto ile görseli karenin altına iter.
+   Slaytın kendisi .square-image olduğu için boşluksuz seçici gerekir. */
+#gallery .square-image .inner,
+.slick-slide.square-image .inner,
+.product-thumbnails .square-image .inner {
+  top: 0;
+  left: 0;
+}

@@ -12,6 +12,8 @@ final class LagerProduktService
     public const TABLE_PAGE  = 'twomosi_lagerprodukt_page';
     public const TABLE_GROUP = 'twomosi_lagerprodukt_group';
     public const TABLE_ITEM  = 'twomosi_lagerprodukt_item';
+    public const MODE_SEAT   = 'seat';
+    public const MODE_PKW    = 'pkw';
 
     public static string $lastError = '';
 
@@ -82,6 +84,7 @@ final class LagerProduktService
             self::ensureItemGroupColumn($db);
             self::ensureItemMainColumn($db);
             self::ensureItemArtNrIndex($db);
+            self::ensurePageModeColumn($db);
             $ex = $db->getSingleObject('SELECT kID FROM ' . self::TABLE_PAGE . ' ORDER BY kID ASC LIMIT 1');
             if ($ex === null) {
                 $row        = new \stdClass();
@@ -105,7 +108,7 @@ final class LagerProduktService
         $out = [];
         try {
             $rows = Shop::Container()->getDB()->getObjects(
-                'SELECT p.kID, p.cName, p.cSlug, p.nSort,
+                'SELECT p.kID, p.cName, p.cSlug, p.nSort, p.cMode,
                         (SELECT COUNT(*) FROM ' . self::TABLE_ITEM . ' i WHERE i.kPage = p.kID) AS nItems
                    FROM ' . self::TABLE_PAGE . ' p
                ORDER BY p.nSort ASC, p.kID ASC'
@@ -120,6 +123,7 @@ final class LagerProduktService
                     'cSlug'  => (string)($r->cSlug ?? ''),
                     'nSort'  => (int)($r->nSort ?? 0),
                     'nItems' => (int)($r->nItems ?? 0),
+                    'cMode'  => ((string)($r->cMode ?? '') === self::MODE_PKW) ? self::MODE_PKW : self::MODE_SEAT,
                 ];
             }
         } catch (\Throwable $e) {
@@ -203,7 +207,29 @@ final class LagerProduktService
         return $out;
     }
 
-    public static function createPage(string $name, string $slug = ''): int
+    public static function setPageMode(int $id, string $mode): bool
+    {
+        self::ensureTables();
+        if ($id <= 0) {
+            return false;
+        }
+        $mode = $mode === self::MODE_PKW ? self::MODE_PKW : self::MODE_SEAT;
+        try {
+            Shop::Container()->getDB()->executeQueryPrepared(
+                'UPDATE ' . self::TABLE_PAGE . ' SET cMode = :m WHERE kID = :id',
+                ['m' => $mode, 'id' => $id]
+            );
+            self::forgetCatalogCache();
+
+            return true;
+        } catch (\Throwable $e) {
+            self::$lastError = $e->getMessage();
+
+            return false;
+        }
+    }
+
+    public static function createPage(string $name, string $slug = '', string $mode = self::MODE_SEAT): int
     {
         self::ensureTables();
         $name = \trim($name);
@@ -225,6 +251,7 @@ final class LagerProduktService
             $row->cName = \substr($name, 0, 160);
             $row->cSlug = $slug;
             $row->nSort = \count(self::listPages()) + 1;
+            $row->cMode = $mode === self::MODE_PKW ? self::MODE_PKW : self::MODE_SEAT;
             $id         = (int)Shop::Container()->getDB()->insert(self::TABLE_PAGE, $row);
             if ($id > 0) {
                 self::ensureShopLink($name, $slug);
@@ -1932,6 +1959,25 @@ final class LagerProduktService
                 'ALTER TABLE ' . self::TABLE_ITEM . '
                     ADD COLUMN kGroup INT NOT NULL DEFAULT 0,
                     ADD KEY ix_group (kGroup)'
+            );
+        } catch (\Throwable $e) {
+        }
+    }
+
+    private static function ensurePageModeColumn(object $db): void
+    {
+        try {
+            $cols = $db->getObjects('SHOW COLUMNS FROM ' . self::TABLE_PAGE . " LIKE 'cMode'");
+            if (\is_array($cols) && $cols !== []) {
+                return;
+            }
+            $db->executeQuery(
+                'ALTER TABLE ' . self::TABLE_PAGE . "
+                    ADD COLUMN cMode VARCHAR(16) NOT NULL DEFAULT 'seat'"
+            );
+            // Bereits angelegte PKW-Seiten einmalig auf Fahrzeug-Auswahl stellen.
+            $db->executeQuery(
+                'UPDATE ' . self::TABLE_PAGE . " SET cMode = 'pkw' WHERE cName LIKE 'PKW%'"
             );
         } catch (\Throwable $e) {
         }

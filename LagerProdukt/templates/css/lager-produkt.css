@@ -769,3 +769,94 @@
   .lp-body { padding: 12px; }
   .lp-tax { display: none; }
 }
+
+/* PKW-Seiten: Fahrzeug-Auswahl (Marke / Modell / Baujahr) */
+.lp-vehicle {
+  margin: 0 0 24px;
+  padding: 18px 18px 16px;
+  border: 1px solid var(--lp-line);
+  border-radius: 20px;
+  background: linear-gradient(180deg, #fff, #f7f6f1);
+  box-shadow: var(--lp-shadow);
+}
+.lp-vehicle-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.lp-vehicle-heading h3 { margin: 4px 0 4px; font-size: 1.35rem; line-height: 1.15; }
+.lp-vehicle-heading p { margin: 0; color: #5d6058; font-size: .92rem; }
+.lp-vehicle-reset {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border: 1px solid var(--lp-ink);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--lp-ink);
+  font-size: .82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.lp-vehicle-reset:hover { background: var(--lp-acid); }
+.lp-vehicle-reset[hidden],
+.lp-vehicle-summary[hidden] { display: none; }
+.lp-vehicle-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.lp-vehicle-field { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+.lp-vehicle-field span {
+  color: #777a72;
+  font-size: .67rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.lp-vehicle-field select {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--lp-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--lp-ink);
+  font-weight: 600;
+}
+.lp-vehicle-field select:focus {
+  border-color: var(--lp-ink);
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(201, 251, 56, .45);
+}
+.lp-vehicle-field select:disabled { background: #f0efe9; color: #8a8d84; }
+.lp-vehicle-summary {
+  margin: 12px 0 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--lp-ink);
+  color: var(--lp-acid);
+  font-size: .9rem;
+  font-weight: 700;
+}
+@media (max-width: 640px) {
+  .lp-vehicle-heading { flex-direction: column; align-items: flex-start; }
+  .lp-vehicle-fields { grid-template-columns: 1fr; }
+}
+.lp-vehicle-search {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--lp-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--lp-ink);
+  font-size: .9rem;
+}
+.lp-vehicle-search:focus {
+  border-color: var(--lp-ink);
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(201, 251, 56, .45);
+}
+.lp-vehicle-search:disabled { background: #f0efe9; }

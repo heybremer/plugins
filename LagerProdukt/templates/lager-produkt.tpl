@@ -1,6 +1,6 @@
 {if !isset($lpPageRendered)}
 {assign var=lpPageRendered value=1}
-<link rel="stylesheet" href="{$lpCssUrl}&amp;lpv=1.0.36">
+<link rel="stylesheet" href="{$lpCssUrl}&amp;lpv=1.0.38">
 <div id="lp-page" class="lp-wrap">
     <header class="lp-header">
         <div class="lp-header-info">
@@ -117,6 +117,40 @@
             </div>
         </div>
         {/if}
+        {if $lpMode == 'pkw'}
+        <section class="lp-vehicle" id="lpVehicle" data-endpoint="/fk-search" data-segment="pkw">
+            <div class="lp-vehicle-heading">
+                <div>
+                    <span class="lp-start-kicker">Fahrzeug-Auswahl</span>
+                    <h3>Marke, Modell &amp; Baujahr wählen</h3>
+                    <p>Die Produkte bleiben gleich – nur der Titel passt sich Ihrem Fahrzeug an.</p>
+                </div>
+                <button type="button" class="lp-vehicle-reset" id="lpVehicleReset" hidden>Zurücksetzen</button>
+            </div>
+            <div class="lp-vehicle-fields">
+                <label class="lp-vehicle-field">
+                    <span>Marke</span>
+                    <input type="search" id="lpVehBrandSearch" class="lp-vehicle-search" placeholder="Marke suchen…" autocomplete="off" aria-label="Marke suchen" disabled>
+                    <select id="lpVehBrand" aria-label="Marke" disabled>
+                        <option value="">Wird geladen…</option>
+                    </select>
+                </label>
+                <label class="lp-vehicle-field">
+                    <span>Modell</span>
+                    <select id="lpVehModel" aria-label="Modell" disabled>
+                        <option value="">Zuerst Marke wählen</option>
+                    </select>
+                </label>
+                <label class="lp-vehicle-field">
+                    <span>Baujahr</span>
+                    <select id="lpVehYear" aria-label="Baujahr" disabled>
+                        <option value="">Zuerst Modell wählen</option>
+                    </select>
+                </label>
+            </div>
+            <p class="lp-vehicle-summary" id="lpVehicleSummary" hidden></p>
+        </section>
+        {/if}
         {if $lpGroups|@count > 1}
         <div class="lp-series-nav{if $lpSeats|@count > 0} is-waiting-seat{/if}" id="lpSeriesNav">
             <span class="lp-series-label">Serien</span>
@@ -210,5 +244,5 @@
         <p class="lp-empty lp-none" id="lpNone" hidden>Keine Treffer für Ihre Suche.</p>
     {/if}
 </div>
-<script src="{$lpJsUrl}&amp;lpv=1.0.36" defer></script>
+<script src="{$lpJsUrl}&amp;lpv=1.0.38" defer></script>
 {/if}

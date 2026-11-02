@@ -1,0 +1,14 @@
+.mp-page {
+  padding-bottom: 2rem;
+}
+
+.mp-intro {
+  max-width: 62rem;
+  margin: 0 0 1.5rem;
+  color: #444;
+  line-height: 1.55;
+}
+
+.mp-grid {
+  margin-top: 0.5rem;
+}

@@ -1,0 +1,15 @@
+{
+  "name": "MarkePage",
+  "label": "Marke Page",
+  "description": "Eigene Seiten (z.B. /PKW_Skoda) mit Produkten, die per Artikelnummer zugeordnet werden.",
+  "author": "Womosi",
+  "url": "https://womosi.de",
+  "version": "1.0.0",
+  "minShopVersion": "5.2.0",
+  "maxShopVersion": "5.99.99",
+  "requires": [],
+  "bootstrap": "Plugin\\MarkePage\\Bootstrap",
+  "hooks": [],
+  "adminMenu": [],
+  "dependencies": []
+}
