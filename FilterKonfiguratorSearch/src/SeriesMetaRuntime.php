@@ -41,6 +41,7 @@ final class SeriesMetaRuntime
             'VK'    => ['label' => 'Serie VK', 'color' => '#f5f5f5', 'img' => 'https://bremer-sitzbezuege.de/mediafiles/seat/vk-serie.webp'],
             'GM'    => ['label' => 'Serie GM', 'color' => '#f5f5f5', 'img' => 'https://bremer-sitzbezuege.de/media/image/product/468701/md/autositzbezuege-schonbezuege-fuer-audi-a1-bj-2010-18-in-verschiedenen-farben_4.jpg'],
             'CS'    => ['label' => 'Serie CS', 'color' => '#f5f5f5', 'img' => 'https://bremer-sitzbezuege.de/mediafiles/seat/cs-serie.webp'],
+            'E'     => ['label' => 'Serie E', 'color' => '#f5f5f5', 'img' => 'https://bremer-sitzbezuege.de/mediafiles/seat/e-serie.webp'],
             'AH'    => ['label' => 'Serie AH', 'color' => '#f5f5f5', 'img' => ''],
             'GT'    => ['label' => 'Serie GT', 'color' => '#f5f5f5', 'img' => ''],
             'C'     => ['label' => 'Serie C', 'color' => '#f5f5f5', 'img' => ''],
