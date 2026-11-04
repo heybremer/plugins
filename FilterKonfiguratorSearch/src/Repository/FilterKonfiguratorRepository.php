@@ -2205,6 +2205,7 @@ class FilterKonfiguratorRepository
     
                 $row = $this->db->getSingleObject(
                     "SELECT tmws.cWert,
+                            tmws.kMerkmalWert,
                             seo.cSeo
                        FROM tmerkmalwertsprache tmws
                  INNER JOIN tmerkmalwert mw
@@ -2227,8 +2228,9 @@ class FilterKonfiguratorRepository
     
                 if ($row) {
                     $matched[] = [
-                        'cWert' => $row->cWert,
-                        'cSeo'  => $row->cSeo ?? '',
+                        'cWert'        => $row->cWert,
+                        'cSeo'         => $row->cSeo ?? '',
+                        'kMerkmalWert' => (int)($row->kMerkmalWert ?? 0),
                     ];
                 }
             }
@@ -2299,6 +2301,17 @@ class FilterKonfiguratorRepository
                 $segJoin = PkwSqlFragments::wmProdukttypFilter('langID');
             }
 
+            $idFilter = '';
+            if ($segment !== 'pkw') {
+                $ids = $this->wmArticleIdsForMatchedValues($matchedValues);
+                if ($ids === []) {
+                    return [];
+                }
+                if ($ids !== null) {
+                    $idFilter = ' AND a.kArtikel IN (' . \implode(',', $ids) . ')';
+                }
+            }
+
             if ($segment === 'pkw' && $serieMerkmalName === 'Serie') {
                 return $this->buildSerieItems(
                     $this->findPkwSeriesRows($childJoins, $segJoin, $params),
@@ -2330,16 +2343,70 @@ class FilterKonfiguratorRepository
                         ON serieSeo.cKey     = 'kMerkmalWert'
                        AND serieSeo.kKey     = tamSerie.kMerkmalWert
                        AND serieSeo.kSprache = :langID
-                     WHERE a.nIstVater = 0
+                     WHERE a.nIstVater = 0{$idFilter}
                   ORDER BY serieWert.cWert ASC
                      LIMIT 100";
-    
-            $rows = $this->db->getObjects($sql, $params);
+
+            $rows = $idFilter !== ''
+                ? $this->findSerieMerkmalRowsForArticles($segJoin, $params, $idFilter)
+                : $this->db->getObjects($sql, $params);
             if ((!is_array($rows) || $rows === []) && $segment !== 'pkw') {
-                $rows = $this->findWmSeriesCategoryRows($childJoins, $segJoin, $params);
+                $rows = $this->findWmSeriesCategoryRows($childJoins, $segJoin, $params, $idFilter);
             }
     
             return $this->buildSerieItems($rows, $matchedValues, $selectionQuery);
+        }
+
+        /**
+         * Ein OR-Join auf Vater/Kind lässt MySQL tartikelmerkmal komplett scannen;
+         * daher erst die erlaubten Artikel (inkl. Väter) holen, dann direkt per IN.
+         * $idFilter erfüllt die gewählten Merkmalwerte bereits.
+         *
+         * @param array<string,mixed> $params
+         * @return array<int,object>
+         */
+        private function findSerieMerkmalRowsForArticles(string $segJoin, array $params, string $idFilter): array
+        {
+            $articles = $this->db->getObjects(
+                "SELECT DISTINCT a.kArtikel, a.kVaterArtikel
+                   FROM tartikel a
+                   {$segJoin}
+                  WHERE a.nIstVater = 0{$idFilter}",
+                ['langID' => $params['langID']]
+            );
+            $ids = [];
+            foreach ($articles as $article) {
+                $ids[(int)$article->kArtikel] = true;
+                if ((int)$article->kVaterArtikel > 0) {
+                    $ids[(int)$article->kVaterArtikel] = true;
+                }
+            }
+            if ($ids === []) {
+                return [];
+            }
+
+            return $this->db->getObjects(
+                "SELECT DISTINCT serieWert.cWert AS serie,
+                        serieSeo.cSeo            AS serieSeo
+                   FROM tartikelmerkmal tamSerie
+             INNER JOIN tmerkmalwert mwSerie
+                     ON mwSerie.kMerkmalWert = tamSerie.kMerkmalWert
+             INNER JOIN tmerkmalsprache msSerie
+                     ON msSerie.kMerkmal = mwSerie.kMerkmal
+                    AND msSerie.kSprache = :langID
+                    AND msSerie.cName    = :serieMerkmalName
+             INNER JOIN tmerkmalwertsprache serieWert
+                     ON serieWert.kMerkmalWert = tamSerie.kMerkmalWert
+                    AND serieWert.kSprache     = :langID
+              LEFT JOIN tseo serieSeo
+                     ON serieSeo.cKey     = 'kMerkmalWert'
+                    AND serieSeo.kKey     = tamSerie.kMerkmalWert
+                    AND serieSeo.kSprache = :langID
+                  WHERE tamSerie.kArtikel IN (" . \implode(',', \array_keys($ids)) . ")
+               ORDER BY serieWert.cWert ASC
+                  LIMIT 100",
+                ['langID' => $params['langID'], 'serieMerkmalName' => $params['serieMerkmalName']]
+            );
         }
 
         /**
@@ -2488,7 +2555,54 @@ class FilterKonfiguratorRepository
             );
         }
 
-        private function findWmSeriesCategoryRows(string $joins, string $segJoin, array $params): array
+        /**
+         * Artikel-IDs (inkl. Kinder), die alle gewählten Merkmalwerte tragen.
+         * null = keine Einschränkung möglich (zu viele Treffer / fehlende IDs).
+         *
+         * @param array<int,array<string,mixed>> $matchedValues
+         * @return list<int>|null
+         */
+        private function wmArticleIdsForMatchedValues(array $matchedValues): ?array
+        {
+            $result = null;
+            try {
+                foreach ($matchedValues as $mv) {
+                    $kmw = (int)($mv['kMerkmalWert'] ?? 0);
+                    if ($kmw <= 0) {
+                        return null;
+                    }
+                    $ids = [];
+                    foreach ((array)$this->db->getObjects(
+                        'SELECT kArtikel FROM tartikelmerkmal WHERE kMerkmalWert = :k',
+                        ['k' => $kmw]
+                    ) as $row) {
+                        $ids[(int)$row->kArtikel] = true;
+                    }
+                    if ($ids !== [] && \count($ids) <= 20000) {
+                        foreach ((array)$this->db->getObjects(
+                            'SELECT kArtikel FROM tartikel WHERE kVaterArtikel IN (' . \implode(',', \array_keys($ids)) . ')'
+                        ) as $row) {
+                            $ids[(int)$row->kArtikel] = true;
+                        }
+                    } elseif ($ids !== []) {
+                        return null;
+                    }
+                    $result = $result === null ? $ids : \array_intersect_key($result, $ids);
+                    if ($result === []) {
+                        return [];
+                    }
+                }
+            } catch (\Throwable $e) {
+                return null;
+            }
+            if ($result === null || \count($result) > 20000) {
+                return null;
+            }
+
+            return \array_keys($result);
+        }
+
+        private function findWmSeriesCategoryRows(string $joins, string $segJoin, array $params, string $idFilter = ''): array
         {
             $sql = "SELECT DISTINCT COALESCE(NULLIF(ks.cName, ''), NULLIF(c.cName, '')) AS serie,
                            seo.cSeo AS serieSeo
@@ -2506,7 +2620,7 @@ class FilterKonfiguratorRepository
                         ON seo.cKey = 'kKategorie'
                        AND seo.kKey = c.kKategorie
                        AND seo.kSprache = :langID
-                     WHERE a.nIstVater = 0
+                     WHERE a.nIstVater = 0{$idFilter}
                        AND COALESCE(NULLIF(ks.cName, ''), c.cName) LIKE '%Serie%'
                   ORDER BY serie ASC
                      LIMIT 100";
