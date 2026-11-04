@@ -339,6 +339,8 @@ margin-top: 26px;
 
 .womosi-konfigurator.fk-flow-seat-direct #fk-stepper-wm .steps > :nth-child(n+6),
 .womosi-konfigurator.fk-flow-seat-direct .fk-baujahr-field,
+.womosi-konfigurator.fk-flow-seat-direct .fk-hersteller-field,
+.womosi-konfigurator.fk-flow-seat-direct .fk-modell-field,
 .womosi-konfigurator.fk-flow-seat-direct #fk-modell-custom-row {
   display: none !important;
 }

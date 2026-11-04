@@ -438,17 +438,31 @@
     var seriesCache = [];
     var seriesLoadingInterval = null;
 
+    // Wohnmobil: Sitz → Serie → nur Fahrgestell (Marke/Modell entfallen).
     function hasCompleteWmSelection() {
-      return !!(state.sitz && state.serie && state.hersteller && state.basis && state.modell);
+      return !!(state.sitz && state.serie && state.basis);
+    }
+
+    function syncWmVehicleFields() {
+      [selHer, selMod].forEach(function (sel) {
+        var field = sel && sel.closest('.fk-micro-field');
+        if (field) field.style.display = isPkw ? '' : 'none';
+        if (sel && !isPkw) {
+          sel.required = false;
+          sel.removeAttribute('aria-required');
+        }
+      });
     }
 
     function updateSelectionMarks() {
+      syncWmVehicleFields();
       [
         [selHer, state.hersteller],
         [selBasis, state.basis],
         [selMod, state.modell],
         [selSitz, state.sitz]
       ].forEach(function (entry) {
+        if (!isPkw && (entry[0] === selHer || entry[0] === selMod)) return;
         if (entry[0]) {
           entry[0].required = true;
           entry[0].setAttribute('aria-required', 'true');
@@ -493,17 +507,15 @@
     }
 
     function pageVehicleMatches() {
-      if (!pageVehicle || !state.hersteller || !state.modell) return null;
+      if (!pageVehicle) return null;
       if (!isPkw) {
         if (!state.sitz || !state.basis) return null;
         var seats = Array.isArray(pageVehicle.sitz) ? pageVehicle.sitz : [];
         var chassis = Array.isArray(pageVehicle.basis) ? pageVehicle.basis : [];
-        return inList(pageVehicle.marke, state.hersteller)
-          && inList(pageVehicle.modell, state.modell)
-          && (!chassis.length || inList(chassis, state.basis))
+        return (!chassis.length || inList(chassis, state.basis))
           && (!seats.length || seatInList(seats, state.sitz));
       }
-      if (!state.baujahr) return null;
+      if (!state.hersteller || !state.modell || !state.baujahr) return null;
       var years = Array.isArray(pageVehicle.baujahr) ? pageVehicle.baujahr : [];
       return inList(pageVehicle.marke, state.hersteller)
         && inList(pageVehicle.modell, state.modell)
@@ -526,7 +538,7 @@
         if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(fitNote, anchor.nextSibling);
         else root.appendChild(fitNote);
       }
-      var vehicle = (isPkw ? [state.hersteller, state.modell, state.baujahr] : [state.hersteller, state.basis, state.modell])
+      var vehicle = (isPkw ? [state.hersteller, state.modell, state.baujahr] : [state.basis])
         .filter(Boolean).join(' ');
       fitNote.hidden = false;
       fitNote.classList.toggle('is-match', !!match);
@@ -570,7 +582,7 @@
 
     function numberSteps() {
       var all = [selSitz, selSerie, selTyp, selHer, selBasis, selMod, selYear];
-      var steps = isPkw ? [selHer, selMod, selYear, selSerie] : [selSitz, selSerie, selHer, selBasis, selMod];
+      var steps = isPkw ? [selHer, selMod, selYear, selSerie] : [selSitz, selSerie, selBasis];
       all.forEach(function (sel) {
         var field = sel && sel.closest('.fk-micro-field, .fk-micro-serie-field');
         var label = field && field.querySelector(':scope > label');
@@ -584,7 +596,7 @@
     function requiredValues() {
       return isPkw
         ? [state.hersteller, state.modell, state.baujahr, state.serie]
-        : [state.sitz, state.serie, state.hersteller, state.basis, state.modell];
+        : [state.sitz, state.serie, state.basis];
     }
 
     function showRequiredProgress() {
@@ -728,18 +740,23 @@
         .catch(function () { fillSelect(selHer, [], ''); });
     }
 
+    var chassisUrls = {};
     function loadBasis() {
       if (isPkw) {
         fillSelect(selBasis, [], '');
         return Promise.resolve();
       }
-      if (!state.sitz || !state.serie || !state.hersteller) {
+      if (!state.sitz || !state.serie) {
         fillSelect(selBasis, [], '');
         return Promise.resolve();
       }
       setFieldLoading(selBasis, true);
       return fetchJson('/fk-search', wmVehicleParams('basis'))
         .then(function (data) {
+          chassisUrls = {};
+          (Array.isArray(data) ? data : []).forEach(function (r) {
+            if (r && r.value && r.url) chassisUrls[String(r.value)] = String(r.url);
+          });
           var vals = uniqSorted((Array.isArray(data) ? data : []).map(function (r) { return r && r.value ? r.value : ''; }));
           fillSelect(selBasis, vals, keepIfListed(vals, state.basis));
           state.basis = String(selBasis.value || '');
@@ -817,9 +834,11 @@
     }
 
     function wmVehicleChain() {
-      return loadHersteller()
-        .then(function () { return loadBasis(); })
-        .then(function () { return loadModell(); })
+      state.hersteller = '';
+      state.modell = '';
+      fillSelect(selHer, [], '');
+      fillSelect(selMod, [], '');
+      return loadBasis()
         .then(function () { updateStatus(seriesCache.length); });
     }
 
@@ -1095,6 +1114,10 @@
         return;
       }
       var url = findSerieUrl(seriesCache, code);
+      if (!isPkw && chassisUrls[state.basis]) {
+        window.location.assign(appendSelectionToUrl(chassisUrls[state.basis]));
+        return;
+      }
       if (!isPkw) {
         fetchJson('/fk-search', {
           sitz: state.sitz,
@@ -1228,7 +1251,8 @@
       if (isPkw) {
         afterModellChange();
       } else {
-        loadModell();
+        updateStatus(seriesCache.length);
+        if (hasCompleteWmSelection()) navigateToSelectedSerie();
       }
     });
     if (selMod) selMod.addEventListener('change', function () {

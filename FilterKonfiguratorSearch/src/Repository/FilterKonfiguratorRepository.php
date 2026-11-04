@@ -987,7 +987,7 @@ class FilterKonfiguratorRepository
             $targetNames = [
                 'typ'        => 'Wohnmobil-Aufbauart',
                 'hersteller' => 'Fahrzeug-Marke',
-                'basis'      => 'Wohnmobil-Fahrgestell',
+                'basis'      => 'Chassis',
                 'modell'     => 'Fahrzeug-Modell',
             ];
             if (!isset($targetNames[$field]) || \trim($sitz) === '' || \trim($serie) === '') {
@@ -1004,6 +1004,10 @@ class FilterKonfiguratorRepository
                     return [];
                 }
                 $serieIds = $this->loadArticleIdsForMerkmalValue('Serie', $serie, $langID);
+                $serieCode = \trim((string)\preg_replace('/^Serie\s+|[\s\-]*Serie$/iu', '', $serie));
+                if ($serieCode !== '') {
+                    $serieIds += $this->loadArticleIdsForMerkmalValue('kompatible Serien', $serieCode, $langID);
+                }
                 foreach ((array)$this->db->getObjects(
                     "SELECT DISTINCT ka.kArtikel
                        FROM tkategorieartikel ka
@@ -1062,7 +1066,7 @@ class FilterKonfiguratorRepository
                 $merkmalNames = [
                     'typ'        => 'Wohnmobil-Aufbauart',
                     'hersteller' => 'Fahrzeug-Marke',
-                    'basis'      => 'Wohnmobil-Fahrgestell',
+                    'basis'      => 'Chassis',
                     'modell'     => 'Fahrzeug-Modell',
                 ];
                 $nameToKey = \array_flip($merkmalNames);
@@ -1075,7 +1079,7 @@ class FilterKonfiguratorRepository
                  INNER JOIN tmerkmalsprache ms
                          ON ms.kMerkmal = mw.kMerkmal
                         AND ms.kSprache = :langID
-                        AND ms.cName IN ('Wohnmobil-Aufbauart', 'Fahrzeug-Marke', 'Wohnmobil-Fahrgestell', 'Fahrzeug-Modell')
+                        AND ms.cName IN ('Wohnmobil-Aufbauart', 'Fahrzeug-Marke', 'Chassis', 'Fahrzeug-Modell')
                  INNER JOIN tmerkmalwertsprache ws
                          ON ws.kMerkmalWert = am.kMerkmalWert
                         AND ws.kSprache = :langID
@@ -1129,8 +1133,66 @@ class FilterKonfiguratorRepository
                     $out[$value] = ['value' => $value];
                 }
             }
+            if ($field === 'basis' && $out !== []) {
+                foreach ($this->loadChassisSeatUrls(\array_keys($out), $sitz, $langID) as $value => $url) {
+                    if (isset($out[$value])) {
+                        $out[$value]['url'] = $url;
+                    }
+                }
+            }
 
             return \array_values($out);
+        }
+
+        /**
+         * JTL-Merkmalfilter-URL „/{Chassis-SEO}__{Sitz-SEO}“ je Chassis-Wert.
+         *
+         * @param list<string> $values
+         * @return array<string,string>
+         */
+        private function loadChassisSeatUrls(array $values, string $sitz, int $langID): array
+        {
+            try {
+                $params = ['langID' => $langID, 'sitz' => $sitz];
+                $in = [];
+                foreach (\array_values($values) as $i => $v) {
+                    $params['v' . $i] = $v;
+                    $in[] = ':v' . $i;
+                }
+                $rows = $this->db->getObjects(
+                    "SELECT ms.cName, TRIM(ws.cWert) AS val, ws.cSeo
+                       FROM tmerkmalsprache ms
+                 INNER JOIN tmerkmalwert mw ON mw.kMerkmal = ms.kMerkmal
+                 INNER JOIN tmerkmalwertsprache ws
+                         ON ws.kMerkmalWert = mw.kMerkmalWert
+                        AND ws.kSprache = :langID
+                      WHERE ms.kSprache = :langID
+                        AND ((ms.cName = 'Chassis' AND TRIM(ws.cWert) IN (" . \implode(',', $in) . "))
+                          OR (ms.cName = 'kompatible Sitze' AND TRIM(ws.cWert) = :sitz))",
+                    $params
+                );
+            } catch (\Throwable $e) {
+                return [];
+            }
+            $sitzSeo = '';
+            $chassisSeo = [];
+            foreach ((array)$rows as $row) {
+                $seo = \trim((string)($row->cSeo ?? ''));
+                if ($seo === '') {
+                    continue;
+                }
+                if ((string)$row->cName === 'kompatible Sitze') {
+                    $sitzSeo = $seo;
+                } else {
+                    $chassisSeo[(string)$row->val] = $seo;
+                }
+            }
+            $urls = [];
+            foreach ($chassisSeo as $val => $seo) {
+                $urls[$val] = '/' . $seo . ($sitzSeo !== '' ? '__' . $sitzSeo : '');
+            }
+
+            return $urls;
         }
 
         /**

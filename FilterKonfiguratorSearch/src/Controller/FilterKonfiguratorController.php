@@ -155,7 +155,7 @@ class FilterKonfiguratorController
                 $segParam = \strtolower(\trim((string)($params['segment'] ?? '')));
                 $vehicleSeg = ($segParam === 'pkw') ? 'pkw' : '';
                 $sitzParam = \trim((string)($params['sitz'] ?? ''));
-                $optCacheKey = 'fk_opts_' . \md5((string)\json_encode([
+                $optCacheKey = 'fk_opts2_' . \md5((string)\json_encode([
                     $field, $term, $typParam, $herstParam, $basisParam, $modellParam,
                     $serieParam, $baujahrParam, $fkOpts, $vehicleSeg, $sitzParam, $langID,
                 ]));
@@ -181,7 +181,9 @@ class FilterKonfiguratorController
                 }
                 // PLKT-Serie gibi değerler kategori adıdır. Merkmal "Serie" ile
                 // eşleşmezse listeyi bu ada göre boşaltma.
-                if ($options === []) {
+                $seatFirstChassis = $vehicleSeg !== 'pkw' && $field === 'basis'
+                    && $sitzParam !== '' && $serieParam !== '';
+                if ($options === [] && !$seatFirstChassis) {
                     $options = $this->repo->loadMerkmalOptions(
                         $field,
                         $term,
@@ -398,7 +400,7 @@ class FilterKonfiguratorController
                     $selections[] = ['value' => $modell, 'names' => ['Fahrzeug-Modell']];
                 }
                 if (!$isPkw && $basis !== '') {
-                    $selections[] = ['value' => $basis, 'names' => ['Wohnmobil-Fahrgestell']];
+                    $selections[] = ['value' => $basis, 'names' => ['Wohnmobil-Fahrgestell', 'Chassis']];
                 }
                 if ($sitz !== '') {
                     $selections[] = ['value' => $sitz, 'names' => ['kompatible Sitze']];

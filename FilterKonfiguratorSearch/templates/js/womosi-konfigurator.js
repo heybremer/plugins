@@ -984,9 +984,7 @@
         return { ok: true, msg: '' };
       }
       if (WomosiState.isWmSeatFirst()) {
-        if (!state.hersteller) return { ok: false, msg: 'Bitte Hersteller wählen.' };
-        if (!state.basis) return { ok: false, msg: 'Bitte Wohnmobil-Fahrgestell wählen.' };
-        if (!state.modell) return { ok: false, msg: 'Bitte Modell wählen.' };
+        if (!state.basis) return { ok: false, msg: 'Bitte Chassis wählen.' };
         return { ok: true, msg: '' };
       }
       if (!state.typKey) return { ok: false, msg: 'Bitte zuerst Fahrzeugtyp wählen.' };
@@ -1198,6 +1196,27 @@
     WomosiApi.refillWmLists = function () {
       var seatFirst = WomosiState.isWmSeatFirst();
       if (seatFirst ? (!state.seatId || !state.serie) : !state.typKey) return;
+      if (seatFirst) {
+        // Sitz → Serie → nur Fahrgestell
+        WomosiApi.fetchJson('/fk-search', WomosiApi.seatSerieParams({ mode: 'options', field: 'basis' }))
+          .then(function (data) {
+            WomosiApi.rememberChassisUrls(data);
+            var vals = uniqSorted(
+              (Array.isArray(data) ? data : [])
+                .map(function (row) { return row && row.value ? String(row.value) : ''; })
+            );
+            if (selBasis) {
+              WomosiUI.fillSelect(selBasis, vals);
+              if (state.basis) WomosiUI.ensureSelectValue(selBasis, state.basis);
+              WomosiUI.setClearBtnVisible(selBasis, !!selBasis.value);
+            }
+            WomosiUI.updateSummary();
+          })
+          .catch(function () {
+            if (selBasis && state.basis) WomosiUI.ensureSelectValue(selBasis, state.basis);
+          });
+        return;
+      }
       function params(extra) {
         return seatFirst
           ? WomosiApi.seatSerieParams(extra)
@@ -1232,17 +1251,26 @@
       });
     }
 
+    var chassisUrls = {};
+    WomosiApi.rememberChassisUrls = function (data) {
+      chassisUrls = {};
+      (Array.isArray(data) ? data : []).forEach(function (row) {
+        if (row && row.value && row.url) chassisUrls[String(row.value)] = String(row.url);
+      });
+    }
+
     WomosiApi.loadBasis = function () {
       var seatFirst = WomosiState.isWmSeatFirst();
-      if ((!seatFirst && !state.typKey) || !state.hersteller) {
+      if (seatFirst ? (!state.seatId || !state.serie) : (!state.typKey || !state.hersteller)) {
         if (selBasis) WomosiUI.fillSelect(selBasis, []);
         return;
       }
       var bq = seatFirst
-        ? WomosiApi.seatSerieParams({ mode: 'options', field: 'basis', hersteller: state.hersteller })
+        ? WomosiApi.seatSerieParams({ mode: 'options', field: 'basis' })
         : { mode: 'options', field: 'basis', typ: state.typKey || '', hersteller: state.hersteller || '' };
       WomosiUI.setFieldLoading(selBasis, true);
       WomosiApi.fetchJson('/fk-search', bq).then(function (data) {
+        if (seatFirst) WomosiApi.rememberChassisUrls(data);
         var vals = uniqSorted(
           (Array.isArray(data) ? data : [])
             .map(function (row) { return row && row.value ? String(row.value) : ''; })
@@ -1743,6 +1771,11 @@
         }, 80);
       }
 
+      if (chassisUrls[state.basis]) {
+        go(chassisUrls[state.basis]);
+        return;
+      }
+
       WomosiApi.fetchJson('/fk-search', {
         sitz: state.seatId || '',
         hersteller: state.hersteller || '',
@@ -1883,7 +1916,9 @@
               state.year = '';
               if (inpYear) inpYear.value = '';
               WomosiUI.setStep(2);
-              WomosiApi.loadHersteller();
+              state.hersteller = '';
+              state.modell = '';
+              WomosiApi.loadBasis();
               return;
             }
 
@@ -1993,11 +2028,13 @@
           selMod.value = '';
           WomosiUI.setClearBtnVisible(selMod, false);
         }
-        if (state.basis) {
-          WomosiApi.loadModell();
-        }
         WomosiUI.updateSummary();
         WomosiUI.setClearBtnVisible(selBasis, !!state.basis);
+        if (state.basis && WomosiState.isWmSeatFirst()) {
+          WomosiApi.finishSeatFirst();
+        } else if (state.basis) {
+          WomosiApi.loadModell();
+        }
       });
     }
 

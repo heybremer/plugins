@@ -6,7 +6,7 @@
     window.WomosiFkBase = '{$ShopURL}';
     window.WomosiFkSegments = {ldelim}"wm":{$fkSegWm},"pkw":{$fkSegPkw}{rdelim};
 </script>
-<link rel="stylesheet" href="{$ShopURL}/plugins/FilterKonfiguratorSearch/templates/css/womosi-konfigurator.css?v=1.14.91">
+<link rel="stylesheet" href="{$ShopURL}/plugins/FilterKonfiguratorSearch/templates/css/womosi-konfigurator.css?v=1.14.106">
 <div class="index-filter-konfigurator" id="womosi-fk-konfigurator-anchor">
     <div class="womosi-konfigurator fk-wm-seat-only {if $fkSegPkw == 1 && $fkSegWm != 1}fk-segment-pkw{else}fk-segment-wm{/if}">
         <div class="konfig-banner">
@@ -190,7 +190,7 @@
                         <div class="fk-loading-bar"></div>
                     </div>
                     <div class="fields">
-                        <div class="field">
+                        <div class="field fk-hersteller-field">
                             <label for="hersteller">Fahrzeug-Marke<span class="req" id="reqHer">*</span></label>
                             <div class="fk-control">
                                 <select id="hersteller"></select>
@@ -198,13 +198,13 @@
                             </div>
                         </div>
                         <div class="field fk-wm-only">
-                            <label for="basisfahrzeug">Wohnmobil-Fahrgestell<span class="req" id="reqBasis">*</span></label>
+                            <label for="basisfahrzeug">Chassis<span class="req" id="reqBasis">*</span></label>
                             <div class="fk-control">
                                 <select id="basisfahrzeug"></select>
                                 <button type="button" class="fk-clear-btn" aria-label="Wohnmobil-Fahrgestell löschen" data-clear-target="#basisfahrzeug">×</button>
                             </div>
                         </div>
-                        <div class="field">
+                        <div class="field fk-modell-field">
                             <label for="modell">Fahrzeug-Modell<span class="req" id="reqModell">*</span></label>
                             <div class="fk-control">
                                 <select id="modell"></select>
@@ -561,5 +561,5 @@
         }
     })();
 </script>
-<script src="{$ShopURL}/plugins/FilterKonfiguratorSearch/templates/js/womosi-konfigurator.js?v=1.14.103" defer></script>
+<script src="{$ShopURL}/plugins/FilterKonfiguratorSearch/templates/js/womosi-konfigurator.js?v=1.14.106" defer></script>
 

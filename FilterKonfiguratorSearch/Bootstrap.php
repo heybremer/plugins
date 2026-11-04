@@ -92,8 +92,8 @@ class Bootstrap extends Bootstrapper
                 $assetVersion = '1.14.70';
             }
             $assetVersion = \preg_replace('/[^0-9A-Za-z._-]/', '', $assetVersion) ?: '1.14.70';
-            if (\version_compare($assetVersion, '1.14.103', '<')) {
-                $assetVersion = '1.14.103';
+            if (\version_compare($assetVersion, '1.14.106', '<')) {
+                $assetVersion = '1.14.106';
             }
             foreach ([
                 ['selector' => 'script[src*="fk-micro-konfigurator.js"]', 'attr' => 'src'],
@@ -1245,7 +1245,7 @@ class Bootstrap extends Bootstrapper
                        JOIN tmerkmalsprache ms ON ms.kMerkmal = am.kMerkmal AND ms.kSprache = :lid
                        JOIN tmerkmalwertsprache mws ON mws.kMerkmalWert = am.kMerkmalWert AND mws.kSprache = :lid
                       WHERE am.kArtikel IN ($in)
-                        AND ms.cName IN ('Fahrzeug-Marke', 'Fahrzeug-Modell', 'Baujahr', 'Wohnmobil-Fahrgestell', 'kompatible Sitze')
+                        AND ms.cName IN ('Fahrzeug-Marke', 'Fahrzeug-Modell', 'Baujahr', 'Chassis', 'kompatible Sitze')
                       LIMIT 600",
                     ['lid' => $langID]
                 );
@@ -1253,7 +1253,7 @@ class Bootstrap extends Bootstrapper
                     'Fahrzeug-Marke'        => 'marke',
                     'Fahrzeug-Modell'       => 'modell',
                     'Baujahr'               => 'baujahr',
-                    'Wohnmobil-Fahrgestell' => 'basis',
+                    'Chassis'               => 'basis',
                     'kompatible Sitze'      => 'sitz',
                 ];
                 foreach ($rows as $r) {
@@ -1532,7 +1532,7 @@ class Bootstrap extends Bootstrapper
             . '<div class="fk-micro-form fk-micro-form--vehicle" aria-label="Fahrzeug auswählen">'
             . '<div class="fk-micro-field fk-micro-field--wm" style="display:none;"><label for="fkMicroTyp">Typ</label><select id="fkMicroTyp" class="custom-select custom-select-sm"><option value="">Bitte wählen</option></select></div>'
             . '<div class="fk-micro-field"><label for="fkMicroHersteller">Marke <span class="fk-required" aria-hidden="true">*</span></label><select id="fkMicroHersteller" class="custom-select custom-select-sm" required aria-required="true"><option value="">Bitte wählen</option></select></div>'
-            . '<div class="fk-micro-field fk-micro-field--wm"><label for="fkMicroBasis">Fahrgestell <span class="fk-required" aria-hidden="true">*</span></label><select id="fkMicroBasis" class="custom-select custom-select-sm" required aria-required="true"><option value="">Bitte wählen</option></select></div>'
+            . '<div class="fk-micro-field fk-micro-field--wm"><label for="fkMicroBasis">Chassis <span class="fk-required" aria-hidden="true">*</span></label><select id="fkMicroBasis" class="custom-select custom-select-sm" required aria-required="true"><option value="">Bitte wählen</option></select></div>'
             . '<div class="fk-micro-field"><label for="fkMicroModell">Modell <span class="fk-required" aria-hidden="true">*</span></label><select id="fkMicroModell" class="custom-select custom-select-sm" required aria-required="true"><option value="">Bitte wählen</option></select></div>'
             . '<div class="fk-micro-field fk-micro-field--pkw"><label for="fkMicroBaujahr">Baujahr</label><select id="fkMicroBaujahr" class="custom-select custom-select-sm"><option value="">Bitte wählen</option></select></div>'
             . '</div>'
