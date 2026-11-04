@@ -155,7 +155,7 @@ class FilterKonfiguratorController
                 $segParam = \strtolower(\trim((string)($params['segment'] ?? '')));
                 $vehicleSeg = ($segParam === 'pkw') ? 'pkw' : '';
                 $sitzParam = \trim((string)($params['sitz'] ?? ''));
-                $optCacheKey = 'fk_opts3_' . \md5((string)\json_encode([
+                $optCacheKey = 'fk_opts5_' . \md5((string)\json_encode([
                     $field, $term, $typParam, $herstParam, $basisParam, $modellParam,
                     $serieParam, $baujahrParam, $fkOpts, $vehicleSeg, $sitzParam, $langID,
                 ]));

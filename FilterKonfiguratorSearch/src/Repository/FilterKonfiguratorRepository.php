@@ -982,7 +982,8 @@ class FilterKonfiguratorRepository
             string $typ = '',
             string $hersteller = '',
             string $basis = '',
-            string $modell = ''
+            string $modell = '',
+            bool $viaKompatibleSerien = false
         ): array {
             $targetNames = [
                 'typ'        => 'Wohnmobil-Aufbauart',
@@ -1004,10 +1005,6 @@ class FilterKonfiguratorRepository
                     return [];
                 }
                 $serieIds = $this->loadArticleIdsForMerkmalValue('Serie', $serie, $langID);
-                $serieCode = \trim((string)\preg_replace('/^Serie\s+|[\s\-]*Serie$/iu', '', $serie));
-                if ($serieCode !== '') {
-                    $serieIds += $this->loadArticleIdsForMerkmalValue('kompatible Serien', $serieCode, $langID);
-                }
                 foreach ((array)$this->db->getObjects(
                     "SELECT DISTINCT ka.kArtikel
                        FROM tkategorieartikel ka
@@ -1020,8 +1017,15 @@ class FilterKonfiguratorRepository
                 ) as $row) {
                     $serieIds[(int)$row->kArtikel] = true;
                 }
+                // „kompatible Serien“ listet meist alle Serien – nur als Fallback zur Serie-Kategorie.
+                $serieCode = \trim((string)\preg_replace('/^Serie\s+|[\s\-]*Serie$/iu', '', $serie));
+                if ($viaKompatibleSerien) {
+                    $serieIds = $serieCode !== ''
+                        ? $this->loadArticleIdsForMerkmalValue('kompatible Serien', $serieCode, $langID)
+                        : [];
+                }
                 if ($serieIds === []) {
-                    return [];
+                    throw new \RuntimeException('no serie match');
                 }
 
                 $sitzList = \implode(',', \array_keys($sitzIds));
@@ -1039,7 +1043,7 @@ class FilterKonfiguratorRepository
                     }
                 }
                 if ($candidates === []) {
-                    return [];
+                    throw new \RuntimeException('no candidates');
                 }
 
                 $idList = \implode(',', $candidates);
@@ -1060,7 +1064,7 @@ class FilterKonfiguratorRepository
                     }
                 }
                 if ($allowed === []) {
-                    return [];
+                    throw new \RuntimeException('no allowed articles');
                 }
 
                 $merkmalNames = [
@@ -1100,6 +1104,7 @@ class FilterKonfiguratorRepository
                     'modell'     => \trim($modell),
                 ];
                 $rows = [];
+                $productIds = [];
                 foreach ($allowed as $id => $parent) {
                     $own = $values[$id] ?? [];
                     $inherited = $parent > 0 ? ($values[$parent] ?? []) : [];
@@ -1118,12 +1123,14 @@ class FilterKonfiguratorRepository
                     }
                     foreach (\array_keys(($own[$field] ?? []) + ($inherited[$field] ?? [])) as $val) {
                         $rows[$val] = (object)['val' => (string)$val];
+                        $productIds[(string)$val][$parent > 0 ? $parent : $id] = true;
                     }
                 }
                 \ksort($rows, \SORT_NATURAL | \SORT_FLAG_CASE);
                 $rows = \array_slice(\array_values($rows), 0, 200);
             } catch (\Throwable $e) {
-                return [];
+                $rows = [];
+                $productIds = [];
             }
 
             $out = [];
@@ -1133,10 +1140,41 @@ class FilterKonfiguratorRepository
                     $out[$value] = ['value' => $value];
                 }
             }
+            if ($out === [] && !$viaKompatibleSerien) {
+                return $this->loadWmVehicleOptionsForSeatSeries(
+                    $field, $sitz, $serie, $typ, $hersteller, $basis, $modell, true
+                );
+            }
             if ($field === 'basis' && $out !== []) {
                 foreach ($this->loadChassisSeatUrls(\array_keys($out), $sitz, $langID) as $value => $url) {
                     if (isset($out[$value])) {
                         $out[$value]['url'] = $url;
+                    }
+                }
+                $single = [];
+                foreach ($productIds ?? [] as $value => $ids) {
+                    if (isset($out[$value]) && \count($ids) === 1) {
+                        $single[$value] = (int)\array_key_first($ids);
+                    }
+                }
+                if ($single !== []) {
+                    try {
+                        $seoRows = $this->db->getObjects(
+                            "SELECT kKey, cSeo FROM tseo
+                              WHERE cKey = 'kArtikel' AND kSprache = :langID
+                                AND kKey IN (" . \implode(',', \array_map('intval', $single)) . ")",
+                            ['langID' => $langID]
+                        );
+                        $seoById = [];
+                        foreach ((array)$seoRows as $row) {
+                            $seoById[(int)$row->kKey] = (string)$row->cSeo;
+                        }
+                        foreach ($single as $value => $pid) {
+                            if (($seoById[$pid] ?? '') !== '') {
+                                $out[$value]['url'] = '/' . $seoById[$pid];
+                            }
+                        }
+                    } catch (\Throwable $e) {
                     }
                 }
             }
