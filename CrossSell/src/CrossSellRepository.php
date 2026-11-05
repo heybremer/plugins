@@ -269,6 +269,37 @@ final class CrossSellRepository
     }
 
     /**
+     * Anzahl Artikel, die von einer Kategorie-Regel betroffen sind (inkl. Unterkategorien).
+     *
+     * @param array<int,int> $cats
+     * @return array<int,int> kKategorie => Anzahl
+     */
+    public static function countCategoryArticles(array $cats): array
+    {
+        $cats = self::ids($cats);
+        $out  = \array_fill_keys($cats, 0);
+        if ($cats === []) {
+            return $out;
+        }
+        try {
+            $rows = Shop::Container()->getDB()->getObjects(
+                'SELECT p.kKategorie, COUNT(DISTINCT ka.kArtikel) AS nCount
+                   FROM tkategorie p
+                   JOIN tkategorie c ON c.lft BETWEEN p.lft AND p.rght
+                   JOIN tkategorieartikel ka ON ka.kKategorie = c.kKategorie
+                  WHERE p.kKategorie IN (' . \implode(',', $cats) . ')
+               GROUP BY p.kKategorie'
+            );
+            foreach ($rows as $r) {
+                $out[(int)$r->kKategorie] = (int)$r->nCount;
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
+
+        return $out;
+    }
+    /**
      * Kategoriepfade ("Wohnmobil Bezüge › Fahrer & Beifahrer Set › E-Serie") je Kategorie-ID.
      *
      * @param array<int,int> $ids

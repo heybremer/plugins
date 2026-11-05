@@ -91,7 +91,8 @@ $isEdit = $editArt > 0 || $editCat > 0;
         $paths  = CrossSellRepository::categoryPaths([$editCat]);
         $title  = 'Kategori: ' . ($paths[$editCat] ?? ('#' . $editCat));
         $info   = CrossSellRepository::articleInfo($recIds);
-        $hint   = 'Bu kategorideki (ve alt kategorilerdeki) TÜM ürünlerde aşağıdaki ürünler önerilir. Tek tek ürün için tanımlanan öneriler önce gösterilir.';
+        $affected = CrossSellRepository::countCategoryArticles([$editCat])[$editCat] ?? 0;
+        $hint   = 'Bu kategorideki (ve alt kategorilerdeki) TÜM ürünlerde aşağıdaki ürünler önerilir. Etkilenen ürün sayısı: ' . $affected . '. Tek tek ürün için tanımlanan öneriler önce gösterilir.';
     } else {
         $recIds = CrossSellRepository::getForSource($editArt);
         $info   = CrossSellRepository::articleInfo(array_merge([$editArt], $recIds));
@@ -139,7 +140,7 @@ $isEdit = $editArt > 0 || $editCat > 0;
         <button type="submit" name="cs_save" value="1" class="btn btn-primary">Kaydet</button>
         <?php if ($isCat) { ?>
             <button type="submit" name="cs_delete_cat" value="<?php echo $editCat; ?>" class="btn btn-danger"
-                    onclick="return confirm('Bu kategorinin tüm önerileri silinsin mi?');">Tümünü sil</button>
+                    onclick="return confirm('Bu kural silinirse <?php echo (int)$affected; ?> üründeki öneri kalkacak. Devam edilsin mi?');">Tümünü sil (<?php echo (int)$affected; ?> ürün etkilenir)</button>
         <?php } else { ?>
             <button type="submit" name="cs_delete" value="<?php echo $editArt; ?>" class="btn btn-danger"
                     onclick="return confirm('Bu ürünün tüm önerileri silinsin mi?');">Tümünü sil</button>
@@ -167,13 +168,14 @@ $isEdit = $editArt > 0 || $editCat > 0;
         $allArt             = array_merge($allArt, $catRecMap[$cid]);
     }
     $catPaths = CrossSellRepository::categoryPaths($catIds);
+    $catCount = CrossSellRepository::countCategoryArticles($catIds);
     $catInfo  = CrossSellRepository::articleInfo($allArt);
     ?>
     <table class="table table-striped">
-        <thead><tr><th>Kategori</th><th>Önerilenler</th><th style="width:1%"></th></tr></thead>
+        <thead><tr><th>Kategori</th><th>Önerilenler</th><th>Etkilenen ürün</th><th style="width:1%"></th></tr></thead>
         <tbody>
         <?php if ($catSources === []) { ?>
-            <tr><td colspan="3"><em>Henüz kategori kuralı yok.</em></td></tr>
+            <tr><td colspan="4"><em>Henüz kategori kuralı yok.</em></td></tr>
         <?php } ?>
         <?php foreach ($catSources as $s) {
             $cid   = (int)$s->kKategorie;
@@ -185,6 +187,7 @@ $isEdit = $editArt > 0 || $editCat > 0;
             <tr>
                 <td><?php echo csH($catPaths[$cid] ?? ('#' . $cid)); ?> <small>#<?php echo $cid; ?></small></td>
                 <td><?php echo implode(', ', $names); ?><?php echo (int)$s->nCount > 5 ? ' <small>+' . ((int)$s->nCount - 5) . '</small>' : ''; ?></td>
+                <td><?php echo (int)($catCount[$cid] ?? 0); ?></td>
                 <td style="white-space:nowrap"><a class="btn btn-sm btn-primary" href="<?php echo csH(csUrl(['cs_editcat' => $cid])); ?>">Düzenle</a></td>
             </tr>
         <?php } ?>
