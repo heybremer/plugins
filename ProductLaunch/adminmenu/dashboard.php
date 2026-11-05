@@ -63,10 +63,12 @@ if (Form::validateToken()) {
             'dEnd'       => plDate((string)($_POST['pl_end'] ?? '')),
             'nActive'    => !empty($_POST['pl_active']) ? 1 : 0,
             'nSort'      => (int)($_POST['pl_sort'] ?? 0),
+            'cImage'     => mb_substr(trim((string)($_POST['pl_image'] ?? '')), 0, 500),
+            'cUrl'       => mb_substr(trim((string)($_POST['pl_url'] ?? '')), 0, 500),
         ];
         $id = (int)($_POST['pl_id'] ?? 0);
-        if ($data['kArtikel'] <= 0) {
-            $error  = 'Lütfen bir ürün seçin.';
+        if ($data['kArtikel'] <= 0 && $data['cTitle'] === '') {
+            $error  = 'Ürün seçin veya en az bir başlık girin.';
             $editId = $id;
             $isNew  = $id === 0;
         } else {
@@ -122,7 +124,7 @@ $today = date('Y-m-d');
     ?>
     <p><a href="<?php echo plH(plUrl()); ?>">&larr; Tüm lansmanlar</a></p>
     <h3><?php echo $row !== null ? 'Lansmanı düzenle' : 'Yeni lansman'; ?></h3>
-    <p>Seçilen ürün anasayfada büyük bir vitrin kartı olarak gösterilir. Başlık, metin ve buton boş bırakılırsa ürün adı ve kısa açıklama kullanılır.</p>
+    <p>Ürün opsiyoneldir. Ürün seçilirse başlık, metin, görsel ve link boş bırakıldığında üründen alınır. Ürün seçilmezse başlık zorunludur; görsel URL'si ve link elle girilebilir (link boşsa kategori linki kullanılır).</p>
 
     <form method="post" action="<?php echo plH(plUrl($editId > 0 ? ['pl_edit' => $editId] : ['pl_new' => 1])); ?>">
         <?php echo $token; ?>
@@ -130,7 +132,7 @@ $today = date('Y-m-d');
 
         <div class="pl-grid">
             <div class="form-group">
-                <label><strong>Ürün *</strong> <small>(ad, ürün no veya ID)</small></label>
+                <label><strong>Ürün</strong> <small>(opsiyonel – ad, ürün no veya ID)</small></label>
                 <input type="hidden" name="pl_art" id="pl-art" value="<?php echo $artId > 0 ? $artId : ''; ?>">
                 <div class="pl-pick" id="pl-art-pick" style="<?php echo $artInfo ? '' : 'display:none'; ?>">
                     <span><?php echo $artInfo ? plH($artInfo['name']) . ' <small>#' . $artId . ' ' . plH($artInfo['artNr']) . '</small>' : ''; ?></span>
@@ -159,6 +161,17 @@ $today = date('Y-m-d');
             <div class="form-group">
                 <label>Rozet <small>(boşsa "NEU")</small></label>
                 <input type="text" class="form-control" name="pl_badge" maxlength="60" value="<?php echo plH((string)($row->cBadge ?? '')); ?>" placeholder="NEU">
+            </div>
+        </div>
+
+        <div class="pl-grid">
+            <div class="form-group">
+                <label>Görsel URL <small>(opsiyonel – boşsa ürün görseli)</small></label>
+                <input type="text" class="form-control" name="pl_image" maxlength="500" value="<?php echo plH((string)($row->cImage ?? '')); ?>" placeholder="https://...">
+            </div>
+            <div class="form-group">
+                <label>Link <small>(opsiyonel – boşsa ürün / kategori linki)</small></label>
+                <input type="text" class="form-control" name="pl_url" maxlength="500" value="<?php echo plH((string)($row->cUrl ?? '')); ?>" placeholder="https://...">
             </div>
         </div>
 
@@ -232,7 +245,7 @@ $today = date('Y-m-d');
             }
             ?>
             <tr>
-                <td><?php echo plH($artInfo[$aid]['name'] ?? '(bulunamadı)'); ?> <small>#<?php echo $aid; ?> <?php echo plH($artInfo[$aid]['artNr'] ?? ''); ?></small></td>
+                <td><?php echo $aid > 0 ? plH($artInfo[$aid]['name'] ?? '(bulunamadı)') . ' <small>#' . $aid . ' ' . plH($artInfo[$aid]['artNr'] ?? '') . '</small>' : '<small>– (ürünsüz)</small>'; ?></td>
                 <td><?php echo $cid > 0 ? plH($catPath[$cid] ?? ('#' . $cid)) : '<small>–</small>'; ?></td>
                 <td><?php echo plH((string)$r->cTitle) !== '' ? plH((string)$r->cTitle) : '<small>(ürün adı)</small>'; ?></td>
                 <td><small><?php echo plH($s !== '' ? $s : '…'); ?> – <?php echo plH($e !== '' ? $e : '…'); ?></small></td>

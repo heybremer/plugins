@@ -31,11 +31,17 @@ final class LaunchRepository
                     nActive    TINYINT(1)   NOT NULL DEFAULT 1,
                     nSort      INT          NOT NULL DEFAULT 0,
                     dCreated   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    cImage     VARCHAR(500) NOT NULL DEFAULT \'\',
+                    cUrl       VARCHAR(500) NOT NULL DEFAULT \'\',
                     PRIMARY KEY (kID),
                     KEY idx_active (nActive, nSort)
                  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 []
             );
+            $db = Shop::Container()->getDB();
+            if ($db->getSingleObject('SHOW COLUMNS FROM ' . self::TABLE . " LIKE 'cImage'") === null) {
+                $db->executeQueryPrepared('ALTER TABLE ' . self::TABLE . " ADD COLUMN cImage VARCHAR(500) NOT NULL DEFAULT '', ADD COLUMN cUrl VARCHAR(500) NOT NULL DEFAULT ''", []);
+            }
             self::$ensured = true;
         } catch (\Throwable $e) {
             // ignore
@@ -110,12 +116,14 @@ final class LaunchRepository
             'e'  => $d['dEnd'],
             'ac' => (int)$d['nActive'],
             'so' => (int)$d['nSort'],
+            'im' => (string)($d['cImage'] ?? ''),
+            'ur' => (string)($d['cUrl'] ?? ''),
         ];
         if ($id > 0) {
             $params['id'] = $id;
             $db->executeQueryPrepared(
                 'UPDATE ' . self::TABLE . ' SET kArtikel = :a, kKategorie = :k, cBadge = :b, cTitle = :t, cText = :x,
-                        cButton = :bt, dStart = :s, dEnd = :e, nActive = :ac, nSort = :so
+                        cButton = :bt, dStart = :s, dEnd = :e, nActive = :ac, nSort = :so, cImage = :im, cUrl = :ur
                   WHERE kID = :id',
                 $params
             );
@@ -123,8 +131,8 @@ final class LaunchRepository
             return $id;
         }
         $db->executeQueryPrepared(
-            'INSERT INTO ' . self::TABLE . ' (kArtikel, kKategorie, cBadge, cTitle, cText, cButton, dStart, dEnd, nActive, nSort)
-             VALUES (:a, :k, :b, :t, :x, :bt, :s, :e, :ac, :so)',
+            'INSERT INTO ' . self::TABLE . ' (kArtikel, kKategorie, cBadge, cTitle, cText, cButton, dStart, dEnd, nActive, nSort, cImage, cUrl)
+             VALUES (:a, :k, :b, :t, :x, :bt, :s, :e, :ac, :so, :im, :ur)',
             $params
         );
         $row = $db->getSingleObject('SELECT MAX(kID) AS kID FROM ' . self::TABLE);

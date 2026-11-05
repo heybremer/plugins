@@ -112,36 +112,51 @@ class Bootstrap extends Bootstrapper
         $items   = [];
         foreach ($rows as $r) {
             try {
-                $a = new Artikel();
-                $a->fuelleArtikel((int)$r->kArtikel, Artikel::getDefaultOptions());
-                if ((int)($a->kArtikel ?? 0) <= 0) {
-                    continue;
-                }
-                $img = '';
-                if (!empty($a->Bilder[0])) {
-                    $b   = $a->Bilder[0];
-                    $img = (string)($b->cURLGross ?? $b->cURLNormal ?? $b->cURLKlein ?? '');
-                }
+                $img   = \trim((string)($r->cImage ?? ''));
                 $price = '';
-                if (isset($a->Preise->cVKLocalized[$net])) {
-                    $price = \html_entity_decode((string)$a->Preise->cVKLocalized[$net], \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
-                }
-                $name  = self::plain((string)$a->cName);
+                $name  = '';
+                $url   = \trim((string)($r->cUrl ?? ''));
                 $text  = \trim((string)($r->cText ?? ''));
-                if ($text === '') {
-                    $text = self::plain((string)($a->cKurzBeschreibung ?? ''), 220);
-                    if ($text === '') {
-                        $text = self::plain((string)($a->cBeschreibung ?? ''), 220);
+                if ((int)$r->kArtikel > 0) {
+                    $a = new Artikel();
+                    $a->fuelleArtikel((int)$r->kArtikel, Artikel::getDefaultOptions());
+                    if ((int)($a->kArtikel ?? 0) > 0) {
+                        if ($img === '' && !empty($a->Bilder[0])) {
+                            $b   = $a->Bilder[0];
+                            $img = (string)($b->cURLGross ?? $b->cURLNormal ?? $b->cURLKlein ?? '');
+                        }
+                        if (isset($a->Preise->cVKLocalized[$net])) {
+                            $price = \html_entity_decode((string)$a->Preise->cVKLocalized[$net], \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
+                        }
+                        $name = self::plain((string)$a->cName);
+                        if ($url === '') {
+                            $url = (string)($a->cURLFull ?? ($shopUrl . '/' . ($a->cURL ?? '')));
+                        }
+                        if ($text === '') {
+                            $text = self::plain((string)($a->cKurzBeschreibung ?? ''), 220);
+                            if ($text === '') {
+                                $text = self::plain((string)($a->cBeschreibung ?? ''), 220);
+                            }
+                        }
+                    } elseif (\trim((string)$r->cTitle) === '') {
+                        continue;
                     }
                 }
                 $cat = LaunchRepository::categoryLink((int)$r->kKategorie, $langId, $shopUrl);
+                if ($url === '') {
+                    $url = $cat['url'];
+                }
+                $title = \trim((string)$r->cTitle) !== '' ? \trim((string)$r->cTitle) : $name;
+                if ($title === '') {
+                    continue;
+                }
                 $items[] = [
-                    'name'    => $name,
-                    'title'   => \trim((string)$r->cTitle) !== '' ? \trim((string)$r->cTitle) : $name,
+                    'name'    => $name !== '' ? $name : $title,
+                    'title'   => $title,
                     'text'    => $text,
                     'badge'   => \trim((string)$r->cBadge) !== '' ? \trim((string)$r->cBadge) : 'NEU',
                     'button'  => \trim((string)$r->cButton) !== '' ? \trim((string)$r->cButton) : 'Jetzt entdecken',
-                    'url'     => (string)($a->cURLFull ?? ($shopUrl . '/' . ($a->cURL ?? ''))),
+                    'url'     => $url,
                     'image'   => $img,
                     'price'   => $price,
                     'catName' => $cat['name'],

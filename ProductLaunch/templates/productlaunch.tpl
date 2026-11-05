@@ -30,8 +30,10 @@
                             <div class="pl-price">{$it.price|escape:'html'}</div>
                         {/if}
                         <div class="pl-actions">
-                            <a class="pl-btn pl-btn--primary" href="{$it.url|escape:'html'}">{$it.button|escape:'html'} &rarr;</a>
-                            {if $it.catUrl && $it.catName}
+                            {if $it.url}
+                                <a class="pl-btn pl-btn--primary" href="{$it.url|escape:'html'}">{$it.button|escape:'html'} &rarr;</a>
+                            {/if}
+                            {if $it.catUrl && $it.catName && $it.catUrl != $it.url}
                                 <a class="pl-btn pl-btn--ghost" href="{$it.catUrl|escape:'html'}">Alle in {$it.catName|escape:'html'}</a>
                             {/if}
                         </div>
