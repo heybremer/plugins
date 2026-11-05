@@ -316,3 +316,9 @@
     height: 52px;
   }
 }
+
+/* NOVA: main section { padding: 4rem 0 } fuer dieses Modul aufheben */
+.pl-launch,
+main section.pl-launch {
+  padding: 0;
+}

@@ -13,7 +13,7 @@ use JTL\Shop;
 
 class Bootstrap extends Bootstrapper
 {
-    private const CSS = 'plugins/ProductLaunch/templates/css/productlaunch.v2.css';
+    private const CSS = 'plugins/ProductLaunch/templates/css/productlaunch.v3.css';
 
     public function boot(Dispatcher $dispatcher): void
     {
