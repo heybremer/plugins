@@ -18,7 +18,7 @@ if (!function_exists('csH')) {
     {
         $p = parse_url((string)($_SERVER['REQUEST_URI'] ?? ''));
         parse_str((string)($p['query'] ?? ''), $q);
-        unset($q['cs_edit'], $q['cs_search'], $q['q']);
+        unset($q['cs_edit'], $q['cs_editcat'], $q['cs_search'], $q['cs_type'], $q['q']);
         foreach ($set as $k => $v) {
             $q[$k] = $v;
         }
@@ -27,37 +27,48 @@ if (!function_exists('csH')) {
     }
 }
 
-// AJAX: Artikelsuche
+// AJAX: Artikel- bzw. Kategoriesuche
 if (isset($_GET['cs_search'])) {
     header('Content-Type: text/plain; charset=utf-8');
-    $json = json_encode(['items' => CrossSellRepository::search((string)($_GET['q'] ?? ''))], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $found = (string)($_GET['cs_type'] ?? '') === 'cat'
+        ? CrossSellRepository::searchCategories((string)($_GET['q'] ?? ''))
+        : CrossSellRepository::search((string)($_GET['q'] ?? ''));
+    $json = json_encode(['items' => $found], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     echo '__CS_START__' . ($json !== false ? $json : '{"items":[]}') . '__CS_END__';
     exit;
 }
 
-$message = '';
-$edit    = (int)($_GET['cs_edit'] ?? 0);
+$message  = '';
+$editArt  = (int)($_GET['cs_edit'] ?? 0);
+$editCat  = (int)($_GET['cs_editcat'] ?? 0);
 
 if (Form::validateToken()) {
     if (!empty($_POST['cs_save'])) {
-        $src = (int)($_POST['cs_src'] ?? 0);
-        if ($src > 0) {
-            CrossSellRepository::replaceForSource(
-                $src,
-                CrossSellRepository::ids((array)($_POST['rec'] ?? [])),
-                !empty($_POST['cs_both'])
-            );
+        $recs = CrossSellRepository::ids((array)($_POST['rec'] ?? []));
+        $cat  = (int)($_POST['cs_cat'] ?? 0);
+        $src  = (int)($_POST['cs_src'] ?? 0);
+        if ($cat > 0) {
+            CrossSellRepository::replaceForCategory($cat, $recs);
             $message = 'Kaydedildi.';
-            $edit    = $src;
+            $editCat = $cat;
+        } elseif ($src > 0) {
+            CrossSellRepository::replaceForSource($src, $recs, !empty($_POST['cs_both']));
+            $message = 'Kaydedildi.';
+            $editArt = $src;
         }
     } elseif (!empty($_POST['cs_delete'])) {
         CrossSellRepository::deleteSource((int)$_POST['cs_delete']);
         $message = 'Silindi.';
-        $edit    = 0;
+        $editArt = 0;
+    } elseif (!empty($_POST['cs_delete_cat'])) {
+        CrossSellRepository::deleteCategory((int)$_POST['cs_delete_cat']);
+        $message = 'Silindi.';
+        $editCat = 0;
     }
 }
 
-$token = Form::getTokenInput();
+$token  = Form::getTokenInput();
+$isEdit = $editArt > 0 || $editCat > 0;
 ?>
 <style>
     .cs-admin .cs-row{display:flex;align-items:center;gap:.5rem;padding:.4rem .6rem;border:1px solid #ddd;border-radius:4px;margin-bottom:.35rem;background:#fff}
@@ -66,24 +77,41 @@ $token = Form::getTokenInput();
     .cs-admin .cs-res div{padding:.4rem .6rem;cursor:pointer;border-bottom:1px solid #eee}
     .cs-admin .cs-res div:hover{background:#f2f6ff}
     .cs-admin small{color:#777}
+    .cs-admin h4{margin-top:2rem}
 </style>
 <div class="cs-admin" style="padding:10px 0;">
 <?php if ($message !== '') { ?>
     <div class="alert alert-success"><?php echo csH($message); ?></div>
 <?php } ?>
 
-<?php if ($edit > 0) {
-    $recIds = CrossSellRepository::getForSource($edit);
-    $info   = CrossSellRepository::articleInfo(array_merge([$edit], $recIds));
-    $srcInf = $info[$edit] ?? ['id' => $edit, 'name' => '(bulunamadı)', 'artNr' => ''];
+<?php if ($isEdit) {
+    $isCat = $editCat > 0;
+    if ($isCat) {
+        $recIds = CrossSellRepository::getForCategory($editCat);
+        $paths  = CrossSellRepository::categoryPaths([$editCat]);
+        $title  = 'Kategori: ' . ($paths[$editCat] ?? ('#' . $editCat));
+        $info   = CrossSellRepository::articleInfo($recIds);
+        $hint   = 'Bu kategorideki (ve alt kategorilerdeki) TÜM ürünlerde aşağıdaki ürünler önerilir. Tek tek ürün için tanımlanan öneriler önce gösterilir.';
+    } else {
+        $recIds = CrossSellRepository::getForSource($editArt);
+        $info   = CrossSellRepository::articleInfo(array_merge([$editArt], $recIds));
+        $srcInf = $info[$editArt] ?? ['name' => '(bulunamadı)', 'artNr' => ''];
+        $title  = 'Kaynak ürün: ' . $srcInf['name'] . ' #' . $editArt . ' ' . $srcInf['artNr'];
+        $hint   = 'Bu ürün sayfasında / sepette bu ürün varken aşağıdaki ürünler önerilir (sıra önemlidir).';
+    }
+    $actionUrl = $isCat ? csUrl(['cs_editcat' => $editCat]) : csUrl(['cs_edit' => $editArt]);
     ?>
     <p><a href="<?php echo csH(csUrl()); ?>">&larr; Tüm öneriler</a></p>
-    <h3>Kaynak ürün: <?php echo csH($srcInf['name']); ?> <small>#<?php echo $edit; ?> <?php echo csH($srcInf['artNr']); ?></small></h3>
-    <p>Bu ürün sayfasında / sepette bu ürün varken aşağıdaki ürünler önerilir (sıra önemlidir).</p>
+    <h3><?php echo csH($title); ?></h3>
+    <p><?php echo csH($hint); ?></p>
 
-    <form method="post" action="<?php echo csH(csUrl(['cs_edit' => $edit])); ?>" id="cs-form">
+    <form method="post" action="<?php echo csH($actionUrl); ?>" id="cs-form">
         <?php echo $token; ?>
-        <input type="hidden" name="cs_src" value="<?php echo $edit; ?>">
+        <?php if ($isCat) { ?>
+            <input type="hidden" name="cs_cat" value="<?php echo $editCat; ?>">
+        <?php } else { ?>
+            <input type="hidden" name="cs_src" value="<?php echo $editArt; ?>">
+        <?php } ?>
         <div id="cs-list">
             <?php foreach ($recIds as $rid) {
                 $ri = $info[$rid] ?? ['name' => '(bulunamadı)', 'artNr' => '']; ?>
@@ -103,20 +131,72 @@ $token = Form::getTokenInput();
             <div class="cs-res" id="cs-res" style="display:none;"></div>
         </div>
 
-        <div class="checkbox" style="margin:.75rem 0;">
-            <label><input type="checkbox" name="cs_both" value="1"> Karşılıklı da ekle (önerilen ürün sayfasında bu ürün de önerilsin)</label>
-        </div>
+        <?php if (!$isCat) { ?>
+            <div class="checkbox" style="margin:.75rem 0;">
+                <label><input type="checkbox" name="cs_both" value="1"> Karşılıklı da ekle (önerilen ürün sayfasında bu ürün de önerilsin)</label>
+            </div>
+        <?php } ?>
         <button type="submit" name="cs_save" value="1" class="btn btn-primary">Kaydet</button>
-        <button type="submit" name="cs_delete" value="<?php echo $edit; ?>" class="btn btn-danger"
-                onclick="return confirm('Bu ürünün tüm önerileri silinsin mi?');">Tümünü sil</button>
+        <?php if ($isCat) { ?>
+            <button type="submit" name="cs_delete_cat" value="<?php echo $editCat; ?>" class="btn btn-danger"
+                    onclick="return confirm('Bu kategorinin tüm önerileri silinsin mi?');">Tümünü sil</button>
+        <?php } else { ?>
+            <button type="submit" name="cs_delete" value="<?php echo $editArt; ?>" class="btn btn-danger"
+                    onclick="return confirm('Bu ürünün tüm önerileri silinsin mi?');">Tümünü sil</button>
+        <?php } ?>
     </form>
 <?php } else { ?>
     <h3>Ürün önerileri</h3>
-    <p>Önce önerinin gösterileceği ürünü seçin, sonra o ürünle birlikte hangi ürünlerin önerileceğini belirleyin.</p>
+
+    <h4 style="margin-top:1rem;">Kategori bazlı</h4>
+    <p>Bir kategori seçin: o kategorideki (ve alt kategorilerdeki) tüm ürünlerde seçtiğiniz tamamlayıcı ürünler önerilir.</p>
+    <div class="form-group">
+        <label>Kategori ara (ad veya ID)</label>
+        <input type="text" class="form-control cs-search" data-type="cat" placeholder="Örn. E-Serie" autocomplete="off">
+        <div class="cs-res" style="display:none;"></div>
+    </div>
+    <?php
+    $catSources = CrossSellRepository::listCategorySources();
+    $catIds     = [];
+    $catRecMap  = [];
+    $allArt     = [];
+    foreach ($catSources as $s) {
+        $cid                = (int)$s->kKategorie;
+        $catIds[]           = $cid;
+        $catRecMap[$cid]    = array_slice(CrossSellRepository::getForCategory($cid), 0, 5);
+        $allArt             = array_merge($allArt, $catRecMap[$cid]);
+    }
+    $catPaths = CrossSellRepository::categoryPaths($catIds);
+    $catInfo  = CrossSellRepository::articleInfo($allArt);
+    ?>
+    <table class="table table-striped">
+        <thead><tr><th>Kategori</th><th>Önerilenler</th><th style="width:1%"></th></tr></thead>
+        <tbody>
+        <?php if ($catSources === []) { ?>
+            <tr><td colspan="3"><em>Henüz kategori kuralı yok.</em></td></tr>
+        <?php } ?>
+        <?php foreach ($catSources as $s) {
+            $cid   = (int)$s->kKategorie;
+            $names = [];
+            foreach ($catRecMap[$cid] as $rid) {
+                $names[] = csH($catInfo[$rid]['name'] ?? ('#' . $rid));
+            }
+            ?>
+            <tr>
+                <td><?php echo csH($catPaths[$cid] ?? ('#' . $cid)); ?> <small>#<?php echo $cid; ?></small></td>
+                <td><?php echo implode(', ', $names); ?><?php echo (int)$s->nCount > 5 ? ' <small>+' . ((int)$s->nCount - 5) . '</small>' : ''; ?></td>
+                <td style="white-space:nowrap"><a class="btn btn-sm btn-primary" href="<?php echo csH(csUrl(['cs_editcat' => $cid])); ?>">Düzenle</a></td>
+            </tr>
+        <?php } ?>
+        </tbody>
+    </table>
+
+    <h4>Ürün bazlı</h4>
+    <p>Tek bir ürün için öneri tanımlayın (kategori kuralından önce gösterilir).</p>
     <div class="form-group">
         <label>Kaynak ürün ara (ad, ürün no veya ID)</label>
-        <input type="text" class="form-control" id="cs-q" placeholder="Aramak için yazın..." autocomplete="off">
-        <div class="cs-res" id="cs-res" style="display:none;"></div>
+        <input type="text" class="form-control cs-search" data-type="art" placeholder="Aramak için yazın..." autocomplete="off">
+        <div class="cs-res" style="display:none;"></div>
     </div>
 
     <?php
@@ -134,7 +214,7 @@ $token = Form::getTokenInput();
         <thead><tr><th>Kaynak ürün</th><th>Önerilenler</th><th style="width:1%"></th></tr></thead>
         <tbody>
         <?php if ($sources === []) { ?>
-            <tr><td colspan="3"><em>Henüz öneri tanımlanmadı.</em></td></tr>
+            <tr><td colspan="3"><em>Henüz ürün kuralı yok.</em></td></tr>
         <?php } ?>
         <?php foreach ($sources as $s) {
             $sid = (int)$s->kArtikel;
@@ -156,11 +236,11 @@ $token = Form::getTokenInput();
 
 <script>
 (function () {
-    var q = document.getElementById('cs-q'), res = document.getElementById('cs-res'), list = document.getElementById('cs-list');
-    var editMode = <?php echo $edit > 0 ? 'true' : 'false'; ?>;
+    var editMode = <?php echo $isEdit ? 'true' : 'false'; ?>;
+    var list = document.getElementById('cs-list');
     var searchBase = <?php echo json_encode(csUrl(['cs_search' => 1])); ?>;
-    var editBase = <?php echo json_encode(csUrl(['cs_edit' => '__ID__'])); ?>;
-    var timer = null;
+    var editArtBase = <?php echo json_encode(csUrl(['cs_edit' => '__ID__'])); ?>;
+    var editCatBase = <?php echo json_encode(csUrl(['cs_editcat' => '__ID__'])); ?>;
 
     function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
@@ -187,31 +267,39 @@ $token = Form::getTokenInput();
         });
     }
 
-    if (!q) { return; }
-    q.addEventListener('input', function () {
-        clearTimeout(timer);
-        var v = q.value.trim();
-        if (v.length < 2) { res.style.display = 'none'; return; }
-        timer = setTimeout(function () {
-            fetch(searchBase + '&q=' + encodeURIComponent(v), { credentials: 'same-origin' })
-                .then(function (r) { return r.text(); })
-                .then(function (t) {
-                    var a = t.indexOf('__CS_START__'), b = t.indexOf('__CS_END__');
-                    if (a < 0 || b < 0) { return; }
-                    var items = JSON.parse(t.substring(a + 12, b)).items || [];
-                    res.innerHTML = '';
-                    items.forEach(function (it) {
-                        var d = document.createElement('div');
-                        d.innerHTML = esc(it.name) + ' <small>#' + it.id + ' ' + esc(it.artNr || '') + '</small>';
-                        d.addEventListener('click', function () {
-                            if (editMode) { addRow(it); res.style.display = 'none'; q.value = ''; }
-                            else { window.location.href = editBase.replace('__ID__', it.id); }
+    function wire(input, type, res) {
+        var timer = null;
+        input.addEventListener('input', function () {
+            clearTimeout(timer);
+            var v = input.value.trim();
+            if (v.length < 2) { res.style.display = 'none'; return; }
+            timer = setTimeout(function () {
+                fetch(searchBase + '&cs_type=' + type + '&q=' + encodeURIComponent(v), { credentials: 'same-origin' })
+                    .then(function (r) { return r.text(); })
+                    .then(function (t) {
+                        var a = t.indexOf('__CS_START__'), b = t.indexOf('__CS_END__');
+                        if (a < 0 || b < 0) { return; }
+                        var items = JSON.parse(t.substring(a + 12, b)).items || [];
+                        res.innerHTML = '';
+                        items.forEach(function (it) {
+                            var d = document.createElement('div');
+                            d.innerHTML = esc(it.name) + ' <small>#' + it.id + ' ' + esc(it.artNr || '') + '</small>';
+                            d.addEventListener('click', function () {
+                                if (editMode) { addRow(it); res.style.display = 'none'; input.value = ''; }
+                                else { window.location.href = (type === 'cat' ? editCatBase : editArtBase).replace('__ID__', it.id); }
+                            });
+                            res.appendChild(d);
                         });
-                        res.appendChild(d);
+                        res.style.display = items.length ? 'block' : 'none';
                     });
-                    res.style.display = items.length ? 'block' : 'none';
-                });
-        }, 250);
+            }, 250);
+        });
+    }
+
+    var single = document.getElementById('cs-q');
+    if (single) { wire(single, 'art', document.getElementById('cs-res')); }
+    document.querySelectorAll('.cs-search').forEach(function (inp) {
+        wire(inp, inp.getAttribute('data-type'), inp.parentElement.querySelector('.cs-res'));
     });
 })();
 </script>

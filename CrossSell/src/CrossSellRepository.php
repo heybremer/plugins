@@ -7,7 +7,8 @@ use JTL\Shop;
 
 final class CrossSellRepository
 {
-    public const TABLE = 'twomosi_crosssell';
+    public const TABLE     = 'twomosi_crosssell';
+    public const TABLE_CAT = 'twomosi_crosssell_cat';
 
     private static bool $ensured = false;
 
@@ -26,6 +27,18 @@ final class CrossSellRepository
                     PRIMARY KEY (kID),
                     UNIQUE KEY uq_pair (kArtikel, kRecArtikel),
                     KEY idx_src (kArtikel, nSort)
+                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
+                []
+            );
+            Shop::Container()->getDB()->executeQueryPrepared(
+                'CREATE TABLE IF NOT EXISTS ' . self::TABLE_CAT . ' (
+                    kID         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                    kKategorie  INT UNSIGNED NOT NULL,
+                    kRecArtikel INT UNSIGNED NOT NULL,
+                    nSort       INT NOT NULL DEFAULT 0,
+                    PRIMARY KEY (kID),
+                    UNIQUE KEY uq_pair (kKategorie, kRecArtikel),
+                    KEY idx_cat (kKategorie, nSort)
                  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 []
             );
@@ -67,13 +80,30 @@ final class CrossSellRepository
         }
         self::ensure();
         $exclude = \array_flip(self::ids($excludeIds));
+        $db = Shop::Container()->getDB();
         try {
-            $rows = Shop::Container()->getDB()->getObjects(
+            $rows = $db->getObjects(
                 'SELECT kRecArtikel FROM ' . self::TABLE
                 . ' WHERE kArtikel IN (' . \implode(',', $sourceIds) . ') ORDER BY nSort ASC, kID ASC'
             );
         } catch (\Throwable $e) {
             return [];
+        }
+        // Kategorie-Regeln (gelten auch fuer Unterkategorien), nach den Artikel-Regeln.
+        try {
+            $catRows = $db->getObjects(
+                'SELECT r.kRecArtikel
+                   FROM ' . self::TABLE_CAT . ' r
+                   JOIN tkategorie p ON p.kKategorie = r.kKategorie
+                   JOIN tkategorie c ON c.lft BETWEEN p.lft AND p.rght
+                   JOIN tkategorieartikel ka ON ka.kKategorie = c.kKategorie
+                  WHERE ka.kArtikel IN (' . \implode(',', $sourceIds) . ')
+               GROUP BY r.kID, r.kRecArtikel, r.nSort
+               ORDER BY r.nSort ASC, r.kID ASC'
+            );
+            $rows = \array_merge($rows, $catRows);
+        } catch (\Throwable $e) {
+            // ignore
         }
         $out = [];
         foreach ($rows as $r) {
@@ -183,6 +213,122 @@ final class CrossSellRepository
         return $out;
     }
 
+    /**
+     * @return array<int,int>
+     */
+    public static function getForCategory(int $cat): array
+    {
+        self::ensure();
+        $rows = Shop::Container()->getDB()->getObjects(
+            'SELECT kRecArtikel FROM ' . self::TABLE_CAT . ' WHERE kKategorie = :c ORDER BY nSort ASC, kID ASC',
+            ['c' => $cat]
+        );
+
+        return \array_map(static fn($r): int => (int)$r->kRecArtikel, $rows);
+    }
+
+    /**
+     * @param array<int,int> $recIds
+     */
+    public static function replaceForCategory(int $cat, array $recIds): void
+    {
+        self::ensure();
+        $db = Shop::Container()->getDB();
+        $db->executeQueryPrepared('DELETE FROM ' . self::TABLE_CAT . ' WHERE kKategorie = :c', ['c' => $cat]);
+        foreach (\array_values(self::ids($recIds)) as $pos => $rec) {
+            $db->executeQueryPrepared(
+                'INSERT INTO ' . self::TABLE_CAT . ' (kKategorie, kRecArtikel, nSort) VALUES (:c, :r, :n)
+                 ON DUPLICATE KEY UPDATE nSort = VALUES(nSort)',
+                ['c' => $cat, 'r' => $rec, 'n' => $pos]
+            );
+        }
+    }
+
+    public static function deleteCategory(int $cat): void
+    {
+        self::ensure();
+        Shop::Container()->getDB()->executeQueryPrepared(
+            'DELETE FROM ' . self::TABLE_CAT . ' WHERE kKategorie = :c',
+            ['c' => $cat]
+        );
+    }
+
+    /**
+     * @return array<int,object>
+     */
+    public static function listCategorySources(): array
+    {
+        self::ensure();
+        try {
+            return Shop::Container()->getDB()->getObjects(
+                'SELECT kKategorie, COUNT(*) AS nCount FROM ' . self::TABLE_CAT . ' GROUP BY kKategorie ORDER BY kKategorie DESC LIMIT 500'
+            );
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Kategoriepfade ("Wohnmobil Bezüge › Fahrer & Beifahrer Set › E-Serie") je Kategorie-ID.
+     *
+     * @param array<int,int> $ids
+     * @return array<int,string>
+     */
+    public static function categoryPaths(array $ids): array
+    {
+        $ids = self::ids($ids);
+        if ($ids === []) {
+            return [];
+        }
+        $out = [];
+        try {
+            $rows = Shop::Container()->getDB()->getObjects(
+                'SELECT n.kKategorie, p.cName
+                   FROM tkategorie n
+                   JOIN tkategorie p ON n.lft BETWEEN p.lft AND p.rght
+                  WHERE n.kKategorie IN (' . \implode(',', $ids) . ')
+               ORDER BY n.kKategorie, p.lft'
+            );
+            $parts = [];
+            foreach ($rows as $r) {
+                $parts[(int)$r->kKategorie][] = (string)$r->cName;
+            }
+            foreach ($parts as $id => $names) {
+                $out[$id] = \implode(' › ', $names);
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return array<int,array{id:int,name:string,artNr:string}>
+     */
+    public static function searchCategories(string $query, int $limit = 25): array
+    {
+        $q = \trim($query);
+        if ($q === '') {
+            return [];
+        }
+        try {
+            $rows = Shop::Container()->getDB()->getObjects(
+                'SELECT kKategorie FROM tkategorie WHERE cName LIKE :l OR kKategorie = :id ORDER BY cName ASC LIMIT ' . (int)$limit,
+                ['l' => '%' . $q . '%', 'id' => \ctype_digit($q) ? (int)$q : -1]
+            );
+        } catch (\Throwable $e) {
+            return [];
+        }
+        $ids   = \array_map(static fn($r): int => (int)$r->kKategorie, $rows);
+        $paths = self::categoryPaths($ids);
+        $out   = [];
+        foreach ($ids as $id) {
+            $out[] = ['id' => $id, 'name' => $paths[$id] ?? ('#' . $id), 'artNr' => ''];
+        }
+
+        return $out;
+    }
     /**
      * @return array<int,array{id:int,name:string,artNr:string}>
      */
