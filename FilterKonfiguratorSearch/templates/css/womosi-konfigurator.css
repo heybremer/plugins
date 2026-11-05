@@ -2260,3 +2260,167 @@ body.womosi-menu-design.md-nav-dropdown-open .womosi-konfigurator .wrap,
 body.womosi-menu-design.md-nav-dropdown-open .womosi-konfigurator .card {
   z-index: 0 !important;
 }
+
+/* ===== SITZ-AUSWAHL START GRID ===== */
+.womosi-konfigurator .fk-seat-start-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.womosi-konfigurator .fk-seat-start-grid .tile-link {
+  display: flex;
+  min-width: 0;
+  border-radius: 18px;
+  outline: none;
+}
+
+.womosi-konfigurator .fk-seat-start-grid .tile-link:focus-visible .tile {
+  box-shadow: 0 0 0 3px #fff, 0 0 0 6px #197149;
+}
+
+.womosi-konfigurator .fk-seat-start-grid .tile {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: 100%;
+  padding: 12px 12px 14px;
+  border: 1px solid rgba(11, 62, 39, 0.1);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(11, 62, 39, 0.05), 0 6px 18px rgba(11, 62, 39, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.womosi-konfigurator .fk-seat-start-grid .tile[data-tooltip]::before {
+  content: none;
+  display: none;
+}
+
+.womosi-konfigurator .fk-seat-start-grid .tile .imgWrap {
+  width: 100%;
+  max-width: none;
+  aspect-ratio: 4 / 3;
+  margin: 0 0 12px;
+  border-radius: 14px;
+  background: radial-gradient(circle at 50% 55%, #fff 0%, #f2f6f1 75%);
+}
+
+.womosi-konfigurator .fk-seat-start-grid .tile img {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 10px;
+  aspect-ratio: auto;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.womosi-konfigurator .fk-seat-start-grid .tile .name {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.7em;
+  margin: 0 4px 12px;
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1.35;
+  color: #10251a;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.womosi-konfigurator .fk-seat-start-grid .tile::after,
+.womosi-konfigurator .fk-seat-start-grid .tile[data-tooltip]::after {
+  content: "Ausw\00E4hlen \2192";
+  display: block;
+  position: static;
+  opacity: 1;
+  transform: none;
+  border: 0;
+  padding: 9px 12px;
+  border-radius: 999px;
+  background: #eef3ee;
+  color: #0b3e27;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: center;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.womosi-konfigurator .fk-seat-start-grid .tile:hover {
+  transform: translateY(-4px);
+  border-color: rgba(25, 113, 73, 0.45);
+  box-shadow: 0 14px 30px rgba(11, 62, 39, 0.14);
+}
+
+.womosi-konfigurator .fk-seat-start-grid .tile:hover img {
+  transform: scale(1.06);
+}
+
+.womosi-konfigurator .fk-seat-start-grid .tile:hover::after {
+  background: #0b3e27;
+  color: #fff;
+}
+
+.womosi-konfigurator .fk-seat-start-grid .tile-link.is-active .tile {
+  border: 2px solid #0b3e27;
+  background: rgba(204, 255, 0, 0.1);
+  box-shadow: 0 12px 28px rgba(11, 62, 39, 0.16);
+  transform: translateY(-2px);
+}
+
+.womosi-konfigurator .fk-seat-start-grid .tile-link.is-active .tile::after {
+  content: "\2713  Ausgew\00E4hlt";
+  background: var(--lime, #ccff00);
+  color: #0b3e27;
+}
+
+@media (max-width: 767.98px) {
+  .womosi-konfigurator .fk-seat-start-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .womosi-konfigurator .fk-seat-start-grid .tile {
+    padding: 8px 8px 10px;
+    border-radius: 16px;
+  }
+
+  .womosi-konfigurator .fk-seat-start {
+    padding: 14px;
+  }
+
+  .womosi-konfigurator .fk-seat-start-grid .tile .imgWrap {
+    max-width: none;
+    aspect-ratio: 1 / 1;
+    margin-bottom: 8px;
+    border-radius: 12px;
+  }
+
+  .womosi-konfigurator .fk-seat-start-grid .tile img {
+    padding: 6px;
+  }
+
+  .womosi-konfigurator .fk-seat-start-grid .tile .name {
+    min-height: 3.9em;
+    margin: 0 2px 8px;
+    font-size: 0.84rem;
+    line-height: 1.3;
+  }
+
+  .womosi-konfigurator .fk-seat-start-grid .tile::after,
+  .womosi-konfigurator .fk-seat-start-grid .tile[data-tooltip]::after {
+    padding: 7px 8px;
+    font-size: 0.76rem;
+  }
+
+  .womosi-konfigurator .fk-seat-start-grid .tile:hover {
+    transform: none;
+  }
+}
