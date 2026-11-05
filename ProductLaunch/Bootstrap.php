@@ -20,7 +20,7 @@ class Bootstrap extends Bootstrapper
         parent::boot($dispatcher);
 
         $dispatcher->hookInto(\HOOK_LETZTERINCLUDE_CSS_JS, function (array &$args): void {
-            if (!$this->enabled()) {
+            if (!$this->isLaunchPage()) {
                 return;
             }
             if (!isset($args['cPluginCss_arr']) || !\is_array($args['cPluginCss_arr'])) {
@@ -32,7 +32,7 @@ class Bootstrap extends Bootstrapper
         });
 
         $dispatcher->hookInto(\HOOK_SMARTY_OUTPUTFILTER, function (array &$args): void {
-            if (!$this->enabled() || !isset($args['smarty'], $args['document'])) {
+            if (!$this->isLaunchPage() || !isset($args['smarty'], $args['document'])) {
                 return;
             }
             $doc = $args['document'];
@@ -67,7 +67,7 @@ class Bootstrap extends Bootstrapper
         });
     }
 
-    private function enabled(): bool
+    private function isLaunchPage(): bool
     {
         return Shop::getPageType() === \PAGE_STARTSEITE && $this->cfg('pl_active', 'Y') === 'Y';
     }
