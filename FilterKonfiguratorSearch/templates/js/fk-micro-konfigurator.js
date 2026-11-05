@@ -215,9 +215,9 @@
 
   var SEAT_NAMES = {
     '1': 'Aguti Milan 12',
-    '2': 'Aguti Liner 12',
-    '3': 'ISRI Captain Chair',
-    '4': 'ISRI CC mit Gurt',
+    '2': 'Aguti Roadliner / Liner 12',
+    '3': 'ISRI Captain Chair Ducato, Jumper, Boxer ab Bj. 2006',
+    '4': 'ISRI Captain Chair mit Gurt',
     '5': 'ISRI Ducato / Jumper / Boxer, Bj. 2006–2014',
     '6': 'Aguti Milan',
     '7': 'Aguti GIS-Liner',

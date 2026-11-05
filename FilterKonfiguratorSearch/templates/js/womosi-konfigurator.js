@@ -706,9 +706,9 @@
 
     var SEAT_META = {
       '1': { code: '1', order: 7, name: 'Aguti Milan 12', tooltip: 'Aguti Milan 12', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/1.jpg' },
-      '2': { code: '2', order: 6, name: 'Aguti Liner 12', tooltip: 'Aguti Liner 12', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/2.jpg' },
-      '3': { code: '3', order: 1, name: 'ISRI Captain Chair', tooltip: 'ISRI Captain Chair', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/3.jpg' },
-      '4': { code: '4', order: 3, name: 'ISRI CC mit Gurt', tooltip: 'ISRI CC mit Gurt', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/4.jpg' },
+      '2': { code: '2', order: 6, name: 'Aguti Roadliner / Liner 12', tooltip: 'Aguti Roadliner / Liner 12', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/2.jpg' },
+      '3': { code: '3', order: 1, name: 'ISRI Captain Chair Ducato, Jumper, Boxer ab Bj. 2006', tooltip: 'ISRI Captain Chair Ducato, Jumper, Boxer ab Bj. 2006', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/3.jpg' },
+      '4': { code: '4', order: 3, name: 'ISRI Captain Chair mit Gurt', tooltip: 'ISRI Captain Chair mit Gurt', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/4.jpg' },
       '5': { code: '5', order: 2, name: 'ISRI Ducato / Jumper / Boxer, Bj. 2006–2014', tooltip: 'ISRI Ducato / Jumper / Boxer, Bj. 2006–2014', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/5.jpg' },
       '6': { code: '6', order: 5, name: 'Aguti Milan', tooltip: 'Aguti Milan', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/6.jpg' },
       '7': { code: '7', order: 4, name: 'Aguti GIS-Liner', tooltip: 'Aguti GIS-Liner', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/7.jpg' },
