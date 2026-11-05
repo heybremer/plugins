@@ -14,7 +14,7 @@ use JTL\Shop;
 
 class Bootstrap extends Bootstrapper
 {
-    private const CSS = 'plugins/CrossSell/templates/css/crosssell.v2.css';
+    private const CSS = 'plugins/CrossSell/templates/css/crosssell.v4.css';
 
     public function boot(Dispatcher $dispatcher): void
     {
@@ -84,6 +84,28 @@ class Bootstrap extends Bootstrapper
                 return;
             }
 
+            if ($ctx === 'product') {
+                // Kaufbare Empfehlungen als Checkbox unter den Variationen, der Rest als Kartenliste.
+                $shown = $this->injectOffer($doc, $smarty, $items);
+                if ($shown !== []) {
+                    $items = \array_values(\array_filter($items, static fn(array $i): bool => !\in_array($i['id'], $shown, true)));
+                }
+                if ($items === []) {
+                    return;
+                }
+            }
+
+            if ($ctx === 'product') {
+                // Kaufbare Empfehlungen als Checkbox unter den Variationen, der Rest als Kartenliste.
+                $shown = $this->injectOffer($doc, $smarty, $items);
+                if ($shown !== []) {
+                    $items = \array_values(\array_filter($items, static fn(array $i): bool => !\in_array($i['id'], $shown, true)));
+                }
+                if ($items === []) {
+                    return;
+                }
+            }
+
             $tpl = $this->getPlugin()->getPaths()->getBasePath() . 'templates/crosssell.tpl';
             if (!\is_file($tpl)) {
                 return;
@@ -103,33 +125,47 @@ class Bootstrap extends Bootstrapper
                 return;
             }
             $this->inject($doc, $html, $ctx);
-
-            if ($ctx === 'product' && $doc->find('#cs-offer')->length === 0) {
-                $offer = \array_slice(\array_values(\array_filter($items, static fn(array $i): bool => !empty($i['buyable']))), 0, 3);
-                $offerTpl = $this->getPlugin()->getPaths()->getBasePath() . 'templates/crosssell-offer.tpl';
-                if ($offer !== [] && \is_file($offerTpl)) {
-                    $smarty->assign('csOfferItems', $offer);
-                    try {
-                        $offerHtml = $smarty->fetch('file:' . $offerTpl);
-                    } catch (\Throwable $e) {
-                        $offerHtml = '';
-                    }
-                    if ($offerHtml !== '') {
-                        $var = $doc->find('div.variations')->eq(0);
-                        if ($var->length > 0) {
-                            $var->after($offerHtml);
-                        } else {
-                            $buy = $doc->find('#add-to-cart')->eq(0);
-                            if ($buy->length > 0) {
-                                $buy->before($offerHtml);
-                            }
-                        }
-                    }
-                }
-            }
         });
     }
 
+    /**
+     * @param object                         $doc
+     * @param array<int,array<string,mixed>> $items
+     * @return array<int,int> IDs der in der Checkbox-Box gezeigten Artikel
+     */
+    private function injectOffer($doc, $smarty, array $items): array
+    {
+        if ($doc->find('#cs-offer')->length > 0) {
+            return [];
+        }
+        $offer    = \array_slice(\array_values(\array_filter($items, static fn(array $i): bool => !empty($i['buyable']))), 0, 3);
+        $offerTpl = $this->getPlugin()->getPaths()->getBasePath() . 'templates/crosssell-offer.tpl';
+        if ($offer === [] || !\is_file($offerTpl)) {
+            return [];
+        }
+        $anchor = $doc->find('div.variations')->eq(0);
+        $before = false;
+        if ($anchor->length === 0) {
+            $anchor = $doc->find('#add-to-cart')->eq(0);
+            $before = true;
+        }
+        if ($anchor->length === 0) {
+            return [];
+        }
+        $smarty->assign('csOfferItems', $offer);
+        $smarty->assign('csShopUrl', \rtrim((string)Shop::getURL(), '/'));
+        try {
+            $html = $smarty->fetch('file:' . $offerTpl);
+        } catch (\Throwable $e) {
+            return [];
+        }
+        if ($html === '') {
+            return [];
+        }
+        $before ? $anchor->before($html) : $anchor->after($html);
+
+        return \array_map(static fn(array $i): int => (int)$i['id'], $offer);
+    }
     /**
      * 'product' | 'cart' | '' (nicht anzeigen)
      */

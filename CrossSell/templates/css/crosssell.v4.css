@@ -17,3 +17,9 @@
 .cs-offer__name{flex:1;line-height:1.25;font-size:.9rem}
 .cs-offer__price{white-space:nowrap}
 .cs-offer__link{font-size:.8rem;white-space:nowrap}
+.cs-offer__name{min-width:0}
+@media (max-width:575.98px){
+.cs-offer__row{flex-wrap:wrap;row-gap:.1rem}
+.cs-offer__name{flex:1 1 calc(100% - 95px)}
+.cs-offer__price{margin-left:76px}
+}
