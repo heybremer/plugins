@@ -66,8 +66,37 @@ if (Form::validateToken()) {
             'cImage'     => mb_substr(trim((string)($_POST['pl_image'] ?? '')), 0, 500),
             'cUrl'       => mb_substr(trim((string)($_POST['pl_url'] ?? '')), 0, 500),
         ];
+        $data['kKategorie2'] = (int)($_POST['pl_cat2'] ?? 0);
+        $data['cCatLabel1']  = mb_substr(trim((string)($_POST['pl_catlabel1'] ?? '')), 0, 80);
+        $data['cCatLabel2']  = mb_substr(trim((string)($_POST['pl_catlabel2'] ?? '')), 0, 80);
+        $gallery = array_values(array_filter(array_map('trim', preg_split('/\R/', (string)($_POST['pl_gallery'] ?? '')) ?: [])));
+        try {
+            if (!empty($_FILES['pl_main_file']['name']) && (int)$_FILES['pl_main_file']['error'] !== UPLOAD_ERR_NO_FILE) {
+                $data['cImage'] = LaunchRepository::saveUpload($_FILES['pl_main_file']);
+            }
+            if (!empty($_FILES['pl_gal_files']['name'][0])) {
+                foreach ($_FILES['pl_gal_files']['name'] as $i => $n) {
+                    if ((int)$_FILES['pl_gal_files']['error'][$i] === UPLOAD_ERR_NO_FILE) {
+                        continue;
+                    }
+                    $gallery[] = LaunchRepository::saveUpload([
+                        'name'     => (string)$n,
+                        'tmp_name' => (string)$_FILES['pl_gal_files']['tmp_name'][$i],
+                        'error'    => (int)$_FILES['pl_gal_files']['error'][$i],
+                        'size'     => (int)$_FILES['pl_gal_files']['size'][$i],
+                    ]);
+                }
+            }
+        } catch (\Throwable $e) {
+            $uploadError = $e->getMessage();
+        }
+        $data['cGallery'] = implode("\n", array_unique($gallery));
         $id = (int)($_POST['pl_id'] ?? 0);
-        if ($data['kArtikel'] <= 0 && $data['cTitle'] === '') {
+        if (!empty($uploadError)) {
+            $error  = 'Görsel hatası: ' . $uploadError . ' (kayıt yapılmadı)';
+            $editId = $id;
+            $isNew  = $id === 0;
+        } elseif ($data['kArtikel'] <= 0 && $data['cTitle'] === '') {
             $error  = 'Ürün seçin veya en az bir başlık girin.';
             $editId = $id;
             $isNew  = $id === 0;
@@ -119,14 +148,17 @@ $today = date('Y-m-d');
     $artId   = (int)($row->kArtikel ?? ($_POST['pl_art'] ?? 0));
     $catId   = (int)($row->kKategorie ?? ($_POST['pl_cat'] ?? 0));
     $artInfo = LaunchRepository::articleInfo([$artId])[$artId] ?? null;
-    $catPath = $catId > 0 ? (LaunchRepository::categoryPaths([$catId])[$catId] ?? ('#' . $catId)) : '';
+    $cat2Id  = (int)($row->kKategorie2 ?? ($_POST['pl_cat2'] ?? 0));
+    $catPaths = LaunchRepository::categoryPaths([$catId, $cat2Id]);
+    $catPath  = $catId > 0 ? ($catPaths[$catId] ?? ('#' . $catId)) : '';
+    $cat2Path = $cat2Id > 0 ? ($catPaths[$cat2Id] ?? ('#' . $cat2Id)) : '';
     $active  = $row === null ? true : (int)$row->nActive === 1;
     ?>
     <p><a href="<?php echo plH(plUrl()); ?>">&larr; Tüm lansmanlar</a></p>
     <h3><?php echo $row !== null ? 'Lansmanı düzenle' : 'Yeni lansman'; ?></h3>
     <p>Ürün opsiyoneldir. Ürün seçilirse başlık, metin, görsel ve link boş bırakıldığında üründen alınır. Ürün seçilmezse başlık zorunludur; görsel URL'si ve link elle girilebilir (link boşsa kategori linki kullanılır).</p>
 
-    <form method="post" action="<?php echo plH(plUrl($editId > 0 ? ['pl_edit' => $editId] : ['pl_new' => 1])); ?>">
+    <form method="post" enctype="multipart/form-data" action="<?php echo plH(plUrl($editId > 0 ? ['pl_edit' => $editId] : ['pl_new' => 1])); ?>">
         <?php echo $token; ?>
         <input type="hidden" name="pl_id" value="<?php echo (int)$editId; ?>">
 
@@ -142,7 +174,7 @@ $today = date('Y-m-d');
                 <div class="pl-res" style="display:none;"></div>
             </div>
             <div class="form-group">
-                <label><strong>Kategori</strong> <small>(opsiyonel – "Alle in …" butonu ve etiket)</small></label>
+                <label><strong>Kategori butonu 1</strong> <small>(opsiyonel)</small></label>
                 <input type="hidden" name="pl_cat" id="pl-cat" value="<?php echo $catId > 0 ? $catId : ''; ?>">
                 <div class="pl-pick" id="pl-cat-pick" style="<?php echo $catPath !== '' ? '' : 'display:none'; ?>">
                     <span><?php echo $catPath !== '' ? plH($catPath) . ' <small>#' . $catId . '</small>' : ''; ?></span>
@@ -150,6 +182,37 @@ $today = date('Y-m-d');
                 </div>
                 <input type="text" class="form-control pl-search" data-type="cat" placeholder="Kategori ara..." autocomplete="off">
                 <div class="pl-res" style="display:none;"></div>
+                <input type="text" class="form-control" name="pl_catlabel1" maxlength="80" style="margin-top:.4rem" placeholder="Buton yazısı (boşsa kategori adı)" value="<?php echo plH((string)($row->cCatLabel1 ?? '')); ?>">
+            </div>
+            <div class="form-group">
+                <label><strong>Kategori butonu 2</strong> <small>(opsiyonel)</small></label>
+                <input type="hidden" name="pl_cat2" id="pl-cat2" value="<?php echo $cat2Id > 0 ? $cat2Id : ''; ?>">
+                <div class="pl-pick" id="pl-cat2-pick" style="<?php echo $cat2Path !== '' ? '' : 'display:none'; ?>">
+                    <span><?php echo $cat2Path !== '' ? plH($cat2Path) . ' <small>#' . $cat2Id . '</small>' : ''; ?></span>
+                    <button type="button" class="btn btn-sm btn-light" data-pl-clear="cat2">&times;</button>
+                </div>
+                <input type="text" class="form-control pl-search" data-type="cat2" placeholder="Kategori ara..." autocomplete="off">
+                <div class="pl-res" style="display:none;"></div>
+                <input type="text" class="form-control" name="pl_catlabel2" maxlength="80" style="margin-top:.4rem" placeholder="Buton yazısı (boşsa kategori adı)" value="<?php echo plH((string)($row->cCatLabel2 ?? '')); ?>">
+            </div>
+        </div>
+
+        <div class="pl-grid">
+            <div class="form-group">
+                <label><strong>Ana görsel</strong> <small>(yükle veya URL gir)</small></label>
+                <input type="file" class="form-control" name="pl_main_file" accept="image/jpeg,image/png,image/webp">
+                <input type="text" class="form-control" name="pl_image" maxlength="500" style="margin-top:.4rem" placeholder="https://... (yükleme yoksa)" value="<?php echo plH((string)($row->cImage ?? '')); ?>">
+                <?php if (!empty($row->cImage)) { ?><img src="<?php echo plH((string)$row->cImage); ?>" alt="" style="max-height:90px;margin-top:.4rem;border-radius:6px"><?php } ?>
+            </div>
+            <div class="form-group">
+                <label><strong>Varyasyon görselleri</strong> <small>(birden fazla yükle; her satıra bir URL)</small></label>
+                <input type="file" class="form-control" name="pl_gal_files[]" multiple accept="image/jpeg,image/png,image/webp">
+                <textarea class="form-control" name="pl_gallery" rows="4" style="margin-top:.4rem" placeholder="https://..."><?php echo plH((string)($row->cGallery ?? '')); ?></textarea>
+                <div style="margin-top:.4rem;display:flex;gap:6px;flex-wrap:wrap">
+                <?php foreach (array_filter(preg_split('/\R/', (string)($row->cGallery ?? '')) ?: []) as $g) { ?>
+                    <img src="<?php echo plH(trim($g)); ?>" alt="" style="height:60px;border-radius:6px">
+                <?php } ?>
+                </div>
             </div>
         </div>
 
@@ -164,15 +227,9 @@ $today = date('Y-m-d');
             </div>
         </div>
 
-        <div class="pl-grid">
-            <div class="form-group">
-                <label>Görsel URL <small>(opsiyonel – boşsa ürün görseli)</small></label>
-                <input type="text" class="form-control" name="pl_image" maxlength="500" value="<?php echo plH((string)($row->cImage ?? '')); ?>" placeholder="https://...">
-            </div>
-            <div class="form-group">
-                <label>Link <small>(opsiyonel – boşsa ürün / kategori linki)</small></label>
-                <input type="text" class="form-control" name="pl_url" maxlength="500" value="<?php echo plH((string)($row->cUrl ?? '')); ?>" placeholder="https://...">
-            </div>
+        <div class="form-group">
+            <label>Link <small>(opsiyonel – ana buton; boşsa ürün linki)</small></label>
+            <input type="text" class="form-control" name="pl_url" maxlength="500" value="<?php echo plH((string)($row->cUrl ?? '')); ?>" placeholder="https://...">
         </div>
 
         <div class="form-group">
@@ -296,7 +353,7 @@ $today = date('Y-m-d');
             var v = input.value.trim();
             if (v.length < 2) { res.style.display = 'none'; return; }
             timer = setTimeout(function () {
-                fetch(searchBase + '&pl_type=' + type + '&q=' + encodeURIComponent(v), { credentials: 'same-origin' })
+                fetch(searchBase + '&pl_type=' + type.replace('2', '') + '&q=' + encodeURIComponent(v), { credentials: 'same-origin' })
                     .then(function (r) { return r.text(); })
                     .then(function (t) {
                         var a = t.indexOf('__PL_START__'), b = t.indexOf('__PL_END__');

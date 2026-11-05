@@ -12,16 +12,22 @@
         <div class="pl-track" tabindex="0">
             {foreach $plItems as $it}
                 <article class="pl-card">
-                    <a class="pl-media" href="{$it.url|escape:'html'}" tabindex="-1">
-                        {if $it.image}
-                            <img src="{$it.image|escape:'html'}" alt="{$it.name|escape:'html'}" loading="lazy" decoding="async">
+                    <div class="pl-mediabox">
+                        <a class="pl-media" href="{if $it.url}{$it.url|escape:'html'}{elseif $it.catUrl}{$it.catUrl|escape:'html'}{else}#{/if}" tabindex="-1">
+                            {if $it.image}
+                                <img class="pl-main-img" src="{$it.image|escape:'html'}" alt="{$it.name|escape:'html'}" loading="lazy" decoding="async">
+                            {/if}
+                            <span class="pl-badge">{$it.badge|escape:'html'}</span>
+                        </a>
+                        {if $it.gallery|@count > 1}
+                            <div class="pl-thumbs">
+                                {foreach $it.gallery as $g}
+                                    <button type="button" class="pl-thumb{if $g@first} is-active{/if}" data-pl-img="{$g|escape:'html'}" aria-label="{$it.title|escape:'html'} {$g@iteration}"><img src="{$g|escape:'html'}" alt="" loading="lazy" decoding="async"></button>
+                                {/foreach}
+                            </div>
                         {/if}
-                        <span class="pl-badge">{$it.badge|escape:'html'}</span>
-                    </a>
+                    </div>
                     <div class="pl-body">
-                        {if $it.catName}
-                            <a class="pl-cat" href="{$it.catUrl|escape:'html'}">{$it.catName|escape:'html'}</a>
-                        {/if}
                         <h2 class="pl-title"><a href="{$it.url|escape:'html'}">{$it.title|escape:'html'}</a></h2>
                         {if $it.text}
                             <p class="pl-text">{$it.text|escape:'html'}</p>
@@ -33,14 +39,38 @@
                             {if $it.url}
                                 <a class="pl-btn pl-btn--primary" href="{$it.url|escape:'html'}">{$it.button|escape:'html'} &rarr;</a>
                             {/if}
-                            {if $it.catUrl && $it.catName && $it.catUrl != $it.url}
-                                <a class="pl-btn pl-btn--ghost" href="{$it.catUrl|escape:'html'}">Alle in {$it.catName|escape:'html'}</a>
+                            {if $it.catUrl && $it.catName}
+                                <a class="pl-btn {if $it.url}pl-btn--ghost{else}pl-btn--primary{/if}" href="{$it.catUrl|escape:'html'}">{$it.catName|escape:'html'}{if !$it.url} &rarr;{/if}</a>
+                            {/if}
+                            {if $it.cat2Url && $it.cat2Name}
+                                <a class="pl-btn {if $it.url || $it.catUrl}pl-btn--ghost{else}pl-btn--primary{/if}" href="{$it.cat2Url|escape:'html'}">{$it.cat2Name|escape:'html'}</a>
                             {/if}
                         </div>
                     </div>
                 </article>
             {/foreach}
         </div>
+        <script>
+        {literal}
+        (function () {
+            var root = document.getElementById('pl-launch');
+            if (!root) { return; }
+            root.querySelectorAll('.pl-thumb').forEach(function (t) {
+                t.addEventListener('click', function () {
+                    var card = t.closest('.pl-card');
+                    var img = card.querySelector('.pl-main-img');
+                    if (!img) {
+                        img = document.createElement('img');
+                        img.className = 'pl-main-img';
+                        card.querySelector('.pl-media').insertBefore(img, card.querySelector('.pl-badge'));
+                    }
+                    img.src = t.getAttribute('data-pl-img');
+                    card.querySelectorAll('.pl-thumb').forEach(function (o) { o.classList.toggle('is-active', o === t); });
+                });
+            });
+        })();
+        {/literal}
+        </script>
         {if $plItems|@count > 1}
             <div class="pl-dots" role="tablist">
                 {foreach $plItems as $it}

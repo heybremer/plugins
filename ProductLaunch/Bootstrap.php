@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 declare(strict_types=1);
 
 namespace Plugin\ProductLaunch;
@@ -13,7 +13,7 @@ use JTL\Shop;
 
 class Bootstrap extends Bootstrapper
 {
-    private const CSS = 'plugins/ProductLaunch/templates/css/productlaunch.v1.css';
+    private const CSS = 'plugins/ProductLaunch/templates/css/productlaunch.v2.css';
 
     public function boot(Dispatcher $dispatcher): void
     {
@@ -146,6 +146,20 @@ class Bootstrap extends Bootstrapper
                 if ($url === '') {
                     $url = $cat['url'];
                 }
+                $cat2    = LaunchRepository::categoryLink((int)($r->kKategorie2 ?? 0), $langId, $shopUrl);
+                $gallery = [];
+                foreach (\preg_split('/\R/', (string)($r->cGallery ?? '')) ?: [] as $g) {
+                    $g = \trim($g);
+                    if ($g !== '') {
+                        $gallery[] = $g;
+                    }
+                }
+                if ($gallery !== [] && $img !== '') {
+                    \array_unshift($gallery, $img);
+                    $gallery = \array_values(\array_unique($gallery));
+                } elseif ($gallery !== [] && $img === '') {
+                    $img = $gallery[0];
+                }
                 $title = \trim((string)$r->cTitle) !== '' ? \trim((string)$r->cTitle) : $name;
                 if ($title === '') {
                     continue;
@@ -159,8 +173,11 @@ class Bootstrap extends Bootstrapper
                     'url'     => $url,
                     'image'   => $img,
                     'price'   => $price,
-                    'catName' => $cat['name'],
+                    'catName' => \trim((string)($r->cCatLabel1 ?? '')) !== '' ? \trim((string)$r->cCatLabel1) : $cat['name'],
                     'catUrl'  => $cat['url'],
+                    'cat2Name' => \trim((string)($r->cCatLabel2 ?? '')) !== '' ? \trim((string)$r->cCatLabel2) : $cat2['name'],
+                    'cat2Url' => $cat2['url'],
+                    'gallery' => $gallery,
                 ];
             } catch (\Throwable $e) {
                 continue;
