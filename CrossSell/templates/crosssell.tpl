@@ -22,4 +22,20 @@
             </div>
         {/foreach}
     </div>
+    {if $csContext === 'cart'}
+    <script>
+        (function () {
+            document.querySelectorAll('#cs-recs .cs-card__form').forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    var btn = form.querySelector('button');
+                    if (btn) { btn.disabled = true; }
+                    fetch(form.action, { method: 'POST', body: new FormData(form), credentials: 'same-origin' })
+                        .then(function () { window.location.reload(); })
+                        .catch(function () { form.submit(); });
+                });
+            });
+        })();
+    </script>
+    {/if}
 </section>
