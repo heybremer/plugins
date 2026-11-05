@@ -2363,6 +2363,28 @@ body.womosi-menu-design.md-nav-dropdown-open .womosi-konfigurator .card {
   transform: scale(1.06);
 }
 
+/* Foto als Hauptbild, beim Hover das Strichbild */
+.womosi-konfigurator .seat-grid .tile .imgWrap.has-hover img {
+  transition: opacity 0.25s ease, transform 0.22s ease;
+}
+
+.womosi-konfigurator .seat-grid .tile .imgWrap.has-hover img.img-hover {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (hover: hover) {
+  .womosi-konfigurator .seat-grid .tile:hover .imgWrap.has-hover img:not(.img-hover) {
+    opacity: 0;
+  }
+
+  .womosi-konfigurator .seat-grid .tile:hover .imgWrap.has-hover img.img-hover {
+    opacity: 1;
+  }
+}
+
 .womosi-konfigurator .fk-seat-start-grid .tile:hover::after {
   background: #0b3e27;
   color: #fff;
