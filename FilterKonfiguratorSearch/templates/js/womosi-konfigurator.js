@@ -715,7 +715,7 @@
       '8': { code: '8', order: 11, name: 'Aguti GIS-Liner 3', tooltip: 'Aguti GIS-Liner 3', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/8.jpg' },
       '9': { code: '9', order: 8, name: 'Ford Transit ab Bj. 2014', tooltip: 'Ford Transit ab Bj. 2014', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/9.jpg' },
       '10': { code: '10', order: 9, name: 'Ford Transit ab Bj. 2014 mit integrierter Kopfstütze', tooltip: 'Ford Transit ab Bj. 2014 mit integrierter Kopfstütze', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/10.jpg' },
-      '11': { code: '11', order: 12, name: 'Aguti Milan 3', tooltip: 'Aguti Milan 3', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/11.jpg' },
+      '11': { code: '11', order: 12, name: 'Aguti Milan 3', tooltip: 'Aguti Milan 3', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/11-foto.jpg', imgHover: 'https://bremer-sitzbezuege.de/mediafiles/sitz/11.jpg' },
       '12': { code: '12', order: 13, name: 'SKA 1800 M23 Komfort', tooltip: 'SKA 1800 M23 Komfort', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/12.jpg' },
       '13': { code: '13', order: 14, name: 'SKA 1800/1000 M23 Classic', tooltip: 'SKA 1800/1000 M23 Classic', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/13.jpg' },
       '14': { code: '14', order: 10, name: 'Mercedes-Benz Sprinter / Hymer', tooltip: 'Mercedes-Benz Sprinter / Hymer', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/14-foto.jpg', imgHover: 'https://bremer-sitzbezuege.de/mediafiles/sitz/14.jpg' }
