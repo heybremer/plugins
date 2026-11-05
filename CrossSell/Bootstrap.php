@@ -41,7 +41,8 @@ class Bootstrap extends Bootstrapper
                 return;
             }
             $doc = $args['document'];
-            if ($doc->find('#cs-recs')->length > 0) {
+            // Der Filter laeuft auch fuer Teil-Templates (Produktboxen etc.) - nur Hauptdokument.
+            if ($doc->find('#cs-recs')->length > 0 || $doc->find('div#content, main')->length === 0) {
                 return;
             }
             $smarty = $args['smarty'];
@@ -49,11 +50,22 @@ class Bootstrap extends Bootstrapper
             $sourceIds  = [];
             $excludeIds = [];
             if ($ctx === 'product') {
-                $art = $smarty->getTemplateVars('Artikel');
-                if (!\is_object($art) || (int)($art->kArtikel ?? 0) <= 0) {
+                $main = (int)Shop::$kArtikel;
+                if ($main <= 0) {
                     return;
                 }
-                $sourceIds  = [(int)$art->kArtikel, (int)($art->kVaterArtikel ?? 0)];
+                $sourceIds = [$main, (int)Shop::$kVariKindArtikel];
+                try {
+                    $row = Shop::Container()->getDB()->getSingleObject(
+                        'SELECT kVaterArtikel FROM tartikel WHERE kArtikel = :a',
+                        ['a' => $main]
+                    );
+                    if ($row !== null) {
+                        $sourceIds[] = (int)$row->kVaterArtikel;
+                    }
+                } catch (\Throwable $e) {
+                    // ignore
+                }
                 $excludeIds = $sourceIds;
             } else {
                 foreach ($this->cartArticleIds() as $id) {
@@ -183,11 +195,11 @@ class Bootstrap extends Bootstrapper
                 }
                 $price = '';
                 if (isset($a->Preise->cVKLocalized[$net])) {
-                    $price = (string)$a->Preise->cVKLocalized[$net];
+                    $price = \html_entity_decode((string)$a->Preise->cVKLocalized[$net], \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
                 }
                 $items[] = [
                     'id'      => $id,
-                    'name'    => (string)$a->cName,
+                    'name'    => \html_entity_decode((string)$a->cName, \ENT_QUOTES | \ENT_HTML5, 'UTF-8'),
                     'url'     => (string)($a->cURLFull ?? $a->cURL ?? ''),
                     'image'   => $img,
                     'price'   => $price,
@@ -216,7 +228,7 @@ class Bootstrap extends Bootstrapper
             }
         }
         $after = $ctx === 'product'
-            ? ['#product-tabs', '.product-tabs', '#tab-content']
+            ? ['nav.tab-navigation', '#tab-content-product-tabs', '.product-tabs']
             : ['#cart-form', '.cart-items', '.basket_wrapper'];
         foreach ($after as $sel) {
             $t = $doc->find($sel)->eq(0);
