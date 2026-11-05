@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jtlshopplugin>
+    <Name>ProductLaunch</Name>
+    <Description>Yeni urun lansman tanitimi: secilen urunleri anasayfada buyuk bir vitrin olarak gosterir. Urun ve kategori dashboard'dan secilir.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>100</XMLVersion>
+    <ShopVersion>5.2.0</ShopVersion>
+    <PluginID>ProductLaunch</PluginID>
+    <CreateDate>2026-11-05</CreateDate>
+    <Version>1.0.0</Version>
+    <Bootstrap>Plugin\ProductLaunch\Bootstrap</Bootstrap>
+    <Install>
+        <Adminmenu>
+            <Customlink sort="1">
+                <Name>Lansmanlar</Name>
+                <Filename>dashboard.php</Filename>
+            </Customlink>
+            <Settingslink sort="2">
+                <Name>Ayarlar</Name>
+                <Setting type="selectbox" initialValue="Y" sort="1" conf="Y">
+                    <Name>Anasayfada goster</Name>
+                    <Description>Lansman vitrinini anasayfada goster</Description>
+                    <ValueName>pl_active</ValueName>
+                    <SelectboxOptions>
+                        <Option value="Y" sort="1">Evet</Option>
+                        <Option value="N" sort="2">Hayir</Option>
+                    </SelectboxOptions>
+                </Setting>
+                <Setting type="text" initialValue="Neu eingetroffen" sort="2" conf="Y">
+                    <Name>Bolum basligi</Name>
+                    <Description>Vitrinin ustundeki kucuk baslik</Description>
+                    <ValueName>pl_section_title</ValueName>
+                </Setting>
+                <Setting type="text" initialValue="5" sort="3" conf="Y">
+                    <Name>Maksimum lansman sayisi</Name>
+                    <Description>Ayni anda en fazla kac lansman gosterilsin (1-10). Birden fazla ise slider olur.</Description>
+                    <ValueName>pl_max_items</ValueName>
+                </Setting>
+                <Setting type="text" initialValue="" sort="4" conf="Y">
+                    <Name>CSS selector (opsiyonel)</Name>
+                    <Description>Bu elementin altina eklenir. Bos ise konfiguratorun altina / icerigin basina.</Description>
+                    <ValueName>pl_selector</ValueName>
+                </Setting>
+            </Settingslink>
+        </Adminmenu>
+    </Install>
+</jtlshopplugin>
