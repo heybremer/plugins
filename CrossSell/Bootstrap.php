@@ -14,7 +14,7 @@ use JTL\Shop;
 
 class Bootstrap extends Bootstrapper
 {
-    private const CSS = 'plugins/CrossSell/templates/css/crosssell.css';
+    private const CSS = 'plugins/CrossSell/templates/css/crosssell.v2.css';
 
     public function boot(Dispatcher $dispatcher): void
     {
@@ -103,6 +103,30 @@ class Bootstrap extends Bootstrapper
                 return;
             }
             $this->inject($doc, $html, $ctx);
+
+            if ($ctx === 'product' && $doc->find('#cs-offer')->length === 0) {
+                $offer = \array_slice(\array_values(\array_filter($items, static fn(array $i): bool => !empty($i['buyable']))), 0, 3);
+                $offerTpl = $this->getPlugin()->getPaths()->getBasePath() . 'templates/crosssell-offer.tpl';
+                if ($offer !== [] && \is_file($offerTpl)) {
+                    $smarty->assign('csOfferItems', $offer);
+                    try {
+                        $offerHtml = $smarty->fetch('file:' . $offerTpl);
+                    } catch (\Throwable $e) {
+                        $offerHtml = '';
+                    }
+                    if ($offerHtml !== '') {
+                        $var = $doc->find('div.variations')->eq(0);
+                        if ($var->length > 0) {
+                            $var->after($offerHtml);
+                        } else {
+                            $buy = $doc->find('#add-to-cart')->eq(0);
+                            if ($buy->length > 0) {
+                                $buy->before($offerHtml);
+                            }
+                        }
+                    }
+                }
+            }
         });
     }
 

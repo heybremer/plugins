@@ -8,3 +8,12 @@
 .cs-card__price{font-weight:700}
 .cs-card__form{margin-top:auto}
 .cs-card .btn{margin-top:auto}
+.cs-offer{margin:1rem 0;padding:.75rem;border:1px solid rgba(0,0,0,.15);border-radius:.5rem;background:#fafafa}
+.cs-offer__title{font-weight:700;margin-bottom:.5rem}
+.cs-offer__row{display:flex;align-items:center;gap:.6rem;margin:0;padding:.35rem 0;cursor:pointer}
+.cs-offer__row+.cs-offer__row{border-top:1px solid rgba(0,0,0,.08)}
+.cs-offer__check{flex:0 0 auto;width:1.1rem;height:1.1rem}
+.cs-offer__img{flex:0 0 auto;width:48px;height:48px;object-fit:contain}
+.cs-offer__name{flex:1;line-height:1.25;font-size:.9rem}
+.cs-offer__price{white-space:nowrap}
+.cs-offer__link{font-size:.8rem;white-space:nowrap}
