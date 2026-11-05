@@ -711,7 +711,7 @@
       '4': { code: '4', order: 3, name: 'ISRI Captain Chair mit Gurt', tooltip: 'ISRI Captain Chair mit Gurt', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/4.jpg' },
       '5': { code: '5', order: 2, name: 'ISRI Ducato / Jumper / Boxer, Bj. 2006–2014', tooltip: 'ISRI Ducato / Jumper / Boxer, Bj. 2006–2014', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/5-foto.jpg', imgHover: 'https://bremer-sitzbezuege.de/mediafiles/sitz/5.jpg' },
       '6': { code: '6', order: 5, name: 'Aguti Milan', tooltip: 'Aguti Milan', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/6.jpg' },
-      '7': { code: '7', order: 4, name: 'Aguti GIS-Liner', tooltip: 'Aguti GIS-Liner', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/7.jpg' },
+      '7': { code: '7', order: 4, name: 'Aguti GIS-Liner', tooltip: 'Aguti GIS-Liner', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/7-foto.jpg', imgHover: 'https://bremer-sitzbezuege.de/mediafiles/sitz/7.jpg' },
       '8': { code: '8', order: 11, name: 'Aguti GIS-Liner 3', tooltip: 'Aguti GIS-Liner 3', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/8.jpg' },
       '9': { code: '9', order: 8, name: 'Ford Transit ab Bj. 2014', tooltip: 'Ford Transit ab Bj. 2014', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/9.jpg' },
       '10': { code: '10', order: 9, name: 'Ford Transit ab Bj. 2014 mit integrierter Kopfstütze', tooltip: 'Ford Transit ab Bj. 2014 mit integrierter Kopfstütze', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/10.jpg' },
