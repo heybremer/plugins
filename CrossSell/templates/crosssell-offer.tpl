@@ -1,5 +1,5 @@
 <div id="cs-offer" class="cs-offer">
-    <div class="cs-offer__title">Dazu passend &ndash; m&ouml;chten Sie das gleich mitbestellen?</div>
+    <div class="cs-offer__title">Bestellen Sie das passende Zubeh&ouml;r zu diesem Produkt.</div>
     {foreach $csOfferItems as $p}
         <label class="cs-offer__row">
             <input type="checkbox" class="cs-offer__check" value="{$p.id}">
