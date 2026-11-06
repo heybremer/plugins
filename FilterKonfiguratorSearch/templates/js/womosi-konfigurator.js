@@ -1374,18 +1374,20 @@
       });
     }
 
-    WomosiUI.renderSeatGrid = function (targetGrid, values, onSelect) {
+    WomosiUI.renderSeatGrid = function (targetGrid, values, onSelect, limit) {
       if (!targetGrid) return;
       targetGrid.innerHTML = '';
       var list = Array.isArray(values) ? values : [];
+      var shown = 0;
       list.forEach(function (label) {
         var seatValue = String(label || '').trim();
         if (!seatValue) return;
+        shown++;
         var code = WomosiState.seatCodeFromValue(seatValue);
         var meta = code ? SEAT_META[code] : null;
         var a = document.createElement('a');
         a.href = '#';
-        a.className = 'tile-link' + (state.seatId === seatValue ? ' is-active' : '');
+        a.className = 'tile-link' + (state.seatId === seatValue ? ' is-active' : '') + (limit && shown > limit ? ' is-extra' : '');
 
         var tile = document.createElement('div');
         tile.className = 'tile';
@@ -1460,9 +1462,44 @@
         return;
       }
       if (seatStartHint) seatStartHint.textContent = 'Wähle deinen Sitztyp als Startpunkt.';
+      var limit = 5;
+      var selIdx = list.indexOf(state.seatId);
+      if (selIdx >= limit) WomosiUI.startSeatsExpanded = true;
       WomosiUI.renderSeatGrid(seatStartGrid, list, function () {
         WomosiUI.selectStartSeat();
-      });
+      }, limit);
+
+      // "Weitere Sitze anzeigen"-Button unter dem Grid
+      var moreBtn = document.getElementById('fkSeatMore');
+      if (!moreBtn) {
+        moreBtn = document.createElement('button');
+        moreBtn.type = 'button';
+        moreBtn.id = 'fkSeatMore';
+        moreBtn.className = 'fk-seat-more';
+        moreBtn.addEventListener('click', function () {
+          WomosiUI.startSeatsExpanded = !WomosiUI.startSeatsExpanded;
+          WomosiUI.syncStartSeatsMore();
+        });
+        seatStartGrid.insertAdjacentElement('afterend', moreBtn);
+      }
+      WomosiUI.startSeatCount = list.length;
+      WomosiUI.startSeatLimit = limit;
+      WomosiUI.syncStartSeatsMore();
+    }
+
+    WomosiUI.syncStartSeatsMore = function () {
+      var moreBtn = document.getElementById('fkSeatMore');
+      if (!moreBtn || !seatStartGrid) return;
+      var total = WomosiUI.startSeatCount || 0;
+      var limit = WomosiUI.startSeatLimit || 5;
+      var hasMore = total > limit;
+      var expanded = !!WomosiUI.startSeatsExpanded;
+      moreBtn.hidden = !hasMore;
+      moreBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      moreBtn.textContent = expanded
+        ? 'Weniger Sitze anzeigen'
+        : 'Weitere Sitze anzeigen (' + (total - limit) + ')';
+      seatStartGrid.classList.toggle('is-collapsed', hasMore && !expanded);
     }
 
     WomosiUI.selectStartSeat = function () {

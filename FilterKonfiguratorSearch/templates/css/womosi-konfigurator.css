@@ -2446,3 +2446,52 @@ body.womosi-menu-design.md-nav-dropdown-open .womosi-konfigurator .card {
     transform: none;
   }
 }
+
+/* Sitztyp-Start: nur die ersten 5 zeigen, Rest per Button */
+.womosi-konfigurator .fk-seat-start-grid.is-collapsed .tile-link.is-extra {
+  display: none !important;
+}
+
+.womosi-konfigurator .fk-seat-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 18px auto 0;
+  padding: 12px 26px;
+  border: 2px solid #197149;
+  border-radius: 999px;
+  background: #fff;
+  color: #197149;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.womosi-konfigurator .fk-seat-more[hidden] {
+  display: none;
+}
+
+.womosi-konfigurator .fk-seat-more::after {
+  content: "\2193";
+  font-size: 1.05em;
+  transition: transform 0.2s ease;
+}
+
+.womosi-konfigurator .fk-seat-more[aria-expanded="true"]::after {
+  transform: rotate(180deg);
+}
+
+.womosi-konfigurator .fk-seat-more:hover,
+.womosi-konfigurator .fk-seat-more:focus-visible {
+  background: #197149;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 767.98px) {
+  .womosi-konfigurator .fk-seat-more {
+    width: 100%;
+  }
+}
