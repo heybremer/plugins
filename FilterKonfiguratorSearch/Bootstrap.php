@@ -92,8 +92,8 @@ class Bootstrap extends Bootstrapper
                 $assetVersion = '1.14.70';
             }
             $assetVersion = \preg_replace('/[^0-9A-Za-z._-]/', '', $assetVersion) ?: '1.14.70';
-            if (\version_compare($assetVersion, '1.14.123', '<')) {
-                $assetVersion = '1.14.123';
+            if (\version_compare($assetVersion, '1.14.124', '<')) {
+                $assetVersion = '1.14.124';
             }
             foreach ([
                 ['selector' => 'script[src*="fk-micro-konfigurator.js"]', 'attr' => 'src'],
@@ -1564,7 +1564,7 @@ class Bootstrap extends Bootstrapper
         $names = [
             '1'  => 'Aguti Milan 12',
             '2'  => 'Aguti Roadliner / Liner 12',
-            '3'  => 'ISRI Captain Chair Ducato, Jumper, Boxer ab Bj. 2006',
+            '3'  => 'ISRI Captain Chair Ducato, Jumper, Boxer Baujahr 2006-2027',
             '4'  => 'ISRI Captain Chair mit Gurt',
             '5'  => 'ISRI Ducato / Jumper / Boxer, Bj. 2006–2014',
             '6'  => 'Aguti Milan',

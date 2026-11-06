@@ -54,7 +54,7 @@ final class SeatImageRecognitionService
     private const SEATS = [
         '1'  => 'Aguti Milan 12',
         '2'  => 'Aguti Roadliner / Liner 12',
-        '3'  => 'ISRI Captain Chair Ducato, Jumper, Boxer ab Bj. 2006',
+        '3'  => 'ISRI Captain Chair Ducato, Jumper, Boxer Baujahr 2006-2027',
         '4'  => 'ISRI Captain Chair mit Gurt',
         '5'  => 'ISRI Ducato / Jumper / Boxer, Bj. 2006–2014',
         '6'  => 'Aguti Milan',

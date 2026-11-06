@@ -707,7 +707,7 @@
     var SEAT_META = {
       '1': { code: '1', order: 7, name: 'Aguti Milan 12', tooltip: 'Aguti Milan 12', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/1-foto.jpg', imgHover: 'https://bremer-sitzbezuege.de/mediafiles/sitz/1.jpg' },
       '2': { code: '2', order: 6, name: 'Aguti Roadliner / Liner 12', tooltip: 'Aguti Roadliner / Liner 12', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/2-foto.jpg', imgHover: 'https://bremer-sitzbezuege.de/mediafiles/sitz/2.jpg' },
-      '3': { code: '3', order: 1, name: 'ISRI Captain Chair Ducato, Jumper, Boxer ab Bj. 2006', tooltip: 'ISRI Captain Chair Ducato, Jumper, Boxer ab Bj. 2006', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/3-foto.jpg', imgHover: 'https://bremer-sitzbezuege.de/mediafiles/sitz/3.jpg' },
+      '3': { code: '3', order: 1, name: 'ISRI Captain Chair Ducato, Jumper, Boxer Baujahr 2006-2027', tooltip: 'ISRI Captain Chair Ducato, Jumper, Boxer Baujahr 2006-2027', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/3-foto2.jpg', imgHover: 'https://bremer-sitzbezuege.de/mediafiles/sitz/3.jpg' },
       '4': { code: '4', order: 3, name: 'ISRI Captain Chair mit Gurt', tooltip: 'ISRI Captain Chair mit Gurt', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/4-foto.jpg', imgHover: 'https://bremer-sitzbezuege.de/mediafiles/sitz/4.jpg' },
       '5': { code: '5', order: 2, name: 'ISRI Ducato / Jumper / Boxer, Bj. 2006–2014', tooltip: 'ISRI Ducato / Jumper / Boxer, Bj. 2006–2014', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/5-foto.jpg', imgHover: 'https://bremer-sitzbezuege.de/mediafiles/sitz/5.jpg' },
       '6': { code: '6', order: 5, name: 'Aguti Milan', tooltip: 'Aguti Milan', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/6-foto.jpg', imgHover: 'https://bremer-sitzbezuege.de/mediafiles/sitz/6.jpg' },
@@ -717,7 +717,7 @@
       '10': { code: '10', order: 9, name: 'Ford Transit ab Bj. 2014 mit integrierter Kopfstütze', tooltip: 'Ford Transit ab Bj. 2014 mit integrierter Kopfstütze', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/10-foto.jpg', imgHover: 'https://bremer-sitzbezuege.de/mediafiles/sitz/10.jpg' },
       '11': { code: '11', order: 12, name: 'Aguti Milan 3', tooltip: 'Aguti Milan 3', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/11-foto.jpg', imgHover: 'https://bremer-sitzbezuege.de/mediafiles/sitz/11.jpg' },
       '12': { code: '12', order: 13, name: 'SKA 1800 M23 Komfort', tooltip: 'SKA 1800 M23 Komfort', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/12-foto.jpg', imgHover: 'https://bremer-sitzbezuege.de/mediafiles/sitz/12.jpg' },
-      '13': { code: '13', order: 14, name: 'SKA 1800/1000 M23 Classic', tooltip: 'SKA 1800/1000 M23 Classic', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/13-foto.jpg', imgHover: 'https://bremer-sitzbezuege.de/mediafiles/sitz/13.jpg' },
+      '13': { code: '13', order: 14, name: 'SKA 1800/1000 M23 Classic', tooltip: 'SKA 1800/1000 M23 Classic', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/13-foto2.jpg', imgHover: 'https://bremer-sitzbezuege.de/mediafiles/sitz/13.jpg' },
       '14': { code: '14', order: 10, name: 'Mercedes-Benz Sprinter / Hymer', tooltip: 'Mercedes-Benz Sprinter / Hymer', img: 'https://bremer-sitzbezuege.de/mediafiles/sitz/14-foto.jpg', imgHover: 'https://bremer-sitzbezuege.de/mediafiles/sitz/14.jpg' }
     };
 
