@@ -222,7 +222,7 @@
     '6': 'Aguti Milan',
     '7': 'Aguti GIS-Liner',
     '8': 'Aguti GIS-Liner 3',
-    '9': 'Ford Transit ab Bj. 2014',
+    '9': 'Ford Transit ab 2014 MAN TGE / Sprinter / Crafter',
     '10': 'Ford Transit ab Bj. 2014 mit integrierter Kopfstütze',
     '11': 'Aguti Milan 3',
     '12': 'SKA 1800 M23 Komfort',

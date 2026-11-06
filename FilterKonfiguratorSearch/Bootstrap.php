@@ -92,8 +92,8 @@ class Bootstrap extends Bootstrapper
                 $assetVersion = '1.14.70';
             }
             $assetVersion = \preg_replace('/[^0-9A-Za-z._-]/', '', $assetVersion) ?: '1.14.70';
-            if (\version_compare($assetVersion, '1.14.126', '<')) {
-                $assetVersion = '1.14.126';
+            if (\version_compare($assetVersion, '1.14.127', '<')) {
+                $assetVersion = '1.14.127';
             }
             foreach ([
                 ['selector' => 'script[src*="fk-micro-konfigurator.js"]', 'attr' => 'src'],
@@ -1570,7 +1570,7 @@ class Bootstrap extends Bootstrapper
             '6'  => 'Aguti Milan',
             '7'  => 'Aguti GIS-Liner',
             '8'  => 'Aguti GIS-Liner 3',
-            '9'  => 'Ford Transit ab Bj. 2014',
+            '9'  => 'Ford Transit ab 2014 MAN TGE / Sprinter / Crafter',
             '10' => 'Ford Transit ab Bj. 2014 mit integrierter Kopfstütze',
             '11' => 'Aguti Milan 3',
             '12' => 'SKA 1800 M23 Komfort',
