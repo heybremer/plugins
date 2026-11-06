@@ -1,0 +1,242 @@
+/* NOVA: main section { padding: 4rem 0 } aufheben */
+#cs-strip.cs-strip {
+  padding: 0;
+  margin: 24px 0 32px;
+}
+
+.cs-strip .cs-heading {
+  margin: 0 0 12px;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.cs-strip .cs-wrap {
+  position: relative;
+}
+
+/* Vertikales Padding, damit Hover-Lift und Schatten nicht abgeschnitten werden */
+.cs-strip .cs-track {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 0 14px;
+  margin: -8px 0 -14px;
+  outline: none;
+}
+
+.cs-strip .cs-track::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---------- Karte ---------- */
+.cs-strip .cs-card {
+  position: relative;
+  flex: 0 0 285px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 285px;
+  height: 456px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-radius: 16px;
+  overflow: hidden;
+  scroll-snap-align: start;
+  background: var(--cs-bg, #197149);
+  text-decoration: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cs-strip .cs-card:hover,
+.cs-strip .cs-card:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+  text-decoration: none;
+}
+
+.cs-strip .cs-tone-light {
+  color: #fff;
+}
+
+.cs-strip .cs-tone-dark {
+  color: #111;
+}
+
+.cs-strip .cs-text {
+  position: relative;
+  z-index: 2;
+}
+
+.cs-strip .cs-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: inherit;
+}
+
+.cs-strip .cs-sub {
+  margin: 8px 0 0;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: inherit;
+  opacity: 0.92;
+}
+
+/* Typ A: Bild fuellt den unteren Bereich */
+.cs-strip .cs-media {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.cs-strip .cs-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+}
+
+.cs-strip .cs-card--A.cs-has-tag .cs-media {
+  padding-bottom: 26px;
+}
+
+/* Typ B: Vollbild-Cover */
+.cs-strip .cs-bgimg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.cs-strip .cs-card--B::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.18) 45%, rgba(0, 0, 0, 0.5) 100%);
+  pointer-events: none;
+}
+
+.cs-strip .cs-card--B .cs-text {
+  color: #fff;
+}
+
+/* Typ C: 2x2 Grid */
+.cs-strip .cs-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+}
+
+.cs-strip .cs-card--C.cs-has-tag .cs-grid {
+  margin-bottom: 26px;
+}
+
+.cs-strip .cs-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 8px;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.cs-strip .cs-cell img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.cs-strip .cs-disc {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #cc0c39;
+  color: #fff;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/* Etikett links unten (z. B. "Gesponsert") */
+.cs-strip .cs-tag {
+  position: absolute;
+  left: 16px;
+  bottom: 14px;
+  z-index: 3;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.38);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.3;
+  backdrop-filter: blur(2px);
+}
+
+.cs-strip .cs-tone-dark .cs-tag {
+  background: rgba(255, 255, 255, 0.6);
+  color: #111;
+}
+
+/* ---------- Pfeile ---------- */
+.cs-strip .cs-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 5;
+  width: 48px;
+  height: 48px;
+  margin-top: -24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: #111;
+  font-size: 2rem;
+  line-height: 1;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cs-strip .cs-arrow[hidden] {
+  display: none;
+}
+
+.cs-strip .cs-arrow:hover {
+  transform: scale(1.06);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.cs-strip .cs-arrow--next {
+  right: 8px;
+}
+
+.cs-strip .cs-arrow--prev {
+  left: 8px;
+}
+
+@media (hover: none) {
+  .cs-strip .cs-arrow {
+    display: none;
+  }
+}

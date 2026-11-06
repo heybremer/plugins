@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jtlshopplugin>
+    <Name>CardStrip</Name>
+    <Description>Amazon tarzi yatay kart seridi (285x456): duz renkli, kapak gorselli ve 2x2 grid kartlar. Kartlar dashboard'dan yonetilir.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>100</XMLVersion>
+    <ShopVersion>5.2.0</ShopVersion>
+    <PluginID>CardStrip</PluginID>
+    <CreateDate>2026-11-06</CreateDate>
+    <Version>1.0.0</Version>
+    <Bootstrap>Plugin\CardStrip\Bootstrap</Bootstrap>
+    <Install>
+        <Adminmenu>
+            <Customlink sort="1">
+                <Name>Kartlar</Name>
+                <Filename>dashboard.php</Filename>
+            </Customlink>
+            <Settingslink sort="2">
+                <Name>Ayarlar</Name>
+                <Setting type="selectbox" initialValue="Y" sort="1" conf="Y">
+                    <Name>Anasayfada goster</Name>
+                    <Description>Kart seridini anasayfada goster</Description>
+                    <ValueName>cs_active</ValueName>
+                    <SelectboxOptions>
+                        <Option value="Y" sort="1">Evet</Option>
+                        <Option value="N" sort="2">Hayir</Option>
+                    </SelectboxOptions>
+                </Setting>
+                <Setting type="text" initialValue="" sort="2" conf="Y">
+                    <Name>Serit basligi (opsiyonel)</Name>
+                    <Description>Seridin ustunde gosterilecek baslik. Bos ise baslik yok.</Description>
+                    <ValueName>cs_section_title</ValueName>
+                </Setting>
+                <Setting type="text" initialValue="" sort="3" conf="Y">
+                    <Name>CSS selector (opsiyonel)</Name>
+                    <Description>Bu elementin altina eklenir. Bos ise konfiguratorun altina / icerigin basina.</Description>
+                    <ValueName>cs_selector</ValueName>
+                </Setting>
+            </Settingslink>
+        </Adminmenu>
+    </Install>
+</jtlshopplugin>
