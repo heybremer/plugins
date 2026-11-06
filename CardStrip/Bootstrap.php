@@ -11,7 +11,7 @@ use JTL\Shop;
 
 class Bootstrap extends Bootstrapper
 {
-    private const CSS = 'plugins/CardStrip/templates/css/cardstrip.v1.css';
+    private const CSS = 'plugins/CardStrip/templates/css/cardstrip.v2.css';
 
     public function boot(Dispatcher $dispatcher): void
     {

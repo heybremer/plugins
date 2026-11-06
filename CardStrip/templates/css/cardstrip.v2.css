@@ -119,14 +119,7 @@
   z-index: 0;
 }
 
-.cs-strip .cs-card--B::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.18) 45%, rgba(0, 0, 0, 0.5) 100%);
-  pointer-events: none;
-}
+/* kein Overlay: Bild bleibt unverdunkelt */
 
 .cs-strip .cs-card--B .cs-text {
   color: #fff;
