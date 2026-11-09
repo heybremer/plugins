@@ -40,7 +40,7 @@
     E: { label: 'Serie E', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/e-serie.webp' },
     S1: { label: 'Serie 01', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/serie-01.avif' },
     AH: { label: 'Serie AH', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/ah-serie.avif' },
-    GT: { label: 'Serie GT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/gt-serie.avif' },
+    GT: { label: 'Serie GT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/gt-serie2.webp' },
     C: { label: 'Serie C', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/c-serie.avif' },
     DPL: { label: 'Serie DPL', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/dpl-serie.avif' },
     H: { label: 'Serie H', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/h-serie.avif' },
