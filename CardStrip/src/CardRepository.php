@@ -63,7 +63,7 @@ final class CardRepository
      */
     public static function active(): array
     {
-        self::ensure();
+        // kein ensure() im Frontend (Tabelle wird im Dashboard angelegt)
         try {
             return Shop::Container()->getDB()->getObjects(
                 'SELECT * FROM ' . self::TABLE . '

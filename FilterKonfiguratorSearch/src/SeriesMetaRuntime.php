@@ -74,6 +74,54 @@ final class SeriesMetaRuntime
      */
     public static function buildPayload(DbInterface $db): array
     {
+        // Kosten: bis zu hunderte Kategorie-Queries pro Seitenaufruf -> gecacht (1 Std.), Dashboard leert den Cache.
+        $key = self::cacheKey();
+        try {
+            $cache = Shop::Container()->getCache();
+            $hit   = $cache->get($key);
+            if (\is_array($hit) && isset($hit['meta'], $hit['hidden'])) {
+                return $hit;
+            }
+        } catch (\Throwable $e) {
+            $cache = null;
+        }
+        $payload = self::buildPayloadUncached($db);
+        try {
+            if ($cache !== null) {
+                $cache->set($key, $payload, [\CACHING_GROUP_CORE], 3600);
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
+
+        return $payload;
+    }
+
+    public static function flushCache(): void
+    {
+        try {
+            Shop::Container()->getCache()->flush(self::cacheKey());
+        } catch (\Throwable $e) {
+            // ignore
+        }
+    }
+
+    private static function cacheKey(): string
+    {
+        try {
+            $lang = (int)Shop::getLanguageID();
+        } catch (\Throwable $e) {
+            $lang = 0;
+        }
+
+        return 'fk_series_meta_v1_' . $lang;
+    }
+
+    /**
+     * @return array{meta: array<string, array{label: string, color: string, img: string}>, hidden: list<string>}
+     */
+    private static function buildPayloadUncached(DbInterface $db): array
+    {
         $meta = self::getBuiltInDefaults();
         $hidden = [];
 

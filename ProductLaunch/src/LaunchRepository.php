@@ -77,7 +77,7 @@ final class LaunchRepository
      */
     public static function active(int $limit): array
     {
-        self::ensure();
+        // kein ensure() im Frontend (Tabelle wird im Dashboard angelegt)
         try {
             return Shop::Container()->getDB()->getObjects(
                 'SELECT * FROM ' . self::TABLE . '

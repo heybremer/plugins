@@ -486,6 +486,7 @@ if (Form::validateToken()) {
                     );
                 }
             }
+            SeriesMetaRuntime::flushCache();
             $message = 'Serien-Metadaten gespeichert.';
         }
         if (!empty($_POST['fkSaveBanner'])) {
