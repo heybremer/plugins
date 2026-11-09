@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jtlshopplugin>
+    <Name>QueryGuard</Name>
+    <Description>Schuetzt vor max_user_connections: bricht langsame Frontend-SQL-Abfragen ab (Timeout) und liefert bei Ueberlast 503 + Retry-After.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>100</XMLVersion>
+    <ShopVersion>5.2.0</ShopVersion>
+    <PluginID>QueryGuard</PluginID>
+    <CreateDate>2026-11-09</CreateDate>
+    <Version>1.0.0</Version>
+    <Bootstrap>Plugin\QueryGuard\Bootstrap</Bootstrap>
+    <Install>
+        <Adminmenu>
+            <Settingslink sort="1">
+                <Name>Einstellungen</Name>
+                <Setting type="number" initialValue="15" sort="1" conf="Y">
+                    <Name>SQL-Timeout Frontend (Sekunden, 0 = aus)</Name>
+                    <Description>Abfragen im Frontend, die laenger laufen, werden vom DB-Server abgebrochen.</Description>
+                    <ValueName>qg_timeout</ValueName>
+                </Setting>
+                <Setting type="number" initialValue="12" sort="2" conf="Y">
+                    <Name>Ueberlast-Schwelle (0 = aus)</Name>
+                    <Description>Anzahl gleichzeitig langsamer Abfragen, ab der neue GET-Seitenaufrufe mit 503 beantwortet werden.</Description>
+                    <ValueName>qg_threshold</ValueName>
+                </Setting>
+                <Setting type="number" initialValue="8" sort="3" conf="Y">
+                    <Name>"Langsam" ab (Sekunden)</Name>
+                    <Description>Eine Abfrage zaehlt als langsam, wenn sie mindestens so lange laeuft.</Description>
+                    <ValueName>qg_slow_after</ValueName>
+                </Setting>
+            </Settingslink>
+        </Adminmenu>
+    </Install>
+</jtlshopplugin>
