@@ -45,6 +45,7 @@
     DPL: { label: 'Serie DPL', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/dpl-serie.avif' },
     H: { label: 'Serie H', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/h-serie.avif' },
     PLKT: { label: 'Serie PLKT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/plkt-serie.avif' },
+    KC: { label: 'Serie KC', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/kc-serie.webp' },
     WPL: { label: 'Serie WPL', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/wpl-serie.avif' },
     WMS: { label: 'Serie WMS', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/wms-serie.avif' },
     HW: { label: 'Serie HW', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/hw-serie.avif' },

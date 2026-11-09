@@ -771,6 +771,7 @@
       WMA: { label: 'Aguti Sitze', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/aguti-sitze-serie.avif' },
       WDS: { label: 'Serie WDS', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/wds-serie.webp' },
       SMD: { label: 'Serie SMD', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/smd-serie.webp' },
+      KC: { label: 'Serie KC', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/kc-serie.webp' },
       NP: { label: 'Serie NP', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/np-serie.webp' }
     };
 
