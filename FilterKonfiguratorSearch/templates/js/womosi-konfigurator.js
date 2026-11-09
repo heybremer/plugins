@@ -1962,12 +1962,31 @@
             WomosiUI.updateSummary();
 
             if (WomosiState.isWmSeatFirst()) {
-              state.year = '';
-              if (inpYear) inpYear.value = '';
-              WomosiUI.setStep(2);
-              state.hersteller = '';
-              state.modell = '';
-              WomosiApi.loadBasis();
+              var proceedToVehicle = function () {
+                state.year = '';
+                if (inpYear) inpYear.value = '';
+                WomosiUI.setStep(2);
+                state.hersteller = '';
+                state.modell = '';
+                WomosiApi.loadBasis();
+              };
+              // Serien ohne Fahrgestell (z. B. KC-Serie): Fahrzeug-Schritt ueberspringen, direkt zu den Produkten.
+              WomosiApi.fetchJson('/fk-search', WomosiApi.seatSerieParams({ mode: 'options', field: 'basis' }))
+                .then(function (data) {
+                  var hasChassis = (Array.isArray(data) ? data : []).some(function (row) {
+                    return row && row.value;
+                  });
+                  if (!hasChassis && url && url !== '#') {
+                    WomosiState.logStep4Selection(code);
+                    var directTarget = WomosiState.appendSelectionToUrl(url);
+                    window.setTimeout(function () {
+                      window.location.href = directTarget;
+                    }, 80);
+                    return;
+                  }
+                  proceedToVehicle();
+                })
+                .catch(proceedToVehicle);
               return;
             }
 
