@@ -41,7 +41,7 @@
         </Setting>
     </Config>
     <Cronjobs>
-        <Cronjob name="FilterKonfigurator Snapshot Refresh" type="FilterKonfiguratorSnapshot" frequency="604800" class="\Plugin\FilterKonfiguratorSearch\Cron\SnapshotCronJob" />
+        <Cronjob name="FilterKonfigurator Snapshot Refresh" type="FilterKonfiguratorSnapshot" frequency="168" class="\Plugin\FilterKonfiguratorSearch\Cron\SnapshotCronJob" />
     </Cronjobs>
 </jtlshopplugin>
 
