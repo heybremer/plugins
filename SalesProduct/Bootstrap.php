@@ -200,6 +200,21 @@ class Bootstrap extends Bootstrapper
         $ref = (string)($_SERVER['HTTP_REFERER'] ?? '');
         $refHost = $ref !== '' ? \strtolower((string)\parse_url($ref, \PHP_URL_HOST)) : '';
 
+        // ChatGPT / OpenAI ZUERST prüfen (utm_medium=paid würde sonst als Google Ads zählen).
+        // Reklam: utm_medium=paid (o.ä.) oder campaign_id=cmpn_… ; utm_source=chatgpt.com ohne diese Marker = organisch.
+        $campaignId = \trim((string)($_GET['campaign_id'] ?? ''));
+        $isChatGptRef = $refHost !== '' && \preg_match('/(^|\\.)(chatgpt\\.com|chat\\.openai\\.com|openai\\.com)$/', $refHost) === 1;
+        if ($isChatGptRef || \preg_match('/(chatgpt|openai)/', $utmSource) === 1 || \stripos($campaignId, 'cmpn_') === 0) {
+            $paidChatGpt = self::isChatGptPaid($utmSource, $utmMedium, $utmCampaign, $utmContent, $campaignId);
+            $detail = \implode(' / ', \array_filter([$utmSource, $utmMedium, $utmCampaign, $campaignId], static fn ($v) => $v !== ''));
+
+            return [
+                'channel'       => $paidChatGpt ? 'chatgpt_ads' : 'chatgpt_organic',
+                'label'         => $paidChatGpt ? 'ChatGPT Ads' : 'ChatGPT (organisch)',
+                'source_detail' => $detail !== '' ? $detail : $ref,
+            ];
+        }
+
         $refIsGooglePaid = $refHost !== '' && $this->isGoogleAdsHost($refHost);
         $hasPmaxHint = $pmax !== '' || $mid !== ''
             || \stripos($utmCampaign, 'pmax') !== false
@@ -260,20 +275,6 @@ class Bootstrap extends Bootstrapper
             ];
         }
 
-        // ChatGPT / OpenAI: bezahlt (Ads) vs. organisch (Link-Klick aus der Antwort) trennen.
-        $isChatGptRef = $refHost !== '' && \preg_match('/(^|\\.)(chatgpt\\.com|chat\\.openai\\.com|openai\\.com)$/', $refHost) === 1;
-        if ($isChatGptRef || \preg_match('/(chatgpt|openai)/', $utmSource) === 1) {
-            $paidChatGpt = self::isChatGptPaid($utmSource, $utmMedium, $utmCampaign, $utmContent)
-                || \trim((string)($_GET['oai_ad'] ?? $_GET['chatgpt_ad'] ?? '')) !== '';
-            $detail = $this->utmDetail($utmSource, $utmMedium, $utmCampaign);
-
-            return [
-                'channel'       => $paidChatGpt ? 'chatgpt_ads' : 'chatgpt_organic',
-                'label'         => $paidChatGpt ? 'ChatGPT Ads' : 'ChatGPT (organisch)',
-                'source_detail' => $detail !== '' ? $detail : $ref,
-            ];
-        }
-
         if ($utmSource !== '' || $utmMedium !== '' || $utmCampaign !== '') {
             return [
                 'channel'       => 'utm_campaign',
@@ -325,14 +326,13 @@ class Bootstrap extends Bootstrapper
      * ChatGPT-Traffic gilt als bezahlt, wenn Medium/Kampagne/Content auf Ads hindeuten.
      * Ohne solche Hinweise (nur utm_source=chatgpt.com) ist er organisch.
      */
-    public static function isChatGptPaid(string $source, string $medium, string $campaign, string $content = ''): bool
+    public static function isChatGptPaid(string $source, string $medium, string $campaign, string $content = '', string $campaignId = ''): bool
     {
-        if ($medium !== '' && \preg_match('/^(cpc|ppc|paid|paid[_-]?(search|social|ads)?|ads?|display|sponsored|performance|shopping|pmax)$/i', $medium) === 1) {
+        if (\stripos(\trim($campaignId), 'cmpn_') === 0) {
             return true;
         }
-        $hay = \strtolower($source . ' ' . $campaign . ' ' . $content);
 
-        return \preg_match('/(^|[\s_\-.\/])(ads?|paid|cpc|ppc|sponsored)([\s_\-.\/]|$)/', $hay) === 1;
+        return $medium !== '' && \preg_match('/^(paid|cpc|ppc|paid[_-]?(search|social|ads)|ads?|sponsored)$/i', \trim($medium)) === 1;
     }
 
     /**

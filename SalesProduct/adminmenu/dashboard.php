@@ -186,17 +186,20 @@ if (!function_exists('sp_reclassify_attribution')) {
             // ChatGPT: bezahlt (Ads) vs. organisch trennen (auch für alte "Kampagne (UTM)"-Zeilen).
             $dl = \strtolower($detail);
             if (\str_starts_with($channel, 'chatgpt_') || \preg_match('/(chatgpt|openai)/', $dl . ' ' . $host) === 1) {
-                $p = \array_map('trim', \explode('/', $dl));
-                $paid = $channel === 'chatgpt_ads'
-                    || \Plugin\SalesProduct\Bootstrap::isChatGptPaid((string)($p[0] ?? ''), (string)($p[1] ?? ''), (string)($p[2] ?? ''));
-                if ($channel !== 'chatgpt_organic' || $paid) {
-                    return [
-                        'channel' => $paid ? 'chatgpt_ads' : 'chatgpt_organic',
-                        'label'   => $paid ? 'ChatGPT Ads' : 'ChatGPT (organisch)',
-                    ];
+                $p = \preg_split('/\s*[\/·]\s*/u', $dl) ?: [];
+                $cid = '';
+                foreach ($p as $seg) {
+                    if (\str_starts_with($seg, 'cmpn_')) {
+                        $cid = $seg;
+                    }
                 }
+                $paid = $channel === 'chatgpt_ads'
+                    || \Plugin\SalesProduct\Bootstrap::isChatGptPaid('', \in_array('paid', $p, true) ? 'paid' : (string)($p[1] ?? ''), '', '', $cid);
 
-                return ['channel' => 'chatgpt_organic', 'label' => 'ChatGPT (organisch)'];
+                return [
+                    'channel' => $paid ? 'chatgpt_ads' : 'chatgpt_organic',
+                    'label'   => $paid ? 'ChatGPT Ads' : 'ChatGPT (organisch)',
+                ];
             }
             // Google-Ads-Indikatoren in source_detail oder Host
             $isPmax = \stripos($detail, 'pmax') !== false
