@@ -8,6 +8,10 @@ use JTL\Events\Dispatcher;
 use JTL\Plugin\Bootstrapper;
 use JTL\Shop;
 
+if (\is_file(__DIR__ . '/src/Cron/WeeklyReportJob.php')) {
+    require_once __DIR__ . '/src/Cron/WeeklyReportJob.php';
+}
+
 /**
  * Speichert eine grobe Marketing-Kanal-Attribution pro Bestellung.
  *
@@ -226,8 +230,35 @@ class Bootstrap extends Bootstrapper
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
             );
             $db->executeQueryPrepared($sql, ['c' => $channel]);
+            $this->maybeSendWeeklyReport($db);
         } catch (\Throwable $e) {
             // Zähler darf den Shop nie stören.
+        }
+    }
+
+    /**
+     * Pseudo-Cron: montags ab 7 Uhr beim ersten neuen Besuch den Wochenreport senden (einmal pro Tag, atomar).
+     * Empfänger: twomosi_sales_config.report_email (im Dashboard gepflegt).
+     */
+    private function maybeSendWeeklyReport(\JTL\DB\DbInterface $db): void
+    {
+        if ((int)\date('N') !== 1 || (int)\date('G') < 7) {
+            return;
+        }
+        $today = \date('Y-m-d');
+        $db->executeQuery("INSERT IGNORE INTO twomosi_sales_config (cKey, cValue) VALUES ('last_weekly_report', '')");
+        $claimed = $db->executeQueryPrepared(
+            "UPDATE twomosi_sales_config SET cValue = :t WHERE cKey = 'last_weekly_report' AND cValue <> :t",
+            ['t' => $today],
+            \JTL\DB\ReturnType::AFFECTED_ROWS
+        );
+        if ((int)$claimed !== 1) {
+            return;
+        }
+        $row = $db->getSingleObject("SELECT cValue FROM twomosi_sales_config WHERE cKey = 'report_email'");
+        $to  = \trim((string)($row->cValue ?? ''));
+        if ($to !== '' && \filter_var($to, \FILTER_VALIDATE_EMAIL) !== false && \class_exists(\Plugin\SalesProduct\Cron\WeeklyReportJob::class)) {
+            \Plugin\SalesProduct\Cron\WeeklyReportJob::sendMail($to, \Plugin\SalesProduct\Cron\WeeklyReportJob::buildHtml($db));
         }
     }
 

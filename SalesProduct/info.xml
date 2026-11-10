@@ -8,9 +8,10 @@
     <ShopVersion>5.6.0</ShopVersion>
     <PluginID>SalesProduct</PluginID>
     <CreateDate>2026-05-06</CreateDate>
-    <Version>1.0.17</Version>
+    <Version>1.0.18</Version>
     <Bootstrap>Plugin\SalesProduct\Bootstrap</Bootstrap>
     <Install>
         <empty></empty>
     </Install>
+
 </jtlshopplugin>

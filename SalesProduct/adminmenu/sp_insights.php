@@ -205,6 +205,29 @@ if (!function_exists('sp_render_visits_and_costs')) {
             }
         }
 
+        // Wochenreport-Empfänger (E-Mail) + Testversand
+        $mailRow = null;
+        try {
+            $db->executeQuery("INSERT IGNORE INTO twomosi_sales_config (cKey, cValue) VALUES ('report_email', '')");
+            if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['sp_mail_save']) && \JTL\Helpers\Form::validateToken()) {
+                $e = \trim((string)($_POST['sp_report_email'] ?? ''));
+                if ($e === '' || \filter_var($e, \FILTER_VALIDATE_EMAIL) !== false) {
+                    $db->executeQueryPrepared("UPDATE twomosi_sales_config SET cValue = :v WHERE cKey = 'report_email'", ['v' => $e]);
+                    $msg = $e === '' ? 'Wochenreport deaktiviert.' : 'Wochenreport-Empfänger gespeichert.';
+                    if ($e !== '' && isset($_POST['sp_mail_test'])) {
+                        $ok  = \Plugin\SalesProduct\Cron\WeeklyReportJob::sendMail($e, \Plugin\SalesProduct\Cron\WeeklyReportJob::buildHtml($db));
+                        $msg .= $ok ? ' Testmail gesendet.' : ' Testmail fehlgeschlagen (mail()).';
+                    }
+                } else {
+                    $msg = 'Ungültige E-Mail-Adresse.';
+                }
+            }
+            $mailRow = $db->getSingleObject("SELECT cValue FROM twomosi_sales_config WHERE cKey = 'report_email'");
+        } catch (\Throwable $e) {
+            $msg = $msg !== '' ? $msg : 'Wochenreport: ' . $e->getMessage();
+        }
+        $reportEmail = (string)($mailRow->cValue ?? '');
+
         // Besuche pro Kanal (eigener Zähler, ab Erfassungsbeginn, max. 30 Tage)
         $visitRows = [];
         $since = null;
@@ -295,6 +318,13 @@ if (!function_exists('sp_render_visits_and_costs')) {
                     </select>
                     <input type="text" name="sp_cost_value" class="form-control form-control-sm mr-2" placeholder="Kosten in €" style="width:110px" required>
                     <button type="submit" name="sp_cost_save" value="1" class="btn btn-sm btn-primary">Speichern</button>
+                </form>
+                <h5 class="h6 mt-3">Wochenreport per E-Mail <small class="text-muted">(montags, leer = aus)</small></h5>
+                <form method="post" class="form-inline mb-3">
+                    <?= \JTL\Helpers\Form::getTokenInput() ?>
+                    <input type="email" name="sp_report_email" value="<?= sp_h($reportEmail) ?>" class="form-control form-control-sm mr-2" placeholder="name@firma.de" style="width:220px">
+                    <label class="mr-2 small"><input type="checkbox" name="sp_mail_test" value="1"> Testmail</label>
+                    <button type="submit" name="sp_mail_save" value="1" class="btn btn-sm btn-secondary">Speichern</button>
                 </form>
                 <?php if ($costRows !== []): ?>
                     <table class="table table-sm table-bordered">
