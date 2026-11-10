@@ -260,6 +260,20 @@ class Bootstrap extends Bootstrapper
             ];
         }
 
+        // ChatGPT / OpenAI: bezahlt (Ads) vs. organisch (Link-Klick aus der Antwort) trennen.
+        $isChatGptRef = $refHost !== '' && \preg_match('/(^|\\.)(chatgpt\\.com|chat\\.openai\\.com|openai\\.com)$/', $refHost) === 1;
+        if ($isChatGptRef || \preg_match('/(chatgpt|openai)/', $utmSource) === 1) {
+            $paidChatGpt = self::isChatGptPaid($utmSource, $utmMedium, $utmCampaign, $utmContent)
+                || \trim((string)($_GET['oai_ad'] ?? $_GET['chatgpt_ad'] ?? '')) !== '';
+            $detail = $this->utmDetail($utmSource, $utmMedium, $utmCampaign);
+
+            return [
+                'channel'       => $paidChatGpt ? 'chatgpt_ads' : 'chatgpt_organic',
+                'label'         => $paidChatGpt ? 'ChatGPT Ads' : 'ChatGPT (organisch)',
+                'source_detail' => $detail !== '' ? $detail : $ref,
+            ];
+        }
+
         if ($utmSource !== '' || $utmMedium !== '' || $utmCampaign !== '') {
             return [
                 'channel'       => 'utm_campaign',
@@ -305,6 +319,20 @@ class Bootstrap extends Bootstrapper
         }
 
         return null;
+    }
+
+    /**
+     * ChatGPT-Traffic gilt als bezahlt, wenn Medium/Kampagne/Content auf Ads hindeuten.
+     * Ohne solche Hinweise (nur utm_source=chatgpt.com) ist er organisch.
+     */
+    public static function isChatGptPaid(string $source, string $medium, string $campaign, string $content = ''): bool
+    {
+        if ($medium !== '' && \preg_match('/^(cpc|ppc|paid|paid[_-]?(search|social|ads)?|ads?|display|sponsored|performance|shopping|pmax)$/i', $medium) === 1) {
+            return true;
+        }
+        $hay = \strtolower($source . ' ' . $campaign . ' ' . $content);
+
+        return \preg_match('/(^|[\s_\-.\/])(ads?|paid|cpc|ppc|sponsored)([\s_\-.\/]|$)/', $hay) === 1;
     }
 
     /**

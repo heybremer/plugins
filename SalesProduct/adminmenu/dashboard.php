@@ -183,6 +183,21 @@ if (!function_exists('sp_reclassify_attribution')) {
             if ($host !== '' && sp_is_payment_redirect_host($host)) {
                 continue;
             }
+            // ChatGPT: bezahlt (Ads) vs. organisch trennen (auch für alte "Kampagne (UTM)"-Zeilen).
+            $dl = \strtolower($detail);
+            if (\str_starts_with($channel, 'chatgpt_') || \preg_match('/(chatgpt|openai)/', $dl . ' ' . $host) === 1) {
+                $p = \array_map('trim', \explode('/', $dl));
+                $paid = $channel === 'chatgpt_ads'
+                    || \Plugin\SalesProduct\Bootstrap::isChatGptPaid((string)($p[0] ?? ''), (string)($p[1] ?? ''), (string)($p[2] ?? ''));
+                if ($channel !== 'chatgpt_organic' || $paid) {
+                    return [
+                        'channel' => $paid ? 'chatgpt_ads' : 'chatgpt_organic',
+                        'label'   => $paid ? 'ChatGPT Ads' : 'ChatGPT (organisch)',
+                    ];
+                }
+
+                return ['channel' => 'chatgpt_organic', 'label' => 'ChatGPT (organisch)'];
+            }
             // Google-Ads-Indikatoren in source_detail oder Host
             $isPmax = \stripos($detail, 'pmax') !== false
                 || \stripos($detail, 'performance_max') !== false;
