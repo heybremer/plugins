@@ -171,7 +171,8 @@ if (!function_exists('sp_reclassify_attribution')) {
             return null;
         }
         // Versuche zuerst first-touch (echte Akquise), dann last/picked.
-        foreach (['first', 'picked', 'last'] as $key) {
+        // Wie im Live-Betrieb: gespeicherter Kanal = Last-Touch ("picked"); First-Touch wird separat ausgewertet.
+        foreach (['picked', 'last', 'first'] as $key) {
             $node = $data[$key] ?? null;
             if (!\is_array($node)) {
                 continue;
