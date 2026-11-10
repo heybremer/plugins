@@ -98,6 +98,7 @@ SELECT a.cChannel,
                  AND MONTH(COALESCE(b.dErstellt, a.dCreated)) = MONTH(CURDATE()) THEN COALESCE(b.fGesamtsumme, 0) ELSE 0 END) AS fMonth
   FROM twomosi_sales_attribution a
   LEFT JOIN tbestellung b ON b.kBestellung = a.kBestellung
+ WHERE (b.cStatus IS NULL OR b.cStatus <> -1)
  GROUP BY a.cChannel
  ORDER BY fMonth DESC, nMonth DESC, a.cChannel ASC
 SQL;
@@ -229,6 +230,11 @@ if (!function_exists('sp_reclassify_attribution')) {
                 }
             }
 
+            // srsltid allein (ohne gclid/gbraid/wbraid/PMax/Ads-Host) = kostenloser Shopping-Eintrag → organisch.
+            if ($isShopping && !$isPmax && !$isGclid && !$isGoogleAdHost && !$looksLikeGoogleUtm
+                && \stripos($detail, 'gbraid') === false && \stripos($detail, 'wbraid') === false) {
+                return ['channel' => 'google_shopping_organic', 'label' => 'Google Shopping (organisch)'];
+            }
             if ($isPmax || $isGclid || $isShopping || $isGoogleAdHost
                 || $looksLikeGoogleUtm
                 || $channel === 'google_ads') {
@@ -808,6 +814,8 @@ if (\is_array($pu) && isset($pu['path'])) {
         <?php
         $monthLabel = $periodChannelStats['monthLabel'];
         require __DIR__ . '/report_top_products.php';
+        require_once __DIR__ . '/sp_insights.php';
+        sp_render_insights($db);
         ?>
 
         <div class="row">

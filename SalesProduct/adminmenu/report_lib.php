@@ -237,6 +237,7 @@ SELECT a.cChannel,
                  AND MONTH(COALESCE(b.dErstellt, a.dCreated)) = MONTH(CURDATE()) THEN COALESCE(b.fGesamtsumme, 0) ELSE 0 END) AS fMonth
   FROM twomosi_sales_attribution a
   LEFT JOIN tbestellung b ON b.kBestellung = a.kBestellung
+ WHERE (b.cStatus IS NULL OR b.cStatus <> -1)
  GROUP BY a.cChannel
  ORDER BY fMonth DESC, nMonth DESC, a.cChannel ASC
 SQL;
@@ -407,6 +408,7 @@ function sp_load_report_data(int $listLimit = 400, ?array $filters = null): arra
             'SELECT a.cChannel, COUNT(*) AS nOrders, COALESCE(SUM(b.fGesamtsumme), 0) AS fRevenue
                FROM twomosi_sales_attribution a
                LEFT JOIN tbestellung b ON b.kBestellung = a.kBestellung
+              WHERE (b.cStatus IS NULL OR b.cStatus <> -1)
               GROUP BY a.cChannel
               ORDER BY fRevenue DESC'
         );

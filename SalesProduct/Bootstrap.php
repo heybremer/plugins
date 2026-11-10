@@ -164,6 +164,12 @@ class Bootstrap extends Bootstrapper
         if ($snap === null) {
             return;
         }
+        $landing = (string)\parse_url($uri, \PHP_URL_PATH);
+        $snap['landing'] = \substr($landing !== '' ? $landing : '/', 0, 200);
+        $cid = \trim((string)($_GET['campaign_id'] ?? ''));
+        if ($cid !== '' && !isset($snap['campaign_id'])) {
+            $snap['campaign_id'] = \substr($cid, 0, 80);
+        }
 
         $existing = $this->readCookiePayload();
         $now = \gmdate('c');
@@ -216,7 +222,9 @@ class Bootstrap extends Bootstrapper
         }
 
         $refIsGooglePaid = $refHost !== '' && $this->isGoogleAdsHost($refHost);
-        $hasPmaxHint = $pmax !== '' || $mid !== ''
+        // pmax/mid nur im Google-Kontext (z.B. "bing / mid / …" ist KEIN Google Ads).
+        $googleCtx = $utmSource === '' || \str_contains($utmSource, 'google');
+        $hasPmaxHint = ($googleCtx && ($pmax !== '' || $mid !== ''))
             || \stripos($utmCampaign, 'pmax') !== false
             || \stripos($utmContent, 'pmax') !== false
             || \stripos($utmSource, 'pmax') !== false;
@@ -224,8 +232,8 @@ class Bootstrap extends Bootstrapper
         $paidGoogle = $gclid !== '' || $gbraid !== '' || $wbraid !== ''
             || $refIsGooglePaid
             || $hasPmaxHint
-            || $srsltid !== ''
-            || ($utmMedium !== '' && \preg_match('/^(cpc|ppc|paid|display|paidsearch|ads|pmax|performance_max|shopping)$/', $utmMedium) === 1)
+            // srsltid allein (ohne gclid/PMax) steht auch bei kostenlosen Shopping-Einträgen → NICHT als Ads zählen.
+            || ($googleCtx && $utmMedium !== '' && \preg_match('/^(cpc|ppc|paid|display|paidsearch|ads|pmax|performance_max|shopping)$/', $utmMedium) === 1)
             // utm_source enthält "google" UND irgendein utm_medium ist gesetzt → bezahlte Google-Quelle.
             // (Organische Google-Suche bringt keine UTM-Parameter mit.)
             || ($utmSource !== '' && \str_contains($utmSource, 'google') && $utmMedium !== '');
@@ -256,6 +264,23 @@ class Bootstrap extends Bootstrapper
                 'channel'       => 'google_ads',
                 'label'         => 'Google Ads' . ($hasPmaxHint ? ' (PMax)' : ($gclid !== '' ? ' (gclid)' : ($srsltid !== '' ? ' (Shopping)' : ''))),
                 'source_detail' => \implode(' · ', $details),
+            ];
+        }
+
+        if ($srsltid !== '') {
+            return [
+                'channel'       => 'google_shopping_organic',
+                'label'         => 'Google Shopping (organisch)',
+                'source_detail' => 'srsltid' . ($refHost !== '' ? ' · ' . $refHost : ''),
+            ];
+        }
+
+        $msclkid = \trim((string)($_GET['msclkid'] ?? ''));
+        if ($msclkid !== '' || (\str_contains($utmSource, 'bing') && \preg_match('/^(cpc|ppc|paid|paidsearch|ads)$/', $utmMedium) === 1)) {
+            return [
+                'channel'       => 'bing_ads',
+                'label'         => 'Bing Ads',
+                'source_detail' => $this->utmDetail($utmSource, $utmMedium, $utmCampaign) . ($msclkid !== '' ? ' · msclkid' : ''),
             ];
         }
 
