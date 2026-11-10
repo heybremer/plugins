@@ -169,9 +169,162 @@ if (!function_exists('sp_load_insights')) {
     }
 }
 
+if (!function_exists('sp_render_visits_and_costs')) {
+    /** Besuche pro Kanal (eigener Zähler) + Kosten/ROAS. */
+    function sp_render_visits_and_costs(\JTL\DB\DbInterface $db): void
+    {
+        $msg = '';
+        $valid = '(b.cStatus IS NULL OR b.cStatus <> -1)';
+        $channels = ['google_ads', 'bing_ads', 'meta_ads', 'chatgpt_ads', 'email', 'utm_campaign', 'other'];
+        try {
+            $db->executeQuery(
+                'CREATE TABLE IF NOT EXISTS twomosi_sales_cost (
+                    cMonth CHAR(7) NOT NULL,
+                    cChannel VARCHAR(64) NOT NULL,
+                    fCost DECIMAL(12,2) NOT NULL DEFAULT 0,
+                    PRIMARY KEY (cMonth, cChannel)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+            );
+        } catch (\Throwable $e) {
+        }
+        if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['sp_cost_save']) && \JTL\Helpers\Form::validateToken()) {
+            $m = (string)($_POST['sp_cost_month'] ?? '');
+            $c = (string)($_POST['sp_cost_channel'] ?? '');
+            $v = (float)\str_replace(',', '.', (string)($_POST['sp_cost_value'] ?? '0'));
+            if (\preg_match('/^\d{4}-\d{2}$/', $m) === 1 && \in_array($c, $channels, true) && $v >= 0) {
+                try {
+                    $db->executeQueryPrepared(
+                        'INSERT INTO twomosi_sales_cost (cMonth, cChannel, fCost) VALUES (:m, :c, :v)
+                         ON DUPLICATE KEY UPDATE fCost = VALUES(fCost)',
+                        ['m' => $m, 'c' => $c, 'v' => $v]
+                    );
+                    $msg = 'Kosten gespeichert.';
+                } catch (\Throwable $e) {
+                    $msg = 'Fehler: ' . $e->getMessage();
+                }
+            }
+        }
+
+        // Besuche pro Kanal (eigener Zähler, ab Erfassungsbeginn, max. 30 Tage)
+        $visitRows = [];
+        $since = null;
+        try {
+            $s = $db->getSingleObject('SELECT MIN(dDay) AS d FROM twomosi_sales_visits WHERE dDay >= CURDATE() - INTERVAL 30 DAY');
+            $since = $s !== null && $s->d !== null ? (string)$s->d : null;
+            if ($since !== null) {
+                $v = [];
+                foreach ($db->getObjects('SELECT cChannel, SUM(nVisits) AS n FROM twomosi_sales_visits WHERE dDay >= :d GROUP BY cChannel', ['d' => $since]) as $r) {
+                    $v[(string)$r->cChannel] = (int)$r->n;
+                }
+                $o = [];
+                foreach ($db->getObjects(
+                    "SELECT a.cChannel, COUNT(*) AS n, COALESCE(SUM(b.fGesamtsumme),0) AS f
+                       FROM twomosi_sales_attribution a JOIN tbestellung b ON b.kBestellung = a.kBestellung
+                      WHERE b.dErstellt >= :d AND $valid GROUP BY a.cChannel",
+                    ['d' => $since]
+                ) as $r) {
+                    $o[(string)$r->cChannel] = ['n' => (int)$r->n, 'f' => (float)$r->f];
+                }
+                foreach (\array_unique(\array_merge(\array_keys($v), \array_keys($o))) as $ch) {
+                    $visitRows[] = ['ch' => $ch, 'v' => $v[$ch] ?? 0, 'n' => $o[$ch]['n'] ?? 0, 'f' => $o[$ch]['f'] ?? 0.0];
+                }
+                \usort($visitRows, static fn ($a, $b) => $b['v'] <=> $a['v']);
+            }
+        } catch (\Throwable $e) {
+            // Tabelle noch nicht vorhanden → wird beim ersten Besuch angelegt.
+        }
+
+        // Kosten / ROAS (aktueller + letzter Monat)
+        $months = [\date('Y-m'), \date('Y-m', \strtotime('first day of last month'))];
+        $costRows = [];
+        try {
+            foreach ($months as $mo) {
+                $rev = [];
+                foreach ($db->getObjects(
+                    "SELECT a.cChannel, COALESCE(SUM(b.fGesamtsumme),0) AS f, COUNT(*) AS n
+                       FROM twomosi_sales_attribution a JOIN tbestellung b ON b.kBestellung = a.kBestellung
+                      WHERE DATE_FORMAT(b.dErstellt,'%Y-%m') = :m AND $valid GROUP BY a.cChannel",
+                    ['m' => $mo]
+                ) as $r) {
+                    $rev[(string)$r->cChannel] = ['f' => (float)$r->f, 'n' => (int)$r->n];
+                }
+                foreach ($db->getObjects('SELECT cChannel, fCost FROM twomosi_sales_cost WHERE cMonth = :m', ['m' => $mo]) as $r) {
+                    $c = (float)$r->fCost;
+                    $f = (float)($rev[(string)$r->cChannel]['f'] ?? 0.0);
+                    $n = (int)($rev[(string)$r->cChannel]['n'] ?? 0);
+                    $costRows[] = ['mo' => $mo, 'ch' => (string)$r->cChannel, 'cost' => $c, 'rev' => $f, 'n' => $n];
+                }
+            }
+        } catch (\Throwable $e) {
+            $msg = $msg !== '' ? $msg : 'Kosten-Auswertung: ' . $e->getMessage();
+        }
+        $money = static fn (float $v): string => \number_format($v, 2, ',', '.') . ' €';
+        ?>
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <h4>Besuche &amp; Konversion pro Kanal <small class="text-muted">(eigener Zähler<?= $since !== null ? ', seit ' . sp_h($since) : '' ?>)</small></h4>
+                <?php if ($visitRows === []): ?>
+                    <p class="text-muted">Zähler läuft ab jetzt (Neue Sitzung = 1 Besuch, ohne Bots). Daten erscheinen nach den ersten Besuchen.</p>
+                <?php else: ?>
+                    <table class="table table-sm table-bordered">
+                        <thead><tr><th>Kanal</th><th class="text-right">Besuche</th><th class="text-right">Best.</th><th class="text-right">Umsatz</th><th class="text-right">Konv.</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($visitRows as $r): ?>
+                            <tr>
+                                <td><?= sp_h($r['ch']) ?></td>
+                                <td class="text-right"><?= (int)$r['v'] ?></td>
+                                <td class="text-right"><?= (int)$r['n'] ?></td>
+                                <td class="text-right"><?= sp_h(\number_format($r['f'], 0, ',', '.')) ?> €</td>
+                                <td class="text-right"><?= $r['v'] > 0 ? sp_h(\number_format($r['n'] * 100 / $r['v'], 2, ',', '.')) . ' %' : '–' ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </div>
+            <div class="col-md-6 mb-4">
+                <h4>Kosten &amp; ROAS</h4>
+                <?php if ($msg !== ''): ?><div class="alert alert-info py-1"><?= sp_h($msg) ?></div><?php endif; ?>
+                <form method="post" class="form-inline mb-2">
+                    <?= \JTL\Helpers\Form::getTokenInput() ?>
+                    <select name="sp_cost_month" class="form-control form-control-sm mr-2">
+                        <?php foreach ($months as $mo): ?><option value="<?= sp_h($mo) ?>"><?= sp_h($mo) ?></option><?php endforeach; ?>
+                    </select>
+                    <select name="sp_cost_channel" class="form-control form-control-sm mr-2">
+                        <?php foreach ($channels as $ch): ?><option value="<?= sp_h($ch) ?>"><?= sp_h($ch) ?></option><?php endforeach; ?>
+                    </select>
+                    <input type="text" name="sp_cost_value" class="form-control form-control-sm mr-2" placeholder="Kosten in €" style="width:110px" required>
+                    <button type="submit" name="sp_cost_save" value="1" class="btn btn-sm btn-primary">Speichern</button>
+                </form>
+                <?php if ($costRows !== []): ?>
+                    <table class="table table-sm table-bordered">
+                        <thead><tr><th>Monat</th><th>Kanal</th><th class="text-right">Kosten</th><th class="text-right">Umsatz</th><th class="text-right">ROAS</th><th class="text-right">€/Bestellung</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($costRows as $r): ?>
+                            <tr>
+                                <td><?= sp_h($r['mo']) ?></td>
+                                <td><?= sp_h($r['ch']) ?></td>
+                                <td class="text-right"><?= sp_h($money($r['cost'])) ?></td>
+                                <td class="text-right"><?= sp_h($money($r['rev'])) ?></td>
+                                <td class="text-right"><?= $r['cost'] > 0 ? sp_h(\number_format($r['rev'] / $r['cost'], 2, ',', '.')) . 'x' : '–' ?></td>
+                                <td class="text-right"><?= $r['n'] > 0 ? sp_h($money($r['cost'] / $r['n'])) : '–' ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php else: ?>
+                    <p class="text-muted small">Monatliche Werbekosten je Kanal eintragen (z. B. google_ads), dann erscheint ROAS.</p>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php
+    }
+}
+
 if (!function_exists('sp_render_insights')) {
     function sp_render_insights(\JTL\DB\DbInterface $db): void
     {
+        sp_render_visits_and_costs($db);
         $d = sp_load_insights($db);
         $money = static fn (float $v): string => \number_format($v, 0, ',', '.') . ' €';
         ?>

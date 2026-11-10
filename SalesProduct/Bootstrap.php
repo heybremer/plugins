@@ -161,6 +161,7 @@ class Bootstrap extends Bootstrapper
         }
 
         $snap = $this->buildSnapshotFromRequest();
+        $this->countVisit($snap);
         if ($snap === null) {
             return;
         }
@@ -183,6 +184,51 @@ class Bootstrap extends Bootstrapper
         ];
 
         $this->writeAttributionCookie($payload);
+    }
+
+    /**
+     * Zählt einen Besuch (neue Sitzung, 30 Min.) pro Tag und Kanal – ohne personenbezogene Daten.
+     * Bots/AJAX/Nicht-GET werden ignoriert. Ermöglicht Konversion pro Kanal (gclid → Google Ads).
+     *
+     * @param array<string, mixed>|null $snap
+     */
+    private function countVisit(?array $snap): void
+    {
+        try {
+            if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET' || !empty($_COOKIE['womosi_sp_v'])
+                || !empty($_SERVER['HTTP_X_REQUESTED_WITH'])) {
+                return;
+            }
+            $ua = \strtolower((string)($_SERVER['HTTP_USER_AGENT'] ?? ''));
+            if ($ua === '' || \preg_match('/bot|crawl|spider|slurp|curl|wget|python|monitor|headless|lighthouse|preview|facebookexternalhit|scan/', $ua) === 1) {
+                return;
+            }
+            $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ((int)($_SERVER['SERVER_PORT'] ?? 0) === 443);
+            \setcookie('womosi_sp_v', '1', ['expires' => \time() + 1800, 'path' => '/', 'secure' => $secure, 'httponly' => true, 'samesite' => 'Lax']);
+            $_COOKIE['womosi_sp_v'] = '1';
+
+            $channel = (string)($snap['channel'] ?? '');
+            if ($channel === '') {
+                $existing = $this->readCookiePayload();
+                $channel = (string)($existing['last']['channel'] ?? '') ?: 'direct';
+            }
+            $channel = \substr((string)\preg_replace('/[^a-zA-Z0-9_-]+/', '_', $channel), 0, 64) ?: 'direct';
+            $sql = 'INSERT INTO twomosi_sales_visits (dDay, cChannel, nVisits) VALUES (CURDATE(), :c, 1)
+                    ON DUPLICATE KEY UPDATE nVisits = nVisits + 1';
+            $db = Shop::Container()->getDB();
+            // Nur einmal pro neuer Sitzung (30 Min.) – daher günstig; JTL-DB wirft bei fehlender Tabelle nicht zuverlässig.
+            $db->executeQuery(
+                'CREATE TABLE IF NOT EXISTS twomosi_sales_visits (
+                    dDay DATE NOT NULL,
+                    cChannel VARCHAR(64) NOT NULL,
+                    nVisits INT NOT NULL DEFAULT 0,
+                    PRIMARY KEY (dDay, cChannel)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+            );
+            $db->executeQueryPrepared($sql, ['c' => $channel]);
+        } catch (\Throwable $e) {
+            // Zähler darf den Shop nie stören.
+        }
     }
 
     /**
