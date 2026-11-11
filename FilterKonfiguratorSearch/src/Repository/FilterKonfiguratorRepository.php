@@ -2704,12 +2704,13 @@ class FilterKonfiguratorRepository
 
             try {
                 $rows = $this->db->getObjects(
-                    "SELECT DISTINCT cSerie
+                    "SELECT cSerie, MAX(cSerieSeo) AS cSerieSeo
                        FROM twomosi_fk_opt_pkw_serie
                       WHERE kSprache    = :lid
                         AND cHersteller = :hersteller
                         AND cModell     = :modell
                         AND cBaujahr    = :baujahr
+                   GROUP BY cSerie
                    ORDER BY cSerie ASC
                       LIMIT 100",
                     [
@@ -2727,22 +2728,25 @@ class FilterKonfiguratorRepository
             }
 
             $serieValues = [];
+            $storedSeo   = [];
             foreach ($rows as $row) {
                 $serie = \trim((string)($row->cSerie ?? ''));
                 if ($serie !== '') {
                     $serieValues[$serie] = $serie;
+                    $storedSeo[$serie]   = \trim((string)($row->cSerieSeo ?? ''));
                 }
             }
             if ($serieValues === []) {
                 return null;
             }
 
-            $seoMap       = $this->fetchSerieSeoSlugs(\array_values($serieValues));
+            $missing      = \array_keys(\array_filter($storedSeo, static fn(string $s): bool => $s === ''));
+            $seoMap       = $missing !== [] ? $this->fetchSerieSeoSlugs($missing) : [];
             $snapshotRows = [];
             foreach ($serieValues as $serie) {
                 $snapshotRows[] = (object)[
                     'serie'    => $serie,
-                    'serieSeo' => $seoMap[$serie] ?? '',
+                    'serieSeo' => $storedSeo[$serie] !== '' ? $storedSeo[$serie] : ($seoMap[$serie] ?? ''),
                 ];
             }
 

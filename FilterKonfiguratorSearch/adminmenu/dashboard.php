@@ -238,9 +238,19 @@ if ($isAjax && (
             if ($lid !== 1) $svc->refreshPkwBaujahr(1);
             echo json_encode(['ok' => true, 'msg' => 'Schritt 3/4: PKW Baujahr-Snapshots aktualisiert.' . $pkwCountMsg($svc)]);
         } elseif (!empty($_POST['fkSnapshotStepPkwSerie'])) {
-            $svc->refreshPkwSerie($lid);
-            if ($lid !== 1) $svc->refreshPkwSerie(1);
-            echo json_encode(['ok' => true, 'msg' => 'Schritt 4/4: PKW Serien-Snapshots aktualisiert. Alle fertig!' . $pkwCountMsg($svc)]);
+            @set_time_limit(120);
+            $r = $svc->refreshPkwSerieChunk($lid, (int)($_POST['fkOffset'] ?? 0), 40.0);
+            if ($r['done'] && $lid !== 1) {
+                $svc->refreshPkwSerie(1);
+            }
+            echo json_encode([
+                'ok'   => true,
+                'done' => $r['done'],
+                'next' => $r['next'],
+                'msg'  => $r['done']
+                    ? 'Schritt 4/4: PKW Serien-Snapshots aktualisiert. Alle fertig!' . $pkwCountMsg($svc)
+                    : 'Schritt 4/4: Modelle ' . $r['next'] . '/' . $r['total'] . ' …',
+            ]);
         }
     } catch (\Throwable $e) {
         echo json_encode(['ok' => false, 'msg' => 'Fehler: ' . $e->getMessage()]);
@@ -902,7 +912,7 @@ if ($tab === 'summary') {
                     { field: 'fkSnapshotStepPkwSerie',  label: 'Schritt 4/4: PKW Serien (dauert am längsten)' },
                 ];
 
-                function runStep(i) {
+                function runStep(i, offset) {
                     if (i >= steps.length) {
                         bar.style.width = '100%';
                         log.innerHTML += '<br><b style="color:#197149">✅ Alle Snapshots erfolgreich aktualisiert!</b>';
@@ -917,6 +927,7 @@ if ($tab === 'summary') {
                     var body = new FormData();
                     hiddenInputs.forEach(function(inp) { body.append(inp.name, inp.value); });
                     body.append(step.field, '1');
+                    body.append('fkOffset', String(offset || 0));
 
                     fetch(window.location.href, {
                         method: 'POST',
@@ -933,6 +944,11 @@ if ($tab === 'summary') {
                         return r.json();
                     })
                     .then(function(data) {
+                        if (data.ok && data.done === false) {
+                            log.innerHTML += '⏳ ' + data.msg + '<br>';
+                            runStep(i, data.next);
+                            return;
+                        }
                         if (data.ok) {
                             log.innerHTML += '✅ ' + (data.msg || step.label + ' OK') + '<br>';
                         } else {

@@ -194,6 +194,7 @@ final class PluginDatabase
                     cBaujahr VARCHAR(16) NOT NULL DEFAULT '',
                     cSerie VARCHAR(255) NOT NULL DEFAULT '',
                     cSerieLabel VARCHAR(255) NOT NULL DEFAULT '',
+                    cSerieSeo VARCHAR(255) NOT NULL DEFAULT '',
                     UNIQUE KEY uq_pkw_serie (kSprache, cHersteller, cModell, cBaujahr, cSerie),
                     KEY idx_pkw_serie (kSprache, cHersteller, cModell, cBaujahr)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"

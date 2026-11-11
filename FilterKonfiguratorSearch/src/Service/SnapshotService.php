@@ -6,6 +6,7 @@ namespace Plugin\FilterKonfiguratorSearch\Service;
 
 use JTL\DB\DbInterface;
 use Plugin\FilterKonfiguratorSearch\Query\PkwSqlFragments;
+use Plugin\FilterKonfiguratorSearch\Repository\FilterKonfiguratorRepository;
 
 /**
  * Service to manage pre-calculated snapshots for high-speed filter lookup.
@@ -254,76 +255,233 @@ class SnapshotService
      */
     public function refreshPkwSerie(int $lid): void
     {
-        $params = $this->pkwSnapshotParams($lid);
-        $from   = $this->pkwArticleFromClause();
-        $bjName = PkwSqlFragments::merkmalNameBaujahr('ms_bj');
-        $serMs  = "ms_ser.cName IN ('Serie','kompatible Serien','Familie-Serie')";
+        $next = 0;
+        do {
+            $r    = $this->refreshPkwSerieChunk($lid, $next, 300.0);
+            $next = $r['next'];
+        } while (!$r['done']);
+    }
 
+    /**
+     * PKW-Serien-Snapshot in Teilschritten (pro Hersteller/Modell) neu aufbauen.
+     * Die Komplett-Abfrage explodiert bei universellen Artikeln (alle Marken × Modelle × Baujahre)
+     * und läuft > 15 Min. — pro Modell bleibt die Zwischenmenge klein.
+     *
+     * @return array{done:bool,next:int,total:int,rows:int}
+     */
+    public function refreshPkwSerieChunk(int $lid, int $offset, float $timeBudget = 40.0): array
+    {
+        $lid    = $lid > 0 ? $lid : 1;
+        $params = ['langID' => $lid];
+        $start  = \microtime(true);
+
+        if ($offset <= 0) {
+            $offset = 0;
+            $this->db->executeQuery(
+                "CREATE TABLE IF NOT EXISTS twomosi_fk_opt_pkw_serie (
+                    kID INT AUTO_INCREMENT PRIMARY KEY,
+                    kSprache INT NOT NULL,
+                    cHersteller VARCHAR(255) NOT NULL DEFAULT '',
+                    cModell VARCHAR(255) NOT NULL DEFAULT '',
+                    cBaujahr VARCHAR(16) NOT NULL DEFAULT '',
+                    cSerie VARCHAR(255) NOT NULL DEFAULT '',
+                    cSerieLabel VARCHAR(255) NOT NULL DEFAULT '',
+                    cSerieSeo VARCHAR(255) NOT NULL DEFAULT '',
+                    UNIQUE KEY uq_pkw_serie (kSprache, cHersteller, cModell, cBaujahr, cSerie),
+                    KEY idx_pkw_serie (kSprache, cHersteller, cModell, cBaujahr)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+            );
+            $this->db->executeQuery(
+                "ALTER TABLE twomosi_fk_opt_pkw_serie
+                 ADD COLUMN IF NOT EXISTS cSerieSeo VARCHAR(255) NOT NULL DEFAULT ''"
+            );
+            $this->db->executeQueryPrepared('DELETE FROM twomosi_fk_opt_pkw_serie WHERE kSprache = :lid', ['lid' => $lid]);
+        }
+
+        $models = $this->db->getObjects(
+            'SELECT cHersteller, cModell FROM twomosi_fk_opt_pkw_modell
+              WHERE kSprache = :lid ORDER BY cHersteller, cModell',
+            ['lid' => $lid]
+        );
+        $total = \count($models);
+
+        $valueIds = ['Fahrzeug-Marke' => [], 'Fahrzeug-Modell' => []];
+        foreach ($this->db->getObjects(
+            "SELECT tmws.kMerkmalWert AS id, TRIM(tmws.cWert) AS val, ms.cName AS merkmal
+               FROM tmerkmalwertsprache tmws
+         INNER JOIN tmerkmalwert mw ON mw.kMerkmalWert = tmws.kMerkmalWert
+         INNER JOIN tmerkmalsprache ms ON ms.kMerkmal = mw.kMerkmal
+                AND ms.kSprache = :langID
+                AND ms.cName IN ('Fahrzeug-Marke','Fahrzeug-Modell')
+              WHERE tmws.kSprache = :langID",
+            ['langID' => $lid]
+        ) as $row) {
+            $valueIds[(string)$row->merkmal][(string)$row->val][] = (int)$row->id;
+        }
+
+        $segJoin = PkwSqlFragments::pkwProdukttypFilter('langID') . PkwSqlFragments::articleNotAufbauart();
+        $bjName  = PkwSqlFragments::merkmalNameBaujahr('ms_bj');
+        $rowsIns = 0;
+        $i       = $offset;
+
+        $this->db->executeQuery('DROP TEMPORARY TABLE IF EXISTS tmp_fk_pkw_art');
         $this->db->executeQuery(
-            "CREATE TABLE IF NOT EXISTS twomosi_fk_opt_pkw_serie (
-                kID INT AUTO_INCREMENT PRIMARY KEY,
-                kSprache INT NOT NULL,
-                cHersteller VARCHAR(255) NOT NULL DEFAULT '',
-                cModell VARCHAR(255) NOT NULL DEFAULT '',
-                cBaujahr VARCHAR(16) NOT NULL DEFAULT '',
-                cSerie VARCHAR(255) NOT NULL DEFAULT '',
-                cSerieLabel VARCHAR(255) NOT NULL DEFAULT '',
-                UNIQUE KEY uq_pkw_serie (kSprache, cHersteller, cModell, cBaujahr, cSerie),
-                KEY idx_pkw_serie (kSprache, cHersteller, cModell, cBaujahr)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
-        );
-        $this->db->executeQueryPrepared('DELETE FROM twomosi_fk_opt_pkw_serie WHERE kSprache = :lid', ['lid' => $lid]);
-
-        $this->db->executeQueryPrepared(
-            "INSERT IGNORE INTO twomosi_fk_opt_pkw_serie (kSprache, cHersteller, cModell, cBaujahr, cSerie, cSerieLabel)
-             SELECT DISTINCT :lid,
-                    TRIM(tmws_her.cWert),
-                    TRIM(tmws_mod.cWert),
-                    TRIM(tmws_bj.cWert),
-                    TRIM(tmws_ser.cWert),
-                    TRIM(tmws_ser.cWert)
-               {$from}
-               {$this->merkmalJoinSql('her', "ms_her.cName = 'Fahrzeug-Marke'")}
-               {$this->merkmalJoinSql('mod', "ms_mod.cName = 'Fahrzeug-Modell'")}
-               {$this->merkmalJoinSql('bj', $bjName)}
-               {$this->merkmalJoinSql('ser', $serMs)}
-              WHERE a.nIstVater = 0
-                AND TRIM(tmws_her.cWert) <> ''
-                AND TRIM(tmws_mod.cWert) <> ''
-                AND TRIM(tmws_bj.cWert) <> ''
-                AND TRIM(tmws_ser.cWert) <> ''",
-            $params
+            'CREATE TEMPORARY TABLE tmp_fk_pkw_art (
+                kArtikel INT NOT NULL PRIMARY KEY,
+                kVaterArtikel INT NOT NULL DEFAULT 0,
+                KEY idx_vater (kVaterArtikel)
+            ) ENGINE=MEMORY'
         );
 
-        // Viele PKW-Artikel tragen die Serie nur als Kategorie (z. B. "N3-Serie").
-        $catName = "TRIM(COALESCE(NULLIF(ks_ser.cName, ''), c_ser.cName))";
-        $catSerie = "TRIM(TRAILING ' Serie' FROM TRIM(TRAILING '-Serie' FROM {$catName}))";
-        $this->db->executeQueryPrepared(
-            "INSERT IGNORE INTO twomosi_fk_opt_pkw_serie (kSprache, cHersteller, cModell, cBaujahr, cSerie, cSerieLabel)
-             SELECT DISTINCT :lid,
-                    TRIM(tmws_her.cWert),
-                    TRIM(tmws_mod.cWert),
-                    TRIM(tmws_bj.cWert),
-                    {$catSerie},
-                    {$catSerie}
-               {$from}
-               {$this->merkmalJoinSql('her', "ms_her.cName = 'Fahrzeug-Marke'")}
-               {$this->merkmalJoinSql('mod', "ms_mod.cName = 'Fahrzeug-Modell'")}
-               {$this->merkmalJoinSql('bj', $bjName)}
-         INNER JOIN tkategorieartikel ka_ser ON ka_ser.kArtikel = a.kArtikel
-         INNER JOIN tkategorie c_ser ON c_ser.kKategorie = ka_ser.kKategorie
-          LEFT JOIN tkategoriesprache ks_ser ON ks_ser.kKategorie = c_ser.kKategorie
-                AND ks_ser.kSprache = :langID
-              WHERE a.nIstVater = 0
-                AND TRIM(tmws_her.cWert) <> ''
-                AND TRIM(tmws_mod.cWert) <> ''
-                AND TRIM(tmws_bj.cWert) <> ''
-                AND {$catName} LIKE '%Serie%'",
-            $params
-        );
+        for (; $i < $total; $i++) {
+            if ($i > $offset && (\microtime(true) - $start) > $timeBudget) {
+                break;
+            }
+            $h      = (string)$models[$i]->cHersteller;
+            $m      = (string)$models[$i]->cModell;
+            $herIds = $valueIds['Fahrzeug-Marke'][$h] ?? [];
+            $modIds = $valueIds['Fahrzeug-Modell'][$m] ?? [];
+            if ($herIds === [] || $modIds === []) {
+                continue;
+            }
 
-        $this->flushPkwStep4Cache();
-        $this->touchPkwSnapshotMeta($lid);
+            // Gleiche Artikelbasis wie FilterKonfiguratorRepository::findPkwSeriesRows (ohne LIMIT).
+            $ids = [];
+            foreach ($this->db->getObjects(
+                'SELECT DISTINCT a.kArtikel
+                   FROM tartikel a
+             INNER JOIN tartikelmerkmal am_her ON am_her.kArtikel = a.kArtikel
+                    AND am_her.kMerkmalWert IN (' . \implode(',', $herIds) . ')
+             INNER JOIN tartikelmerkmal am_mod ON am_mod.kArtikel = a.kArtikel
+                    AND am_mod.kMerkmalWert IN (' . \implode(',', $modIds) . ')
+                  WHERE a.nIstVater = 0'
+            ) as $row) {
+                $ids[] = (int)$row->kArtikel;
+            }
+            if ($ids === []) {
+                continue;
+            }
+
+            $this->db->executeQuery('DELETE FROM tmp_fk_pkw_art');
+            foreach (\array_chunk($ids, 2000) as $idChunk) {
+                $this->db->executeQueryPrepared(
+                    'INSERT IGNORE INTO tmp_fk_pkw_art (kArtikel, kVaterArtikel)
+                     SELECT DISTINCT a.kArtikel, a.kVaterArtikel
+                       FROM tartikel a
+                       ' . $segJoin . '
+                      WHERE a.kArtikel IN (' . \implode(',', $idChunk) . ')',
+                    $params
+                );
+            }
+
+            $bjJoin = " INNER JOIN tartikelmerkmal am_bj ON am_bj.kArtikel = t.kArtikel
+                        INNER JOIN tmerkmalwert mw_bj ON mw_bj.kMerkmalWert = am_bj.kMerkmalWert
+                        INNER JOIN tmerkmalsprache ms_bj ON ms_bj.kMerkmal = mw_bj.kMerkmal
+                               AND ms_bj.kSprache = :langID AND {$bjName}
+                        INNER JOIN tmerkmalwertsprache tmws_bj ON tmws_bj.kMerkmalWert = am_bj.kMerkmalWert
+                               AND tmws_bj.kSprache = :langID";
+
+            $found = [];
+            foreach (['t.kArtikel', 't.kVaterArtikel'] as $owner) {
+                foreach ($this->db->getObjects(
+                    "SELECT DISTINCT TRIM(tmws_bj.cWert) AS bj, TRIM(sw.cWert) AS serie, seo.cSeo AS serieSeo
+                       FROM tmp_fk_pkw_art t
+                       {$bjJoin}
+                 INNER JOIN tartikelmerkmal tam ON tam.kArtikel = {$owner}
+                 INNER JOIN tmerkmalwert mws ON mws.kMerkmalWert = tam.kMerkmalWert
+                 INNER JOIN tmerkmalsprache mss ON mss.kMerkmal = mws.kMerkmal
+                        AND mss.kSprache = :langID AND mss.cName = 'Serie'
+                 INNER JOIN tmerkmalwertsprache sw ON sw.kMerkmalWert = tam.kMerkmalWert
+                        AND sw.kSprache = :langID
+                  LEFT JOIN tseo seo ON seo.cKey = 'kMerkmalWert'
+                        AND seo.kKey = tam.kMerkmalWert AND seo.kSprache = :langID",
+                    $params
+                ) as $row) {
+                    $this->addSnapshotSerie($found, (string)$row->bj, (string)$row->serie, (string)($row->serieSeo ?? ''), true);
+                }
+            }
+            foreach (['t.kArtikel', 't.kVaterArtikel'] as $owner) {
+                foreach ($this->db->getObjects(
+                    "SELECT DISTINCT TRIM(tmws_bj.cWert) AS bj,
+                            COALESCE(NULLIF(ks.cName, ''), NULLIF(c.cName, '')) AS serie,
+                            seo.cSeo AS serieSeo
+                       FROM tmp_fk_pkw_art t
+                       {$bjJoin}
+                 INNER JOIN tkategorieartikel ka ON ka.kArtikel = {$owner}
+                 INNER JOIN tkategorie c ON c.kKategorie = ka.kKategorie
+                  LEFT JOIN tkategoriesprache ks ON ks.kKategorie = c.kKategorie
+                        AND ks.kSprache = :langID
+                  LEFT JOIN tseo seo ON seo.cKey = 'kKategorie'
+                        AND seo.kKey = c.kKategorie AND seo.kSprache = :langID
+                      WHERE COALESCE(NULLIF(ks.cName, ''), c.cName) LIKE '%Serie%'",
+                    $params
+                ) as $row) {
+                    $this->addSnapshotSerie(
+                        $found,
+                        (string)$row->bj,
+                        FilterKonfiguratorRepository::stripSerieSuffix((string)$row->serie),
+                        (string)($row->serieSeo ?? ''),
+                        false
+                    );
+                }
+            }
+
+            $tuples = [];
+            foreach ($found as $bj => $series) {
+                foreach ($series as $s) {
+                    $tuples[] = [$bj, $s['serie'], $s['seo']];
+                }
+            }
+            foreach (\array_chunk($tuples, 300) as $chunk) {
+                $values = [];
+                $p      = [];
+                foreach ($chunk as $k => [$bj, $serie, $seo]) {
+                    $values[]    = "(:l{$k}, :h{$k}, :m{$k}, :b{$k}, :s{$k}, :t{$k}, :o{$k})";
+                    $p['l' . $k] = $lid;
+                    $p['h' . $k] = $h;
+                    $p['m' . $k] = $m;
+                    $p['b' . $k] = $bj;
+                    $p['s' . $k] = $serie;
+                    $p['t' . $k] = $serie;
+                    $p['o' . $k] = $seo;
+                }
+                $this->db->executeQueryPrepared(
+                    'INSERT IGNORE INTO twomosi_fk_opt_pkw_serie
+                        (kSprache, cHersteller, cModell, cBaujahr, cSerie, cSerieLabel, cSerieSeo)
+                     VALUES ' . \implode(',', $values),
+                    $p
+                );
+                $rowsIns += \count($chunk);
+            }
+        }
+        $done = $i >= $total;
+        if ($done) {
+            $this->flushPkwStep4Cache();
+            $this->touchPkwSnapshotMeta($lid);
+        }
+
+        return ['done' => $done, 'next' => $i, 'total' => $total, 'rows' => $rowsIns];
+    }
+
+    /**
+     * Merkmal-Serien haben Vorrang vor gleichnamigen Serien-Kategorien (wie mergePkwSeriesRows).
+     *
+     * @param array<string,array<string,array{serie:string,seo:string,m:bool}>> $found
+     */
+    private function addSnapshotSerie(array &$found, string $bj, string $serie, string $seo, bool $isMerkmal): void
+    {
+        $serie = \trim($serie);
+        if ($bj === '' || $serie === '') {
+            return;
+        }
+        $key = \mb_strtolower($serie);
+        if (isset($found[$bj][$key]) && ($found[$bj][$key]['m'] || !$isMerkmal)) {
+            if ($found[$bj][$key]['seo'] === '' && $seo !== '' && $found[$bj][$key]['m'] === $isMerkmal) {
+                $found[$bj][$key]['seo'] = $seo;
+            }
+            return;
+        }
+        $found[$bj][$key] = ['serie' => $serie, 'seo' => $seo, 'm' => $isMerkmal];
     }
 
     /**
