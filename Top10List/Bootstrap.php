@@ -458,6 +458,7 @@ class Bootstrap extends Bootstrapper
                     a.kArtikel,
                     COALESCE(NULLIF(a.cName, ''), ts.cName, '') AS cName,
                     COALESCE(a.cSeo, '') AS cSeo,
+                    a.cArtNr, a.cBarcode,
                     COALESCE(xk.nSales, 0) AS nSales,
                     COALESCE(a.fStandardpreisNetto, 0) AS fNet,
                     COALESCE(a.fMwSt, 0) AS fMwSt,
@@ -495,8 +496,7 @@ class Bootstrap extends Bootstrapper
                     $name = (string)($r->cName ?? '');
                     $seo = trim((string)($r->cSeo ?? ''));
                     $url = $seo !== '' ? ($shop . '/' . ltrim($seo, '/')) : ($shop . '/artikel.php?a=' . $kArtikel);
-                    $imgSlug = $this->slugify($name !== '' ? $name : (string)$kArtikel);
-                    $img = $shop . '/media/image/product/' . $kArtikel . '/md/' . $imgSlug . '.jpg';
+                    $img = $this->productImageUrl($r, $kArtikel, $shop);
                     $gross = (float)($r->fNet ?? 0) * (1 + (float)($r->fMwSt ?? 0) / 100);
                     $out[] = [
                         'kArtikel' => $kArtikel,
@@ -570,6 +570,7 @@ class Bootstrap extends Bootstrapper
                         a.kArtikel,
                         COALESCE(NULLIF(a.cName, ''), ts.cName, '') AS cName,
                         COALESCE(a.cSeo, '') AS cSeo,
+                        a.cArtNr, a.cBarcode,
                         COALESCE(xk.nSales, 0) AS nSales,
                         COALESCE(a.fStandardpreisNetto, 0) AS fNet,
                         COALESCE(a.fMwSt, 0) AS fMwSt,
@@ -616,8 +617,7 @@ class Bootstrap extends Bootstrapper
                     $name = (string)($r->cName ?? '');
                     $seo = trim((string)($r->cSeo ?? ''));
                     $url = $seo !== '' ? ($shop . '/' . ltrim($seo, '/')) : ($shop . '/artikel.php?a=' . $kArtikel);
-                    $imgSlug = $this->slugify($name !== '' ? $name : (string)$kArtikel);
-                    $img = $shop . '/media/image/product/' . $kArtikel . '/md/' . $imgSlug . '.jpg';
+                    $img = $this->productImageUrl($r, $kArtikel, $shop);
                     $gross = (float)($r->fNet ?? 0) * (1 + (float)($r->fMwSt ?? 0) / 100);
                     $out[] = [
                         'kArtikel' => $kArtikel,
@@ -676,6 +676,7 @@ class Bootstrap extends Bootstrapper
                     a.kArtikel,
                     COALESCE(NULLIF(a.cName, ''), ts.cName, '') AS cName,
                     COALESCE(a.cSeo, '') AS cSeo,
+                    a.cArtNr, a.cBarcode,
                     COALESCE(a.fStandardpreisNetto, 0) AS fNet,
                     COALESCE(a.fMwSt, 0) AS fMwSt
                  FROM tartikel a
@@ -707,8 +708,7 @@ class Bootstrap extends Bootstrapper
                 $name = (string)($r->cName ?? '');
                 $seo = trim((string)($r->cSeo ?? ''));
                 $url = $seo !== '' ? ($shop . '/' . ltrim($seo, '/')) : ($shop . '/artikel.php?a=' . $id);
-                $imgSlug = $this->slugify($name !== '' ? $name : (string)$id);
-                $img = $shop . '/media/image/product/' . $id . '/md/' . $imgSlug . '.jpg';
+                $img = $this->productImageUrl($r, $id, $shop);
                 $gross = (float)($r->fNet ?? 0) * (1 + (float)($r->fMwSt ?? 0) / 100);
                 $out[] = [
                     'kArtikel' => $id,
@@ -723,6 +723,36 @@ class Bootstrap extends Bootstrapper
         } catch (\Throwable $e) {
             return [];
         }
+    }
+
+    private function productImageUrl(object $r, int $id, string $shop): string
+    {
+        $nz = static fn($v) => \trim((string)($v ?? '')) !== '' ? (string)$v : null;
+        try {
+            $mixed = (object)[
+                'kArtikel'    => $id,
+                'cName'       => $nz($r->cName ?? null),
+                'cSeo'        => $nz($r->cSeo ?? null),
+                'originalSeo' => $nz($r->cSeo ?? null),
+                'cArtNr'      => $nz($r->cArtNr ?? null),
+                'cBarcode'    => $nz($r->cBarcode ?? null),
+            ];
+            $number = isset($r->nNr) ? \max(1, (int)$r->nNr) : (\JTL\Media\Image\Product::getPrimaryNumber($id) ?? 1);
+            $thumb  = \JTL\Media\Image\Product::getThumb(
+                \JTL\Media\Image::TYPE_PRODUCT,
+                $id,
+                $mixed,
+                \JTL\Media\Image::SIZE_MD,
+                $number
+            );
+            if ($thumb !== '' && $thumb !== \BILD_KEIN_ARTIKELBILD_VORHANDEN) {
+                return $shop . '/' . \ltrim($thumb, '/');
+            }
+        } catch (\Throwable $e) {
+        }
+        $name = (string)($r->cName ?? '');
+
+        return $shop . '/media/image/product/' . $id . '/md/' . $this->slugify($name !== '' ? $name : (string)$id) . '.jpg';
     }
 
     private function slugify(string $v): string
