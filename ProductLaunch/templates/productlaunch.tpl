@@ -15,7 +15,7 @@
                     <div class="pl-mediabox">
                         <a class="pl-media" href="{if $it.url}{$it.url|escape:'html'}{elseif $it.catUrl}{$it.catUrl|escape:'html'}{else}#{/if}" tabindex="-1">
                             {if $it.image}
-                                <img class="pl-main-img" src="{$it.image|escape:'html'}" alt="{$it.name|escape:'html'}" loading="lazy" decoding="async">
+                                <img class="pl-main-img" src="{$it.image|escape:'html'}" alt="{$it.name|escape:'html'}" width="460" height="460" loading="lazy" decoding="async">
                             {/if}
                             <span class="pl-badge">{$it.badge|escape:'html'}</span>
                         </a>

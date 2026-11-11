@@ -112,11 +112,24 @@ class Bootstrap extends Bootstrapper
                 'image'    => ImageThumb::url(\trim((string)$r->cImage), 600),
                 'badge'    => \trim((string)$r->cBadge),
                 'href'     => \trim((string)$r->cUrl) !== '' ? \trim((string)$r->cUrl) : '#',
+                'label'    => self::linkLabel((string)$r->cTitle, (string)$r->cUrl),
                 'items'    => $items,
             ];
         }
 
         return $out;
+    }
+
+    private static function linkLabel(string $title, string $url): string
+    {
+        $title = \trim($title);
+        if ($title !== '') {
+            return $title;
+        }
+        $slug = \basename((string)\parse_url(\trim($url), \PHP_URL_PATH));
+        $slug = (string)\preg_replace('/_\d+$/', '', \rawurldecode($slug));
+
+        return \trim(\str_replace(['-', '_'], ' ', $slug));
     }
 
     /**

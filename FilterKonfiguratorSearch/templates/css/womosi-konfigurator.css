@@ -1073,13 +1073,23 @@ body > .ac-overlay.active {
   box-shadow: none;
 }
 
+/* Overlay statt Einfügen in den Fluss: verhindert Layout Shift (CLS) */
 .womosi-konfigurator .fk-restored-note {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  animation: fkRestoredNoteOut 0.4s ease 8s forwards;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px 12px;
-  margin: 0 0 12px;
+  margin: 0;
   padding: 8px 12px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -1106,6 +1116,18 @@ body > .ac-overlay.active {
   color: var(--danger);
   border-color: var(--danger);
   transform: none;
+}
+
+.womosi-konfigurator .fk-restored-note:hover,
+.womosi-konfigurator .fk-restored-note:focus-within {
+  animation: none;
+}
+
+@keyframes fkRestoredNoteOut {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
 }
 
 /* ===== ACTIONS ===== */

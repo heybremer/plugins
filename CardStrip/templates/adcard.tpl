@@ -1,5 +1,5 @@
 {* Wiederverwendbare Karte. Erwartet $card: variant (A|B|C), title, subtitle, bgColor, tone, image, badge, href, items *}
-<a class="cs-card cs-card--{$card.variant} cs-tone-{$card.tone}{if $card.badge} cs-has-tag{/if}" href="{$card.href|escape:'html'}" style="--cs-bg:{$card.bgColor|escape:'html'}">
+<a class="cs-card cs-card--{$card.variant} cs-tone-{$card.tone}{if $card.badge} cs-has-tag{/if}" href="{$card.href|escape:'html'}"{if !$card.title && $card.label} aria-label="{$card.label|escape:'html'}"{/if} style="--cs-bg:{$card.bgColor|escape:'html'}">
     {if $card.variant === 'B' && $card.image}
         <img class="cs-bgimg" src="{$card.image|escape:'html'}" alt="{$card.title|escape:'html'}" loading="lazy" decoding="async">
     {/if}

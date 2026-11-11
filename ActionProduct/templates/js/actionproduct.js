@@ -66,6 +66,7 @@
             const b = document.createElement('button');
             b.type = 'button';
             b.className = 'aktion-slider-dot' + (i === 0 ? ' active' : '');
+            b.setAttribute('aria-label', 'Bild ' + (i + 1) + ' anzeigen');
             b.addEventListener('click', (e) => { e.preventDefault(); onClick(i); });
             dotsWrap.appendChild(b);
         }

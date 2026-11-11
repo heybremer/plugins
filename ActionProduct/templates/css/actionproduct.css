@@ -329,7 +329,7 @@ body {
 
 .aktion-price-old {
     font-size: 18px;
-    color: #9ca3af;
+    color: #6b7280;
     text-decoration: line-through;
     font-weight: 400;
 }
@@ -342,7 +342,7 @@ body {
 }
 
 .aktion-discount-badge {
-    background: #ff4757;
+    background: #d62839;
     color: #ffffff;
     padding: 6px 14px;
     border-radius: 8px;

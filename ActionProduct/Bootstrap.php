@@ -35,12 +35,12 @@ class Bootstrap extends Bootstrapper
                 $args['cPluginJsHead_arr'] = [];
             }
 
-            $cssPath = 'plugins/ActionProduct/templates/css/actionproduct.css';
+            $cssPath = 'plugins/ActionProduct/templates/css/actionproduct.css?v=' . (int)@\filemtime(__DIR__ . '/templates/css/actionproduct.css');
             if (!\in_array($cssPath, $args['cPluginCss_arr'], true)) {
                 $args['cPluginCss_arr'][] = $cssPath;
             }
 
-            $jsPath = 'plugins/ActionProduct/templates/js/actionproduct.js';
+            $jsPath = 'plugins/ActionProduct/templates/js/actionproduct.js?v=' . (int)@\filemtime(__DIR__ . '/templates/js/actionproduct.js');
             if (!\in_array($jsPath, $args['cPluginJsHead_arr'], true)) {
                 $args['cPluginJsHead_arr'][] = $jsPath;
             }
@@ -66,6 +66,16 @@ class Bootstrap extends Bootstrapper
             try {
                 $settings = $this->fetchSettings();
                 if (!empty($settings['tabs'])) {
+                    require_once __DIR__ . '/src/ImageThumb.php';
+                    foreach ($settings['tabs'] as &$apTab) {
+                        if (!empty($apTab['images']) && \is_array($apTab['images'])) {
+                            $apTab['images'] = \array_map(
+                                static fn($u) => ImageThumb::url((string)$u, 800),
+                                $apTab['images']
+                            );
+                        }
+                    }
+                    unset($apTab);
                     $smarty->assign('apTabs', $settings['tabs']);
                 }
                 $smarty->assign('apActive', (int)($settings['active'] ?? 1));

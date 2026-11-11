@@ -1403,7 +1403,7 @@
           img.loading = 'lazy';
           img.decoding = 'async';
           img.src = meta.img;
-          img.alt = meta.name || seatValue;
+          img.alt = '';
           imgWrap.appendChild(img);
           if (meta.imgHover) {
             // Hauptbild = Foto, beim Hover das bisherige Strichbild

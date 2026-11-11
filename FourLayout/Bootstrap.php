@@ -57,7 +57,15 @@ class Bootstrap extends Bootstrapper
                 return;
             }
 
-            $smarty->assign('flItems', $settings['items'] ?? []);
+            require_once __DIR__ . '/src/ImageThumb.php';
+            $flItems = $settings['items'] ?? [];
+            foreach ($flItems as &$flItem) {
+                if (!empty($flItem['image'])) {
+                    $flItem['image'] = ImageThumb::url((string)$flItem['image'], 700);
+                }
+            }
+            unset($flItem);
+            $smarty->assign('flItems', $flItems);
             try {
                 $html = $smarty->fetch('file:' . $tplPath);
             } catch (\Throwable $e) {
