@@ -63,6 +63,11 @@ class Bootstrap extends Bootstrapper
             $this->registerCharacteristicOptionsCache($dispatcher);
         } catch (\Throwable $e) {
         }
+        try {
+            require_once __DIR__ . '/src/Service/MaintenanceTicker.php';
+            \Plugin\FilterKonfiguratorSearch\Service\MaintenanceTicker::maybeSchedule();
+        } catch (\Throwable $e) {
+        }
 
         // CSS/JS: sadece gereken sayfalarda yükle (global yükleme LCP/TTI/TBT'yi ciddi düşürür).
         // - Ana konfigurator CSS + JS sürümlü URL ile doğrudan kendi template'inden yüklenir.

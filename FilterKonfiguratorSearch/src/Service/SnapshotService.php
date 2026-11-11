@@ -69,6 +69,43 @@ class SnapshotService
     }
 
     /**
+     * Löscht alte Suchprotokoll-Zeilen in kleinen PK-Batches (Tabelle hat keinen Index auf dCreated).
+     *
+     * @return bool true = nichts Altes mehr übrig
+     */
+    public function pruneLogsBatch(int $searchLogDays, int $selectionDays, float $timeBudget): bool
+    {
+        $start = \microtime(true);
+        $cut   = $this->db->getSingleObject(
+            'SELECT MIN(kLogID) AS id FROM twomosi_fk_search_log
+              WHERE dCreated >= (NOW() - INTERVAL ' . \max(1, $searchLogDays) . ' DAY)'
+        );
+        $cutId = (int)($cut->id ?? 0);
+        if ($cutId > 0) {
+            do {
+                $n = (int)$this->db->executeQueryPrepared(
+                    'DELETE FROM twomosi_fk_search_log WHERE kLogID < :cut LIMIT 5000',
+                    ['cut' => $cutId],
+                    \JTL\DB\ReturnType::AFFECTED_ROWS
+                );
+                if ($n < 5000) {
+                    break;
+                }
+                // I/O-Pause, damit der Shop während großer Löschläufe nicht ausgebremst wird.
+                \usleep(250000);
+            } while ((\microtime(true) - $start) < $timeBudget);
+            if ($n >= 5000) {
+                return false;
+            }
+        }
+        $this->db->executeQuery(
+            'DELETE FROM twomosi_fk_selection WHERE dCreated < (NOW() - INTERVAL ' . \max(1, $selectionDays) . ' DAY)'
+        );
+
+        return true;
+    }
+
+    /**
      * Compatibility wrapper — calls the 3 PKW steps sequentially.
      */
     public function refreshPkwSnapshots(int $lid): void
@@ -369,7 +406,9 @@ class SnapshotService
                      SELECT DISTINCT a.kArtikel, a.kVaterArtikel
                        FROM tartikel a
                        ' . $segJoin . '
-                      WHERE a.kArtikel IN (' . \implode(',', $idChunk) . ')',
+                  LEFT JOIN tartikel vat ON vat.kArtikel = a.kVaterArtikel
+                      WHERE a.kArtikel IN (' . \implode(',', $idChunk) . ')
+                        AND (a.kVaterArtikel = 0 OR vat.nIstVater = 1)',
                     $params
                 );
             }
@@ -381,8 +420,10 @@ class SnapshotService
                         INNER JOIN tmerkmalwertsprache tmws_bj ON tmws_bj.kMerkmalWert = am_bj.kMerkmalWert
                                AND tmws_bj.kSprache = :langID";
 
+            // JTL listet Väter bzw. Einzelartikel: ein Serie-Merkmal nur an Varianten-Kindern
+            // ergibt eine leere Serienseite, daher nur das Merkmal des gelisteten Artikels.
             $found = [];
-            foreach (['t.kArtikel', 't.kVaterArtikel'] as $owner) {
+            foreach (['t.kVaterArtikel' => '', 't.kArtikel' => ' WHERE t.kVaterArtikel = 0'] as $owner => $ownerWhere) {
                 foreach ($this->db->getObjects(
                     "SELECT DISTINCT TRIM(tmws_bj.cWert) AS bj, TRIM(sw.cWert) AS serie, seo.cSeo AS serieSeo
                        FROM tmp_fk_pkw_art t
@@ -394,7 +435,8 @@ class SnapshotService
                  INNER JOIN tmerkmalwertsprache sw ON sw.kMerkmalWert = tam.kMerkmalWert
                         AND sw.kSprache = :langID
                   LEFT JOIN tseo seo ON seo.cKey = 'kMerkmalWert'
-                        AND seo.kKey = tam.kMerkmalWert AND seo.kSprache = :langID",
+                        AND seo.kKey = tam.kMerkmalWert AND seo.kSprache = :langID
+                      {$ownerWhere}",
                     $params
                 ) as $row) {
                     $this->addSnapshotSerie($found, (string)$row->bj, (string)$row->serie, (string)($row->serieSeo ?? ''), true);
