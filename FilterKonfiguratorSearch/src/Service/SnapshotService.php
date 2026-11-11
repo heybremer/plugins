@@ -322,7 +322,23 @@ class SnapshotService
             $params
         );
 
+        $this->flushPkwStep4Cache();
         $this->touchPkwSnapshotMeta($lid);
+    }
+
+    /**
+     * PKW-Serienlisten im Step4-Cache verwerfen, damit nach einem Snapshot-Refresh
+     * keine veralteten Serien-URLs ausgeliefert werden.
+     */
+    public function flushPkwStep4Cache(): void
+    {
+        try {
+            $this->db->executeQuery(
+                "DELETE FROM twomosi_step4_cache WHERE cPayload LIKE '%segment=pkw%'"
+            );
+        } catch (\Throwable $e) {
+            // Tabelle fehlt evtl. noch — ignorieren.
+        }
     }
 
     /**
