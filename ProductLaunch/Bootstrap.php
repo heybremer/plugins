@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Plugin\ProductLaunch;
 
 require_once __DIR__ . '/src/LaunchRepository.php';
+require_once __DIR__ . '/src/ImageThumb.php';
 
 use JTL\Catalog\Product\Artikel;
 use JTL\Events\Dispatcher;
@@ -171,13 +172,16 @@ class Bootstrap extends Bootstrapper
                     'badge'   => \trim((string)$r->cBadge) !== '' ? \trim((string)$r->cBadge) : 'NEU',
                     'button'  => \trim((string)$r->cButton) !== '' ? \trim((string)$r->cButton) : 'Jetzt entdecken',
                     'url'     => $url,
-                    'image'   => $img,
+                    'image'   => ImageThumb::url($img, 800),
                     'price'   => $price,
                     'catName' => \trim((string)($r->cCatLabel1 ?? '')) !== '' ? \trim((string)$r->cCatLabel1) : $cat['name'],
                     'catUrl'  => $cat['url'],
                     'cat2Name' => \trim((string)($r->cCatLabel2 ?? '')) !== '' ? \trim((string)$r->cCatLabel2) : $cat2['name'],
                     'cat2Url' => $cat2['url'],
-                    'gallery' => $gallery,
+                    'gallery' => \array_map(static fn(string $g): array => [
+                        'main'  => ImageThumb::url($g, 800),
+                        'thumb' => ImageThumb::url($g, 160),
+                    ], $gallery),
                 ];
             } catch (\Throwable $e) {
                 continue;

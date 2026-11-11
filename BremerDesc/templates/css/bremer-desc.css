@@ -110,6 +110,38 @@
   border: 0;
 }
 
+.bd-showcase__yt {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: #0f0f0f;
+  cursor: pointer;
+}
+
+.bd-showcase__yt img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.bd-showcase__yt-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: .9;
+  transition: opacity .2s;
+}
+
+.bd-showcase__yt:hover .bd-showcase__yt-play,
+.bd-showcase__yt:focus-visible .bd-showcase__yt-play {
+  opacity: 1;
+}
+
 /* ── Image panel ──────────────────────────────────────────── */
 .bd-showcase__image-panel {
   padding: 0;

@@ -34,13 +34,17 @@
     {* ── VIDEO ──────────────────────────────────────────────── *}
     <div class="bd-showcase__video-wrap-outer">
       <div class="bd-showcase__video-wrap">
-        <iframe
-          src="https://www.youtube.com/embed/{$bdTab.videoId|escape:'html'}?rel=0&modestbranding=1&color=white"
-          title="{$bdTab.label|escape:'html'}"
-          frameborder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen
-          loading="lazy"></iframe>
+        {* YouTube-Player (~1 MB JS) erst nach Klick laden *}
+        <button type="button" class="bd-showcase__yt"
+                data-bd-yt="{$bdTab.videoId|escape:'html'}"
+                data-bd-yt-title="{$bdTab.label|escape:'html'}"
+                aria-label="Video abspielen: {$bdTab.label|escape:'html'}">
+          <img src="https://i.ytimg.com/vi/{$bdTab.videoId|escape:'html'}/hqdefault.jpg"
+               alt="" width="480" height="360" loading="lazy" decoding="async">
+          <span class="bd-showcase__yt-play" aria-hidden="true">
+            <svg viewBox="0 0 68 48" width="68" height="48"><path d="M66.5 7.7a8.5 8.5 0 0 0-6-6C55.2.3 34 .3 34 .3S12.8.3 7.5 1.7a8.5 8.5 0 0 0-6 6C.1 13 .1 24 .1 24s0 11 1.4 16.3a8.5 8.5 0 0 0 6 6C12.8 47.7 34 47.7 34 47.7s21.2 0 26.5-1.4a8.5 8.5 0 0 0 6-6C67.9 35 67.9 24 67.9 24s0-11-1.4-16.3z" fill="#f00"/><path d="M45 24 27 14v20z" fill="#fff"/></svg>
+          </span>
+        </button>
       </div>
     </div>
 

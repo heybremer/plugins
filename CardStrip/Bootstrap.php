@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Plugin\CardStrip;
 
 require_once __DIR__ . '/src/CardRepository.php';
+require_once __DIR__ . '/src/ImageThumb.php';
 
 use JTL\Events\Dispatcher;
 use JTL\Plugin\Bootstrapper;
@@ -95,7 +96,7 @@ class Bootstrap extends Bootstrapper
                         continue;
                     }
                     $items[] = [
-                        'image' => \trim((string)$it['image']),
+                        'image' => ImageThumb::url(\trim((string)$it['image']), 400),
                         'badge' => \trim((string)($it['badge'] ?? '')),
                         'alt'   => \trim((string)($it['alt'] ?? '')),
                     ];
@@ -108,7 +109,7 @@ class Bootstrap extends Bootstrapper
                 'subtitle' => \trim((string)$r->cSubtitle),
                 'bgColor'  => (string)\preg_match('/^#[0-9a-fA-F]{3,8}$/', (string)$r->cBgColor) ? (string)$r->cBgColor : '#197149',
                 'tone'     => (string)$r->cTextTone === 'dark' ? 'dark' : 'light',
-                'image'    => \trim((string)$r->cImage),
+                'image'    => ImageThumb::url(\trim((string)$r->cImage), 600),
                 'badge'    => \trim((string)$r->cBadge),
                 'href'     => \trim((string)$r->cUrl) !== '' ? \trim((string)$r->cUrl) : '#',
                 'items'    => $items,

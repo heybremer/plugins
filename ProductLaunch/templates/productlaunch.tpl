@@ -22,7 +22,7 @@
                         {if $it.gallery|@count > 1}
                             <div class="pl-thumbs">
                                 {foreach $it.gallery as $g}
-                                    <button type="button" class="pl-thumb{if $g@first} is-active{/if}" data-pl-img="{$g|escape:'html'}" aria-label="{$it.title|escape:'html'} {$g@iteration}"><img src="{$g|escape:'html'}" alt="" loading="lazy" decoding="async"></button>
+                                    <button type="button" class="pl-thumb{if $g@first} is-active{/if}" data-pl-img="{$g.main|escape:'html'}" aria-label="{$it.title|escape:'html'} {$g@iteration}"><img src="{$g.thumb|escape:'html'}" alt="" width="52" height="52" loading="lazy" decoding="async"></button>
                                 {/foreach}
                             </div>
                         {/if}
