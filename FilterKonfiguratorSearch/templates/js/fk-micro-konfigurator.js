@@ -341,6 +341,9 @@
     // die gespeicherte Auswahl des anderen Segments bleibt per Tab-Wechsel erreichbar.
     var pageSegment = String(root.getAttribute('data-fk-page-segment') || '');
     var pageSerie = String(root.getAttribute('data-fk-page-serie') || '');
+    var catSerie = String(root.getAttribute('data-fk-cat-serie') || '');
+    var catSegment = String(root.getAttribute('data-fk-cat-segment') || '');
+    var autoPickCatSerie = false;
     var pageVehicle = null;
     try { pageVehicle = JSON.parse(root.getAttribute('data-fk-page-vehicle') || 'null'); } catch (e) { pageVehicle = null; }
     var parkedSegment = null;
@@ -931,6 +934,19 @@
           var serieInList = incomingSerie && serieVals.some(function (item) { return item === incomingSerie; });
           var allowPreset = String(state.forceSerieSelect || '') === '1' && String(state.mfPreset || '') === 'brand_click';
           var keepSerie = serieInList ? incomingSerie : ((allowPreset && incomingSerie) ? incomingSerie : '');
+          var autoPicked = false;
+          if (autoPickCatSerie && !keepSerie && catSerie && catSegment === (isPkw ? 'pkw' : 'wohnmobil')) {
+            var catKey = catSerie.replace(/[\s\-]*Serie\s*$/i, '').toLowerCase();
+            for (var si = 0; si < serieVals.length; si++) {
+              if (String(serieVals[si]).replace(/[\s\-]*Serie\s*$/i, '').toLowerCase() === catKey) {
+                keepSerie = serieVals[si];
+                state.serie = keepSerie;
+                autoPicked = true;
+                break;
+              }
+            }
+          }
+          autoPickCatSerie = false;
           if (keepSerie && !serieInList) {
             serieVals.unshift(keepSerie);
           }
@@ -947,6 +963,11 @@
           }
           updateSelectionMarks();
           updateStatus(arr.length);
+          if (autoPicked) {
+            if (isPkw) navigateToSelectedSerie();
+            else selectWmSerie();
+            return;
+          }
           if (filterAfterNextSeriesLoad && hasCompleteWmSelection()) {
             filterAfterNextSeriesLoad = false;
             navigateToSelectedSerie();
@@ -1266,6 +1287,7 @@
     if (selYear) selYear.addEventListener('change', function () {
       state.baujahr = String(selYear.value || '');
       resetDownstream('baujahr');
+      autoPickCatSerie = true;
       if (isPkw) {
         maybeLoadSeriesAfterPkwBaujahr();
         return;
@@ -1275,6 +1297,7 @@
     if (selSitz) selSitz.addEventListener('change', function () {
       state.sitz = String(selSitz.value || '');
       resetDownstream('sitz');
+      autoPickCatSerie = true;
       loadSeries();
     });
     if (selSerie) selSerie.addEventListener('change', function () {

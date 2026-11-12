@@ -97,8 +97,8 @@ class Bootstrap extends Bootstrapper
                 $assetVersion = '1.14.70';
             }
             $assetVersion = \preg_replace('/[^0-9A-Za-z._-]/', '', $assetVersion) ?: '1.14.70';
-            if (\version_compare($assetVersion, '1.14.136', '<')) {
-                $assetVersion = '1.14.136';
+            if (\version_compare($assetVersion, '1.14.137', '<')) {
+                $assetVersion = '1.14.137';
             }
             foreach ([
                 ['selector' => 'script[src*="fk-micro-konfigurator.js"]', 'attr' => 'src'],
@@ -1523,7 +1523,31 @@ class Bootstrap extends Bootstrapper
             $tabsHtml .= '</div>';
         }
 
-        return '<div class="fk-selection-micro fk-selection-micro--dynamic" data-fk-micro="1" data-fk-micro-dynamic="1" role="region" aria-label="Konfigurator-Auswahl">'
+        $catSerieAttrs = '';
+        if ($currentCategoryId > 0) {
+            try {
+                $db = $this->fkMicroShopDb();
+                $catRow = $db->getSingleObject(
+                    "SELECT COALESCE(NULLIF(ks.cName, ''), k.cName) AS cName
+                       FROM tkategorie k
+                  LEFT JOIN tkategoriesprache ks ON ks.kKategorie = k.kKategorie AND ks.kSprache = :lid
+                      WHERE k.kKategorie = :cid LIMIT 1",
+                    ['cid' => $currentCategoryId, 'lid' => (int)Shop::getLanguageID() ?: 1]
+                );
+                $catName = $catRow !== null ? (string)$catRow->cName : '';
+                if (\preg_match('/serie/iu', $catName)) {
+                    $catSerie = \trim((string)\preg_replace('/[\s\-]*Serie\s*(\(\d+\))?\s*$/iu', '', $catName));
+                    $catSeg = $this->fkMicroCategoryIsAllowedInTree($db, $currentCategoryId, [19]) ? 'pkw'
+                        : ($this->fkMicroCategoryIsAllowedInTree($db, $currentCategoryId, [24]) ? 'wohnmobil' : '');
+                    if ($catSerie !== '' && $catSeg !== '') {
+                        $catSerieAttrs = ' data-fk-cat-serie="' . $esc($catSerie) . '" data-fk-cat-segment="' . $catSeg . '"';
+                    }
+                }
+            } catch (\Throwable $e) {
+            }
+        }
+
+        return '<div class="fk-selection-micro fk-selection-micro--dynamic" data-fk-micro="1" data-fk-micro-dynamic="1"' . $catSerieAttrs . ' role="region" aria-label="Konfigurator-Auswahl">'
             . $tabsHtml
             . '<div class="fk-selection-micro-inner">'
             . '<div id="fkMicroStatus" class="fk-micro-status-wrap"></div>'
