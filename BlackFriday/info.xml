@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jtlshopplugin>
+    <Name>BlackFriday</Name>
+    <Description>Black-Friday-Kampagne: echte Kategorierabatte per Dashboard, Header-Leiste mit Countdown, Startseiten-Bereich und Deal-Box auf Produktseiten.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>BlackFriday</PluginID>
+    <CreateDate>2026-11-11</CreateDate>
+    <Version>1.0.0</Version>
+    <Bootstrap>Plugin\BlackFriday\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>
