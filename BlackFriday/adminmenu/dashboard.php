@@ -113,6 +113,15 @@ if ($action !== '' && Form::validateToken()) {
             }
             $r     = $svc->applyAll();
             $msg[] = 'Regeln aktualisiert (' . $r['target'] . ' Kombinationen aktiv, ' . $r['articles'] . ' Artikel neu berechnet).';
+        } elseif ($action === 'start' || $action === 'stop') {
+            $db->executeQueryPrepared(
+                'UPDATE ' . DiscountService::T_SETTINGS . ' SET nActive = :a, dUpdated = NOW()',
+                ['a' => $action === 'start' ? 1 : 0]
+            );
+            $r     = $svc->applyAll();
+            $msg[] = $action === 'start'
+                ? 'Aktion gestartet: ' . $r['target'] . ' Artikel/Kundengruppen-Kombinationen rabattiert.'
+                : 'Aktion gestoppt, Originalpreise wiederhergestellt (' . $r['articles'] . ' Artikel).';
         } elseif ($action === 'apply') {
             $r     = $svc->applyAll();
             $msg[] = 'Neu angewendet: ' . $r['target'] . ' Kombinationen aktiv, ' . $r['articles'] . ' Artikel neu berechnet.';
@@ -165,6 +174,31 @@ $lastApply = $svc->getMeta('last_apply');
             <span class="bf-status <?= $running ? 'bf-on' : 'bf-off' ?>"><?= $running ? 'LÄUFT' : 'INAKTIV' ?></span>
         </div>
         <div class="card-body">
+            <?php if (!$running) { ?>
+                <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap">
+                    <span>
+                        <strong>Aktion läuft nicht</strong> – Rabatte sind im Warenkorb <u>nicht</u> aktiv.
+                        <?php if ($s['active'] === 1) { ?>Grund: Zeitraum (Start/Ende) liegt außerhalb.<?php } ?>
+                        Die Vorschau zeigt nur simulierte Preise.
+                    </span>
+                    <?php if ($s['active'] !== 1) { ?>
+                        <form method="post" class="mb-0 mt-2 mt-md-0">
+                            <?= Form::getTokenInput() ?>
+                            <input type="hidden" name="bfAction" value="start">
+                            <button class="btn btn-dark" type="submit">Aktion jetzt starten</button>
+                        </form>
+                    <?php } ?>
+                </div>
+            <?php } else { ?>
+                <div class="alert alert-success d-flex justify-content-between align-items-center flex-wrap">
+                    <span><strong>Aktion läuft</strong> – Rabatte gelten in Shop, Warenkorb und Bestellung.</span>
+                    <form method="post" class="mb-0 mt-2 mt-md-0" onsubmit="return confirm('Aktion wirklich stoppen?');">
+                        <?= Form::getTokenInput() ?>
+                        <input type="hidden" name="bfAction" value="stop">
+                        <button class="btn btn-outline-danger" type="submit">Aktion stoppen</button>
+                    </form>
+                </div>
+            <?php } ?>
             <p class="text-muted mb-1">
                 Rabatte werden als echte JTL-Kategorierabatte gesetzt: Preis, Streichpreis, Warenkorb und Bestellung
                 sind automatisch reduziert. Nach Wawi-Abgleichen stellt das Plugin die Rabatte alle 10&nbsp;Minuten wieder her;

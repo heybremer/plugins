@@ -282,6 +282,15 @@
     color: #d4d4d4;
 }
 .bf-deal__save strong { color: var(--bf-yellow); }
+.bf-deal__preview {
+    margin: 8px 0 0;
+    padding: 6px 10px;
+    background: #fff3cd;
+    color: #664d03;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+}
 .bf-deal__timer {
     margin-top: 12px;
     padding-top: 10px;

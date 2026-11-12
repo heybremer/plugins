@@ -176,7 +176,8 @@ class Bootstrap extends Bootstrapper
             'pct'  => self::fmtPct($real),
             'old'  => $oldLoc,
             'new'  => $newLoc,
-            'save' => $oldPrice > $newPrice ? Preise::getLocalizedPriceString($oldPrice - $newPrice) : '',
+            'save'    => $oldPrice > $newPrice ? Preise::getLocalizedPriceString($oldPrice - $newPrice) : '',
+            'preview' => $simulate,
         ]);
         $html = $this->fetchTpl($smarty, 'bf-product.tpl');
         if ($html === '') {

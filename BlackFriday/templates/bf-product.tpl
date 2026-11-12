@@ -7,6 +7,9 @@
         <span class="bf-deal__new">{$bfDeal.new}</span>
         {if $bfDeal.old !== ''}<del class="bf-deal__old">{$bfDeal.old}</del>{/if}
     </div>
+    {if $bfDeal.preview}
+        <p class="bf-deal__preview">VORSCHAU – Aktion ist nicht gestartet, Preise sind simuliert und gelten nicht im Warenkorb.</p>
+    {/if}
     {if $bfDeal.save !== ''}
         <p class="bf-deal__save">Du sparst <strong>{$bfDeal.save}</strong></p>
     {/if}
