@@ -339,7 +339,7 @@
 
     // Artikelseite: Segment des Artikels hat Vorrang vor gespeicherter Auswahl (ohne URL-Segment);
     // die gespeicherte Auswahl des anderen Segments bleibt per Tab-Wechsel erreichbar.
-    var pageSegment = String(root.getAttribute('data-fk-page-segment') || '');
+    var pageSegment = String(root.getAttribute('data-fk-page-segment') || root.getAttribute('data-fk-cat-segment') || '');
     var pageSerie = String(root.getAttribute('data-fk-page-serie') || '');
     var catSerie = String(root.getAttribute('data-fk-cat-serie') || '');
     var catSegment = String(root.getAttribute('data-fk-cat-segment') || '');
