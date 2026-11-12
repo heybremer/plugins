@@ -77,19 +77,24 @@ if ($action !== '' && Form::validateToken()) {
                 $msg[] = 'Einstellungen gespeichert. Rabatt aktiv für ' . $r['target'] . ' Artikel/Kundengruppen-Kombinationen.';
             }
         } elseif ($action === 'addRule') {
-            $cat = (int)($_POST['kKategorie'] ?? 0);
+            $ids = \array_values(\array_unique(\array_filter(\array_map(
+                'intval',
+                \is_array($_POST['kKategorie'] ?? null) ? $_POST['kKategorie'] : [(int)($_POST['kKategorie'] ?? 0)]
+            ))));
             $pct = (float)\str_replace(',', '.', (string)($_POST['fRabatt'] ?? '0'));
-            if ($cat <= 0 || $pct <= 0 || $pct >= 100) {
-                $err[] = 'Bitte Kategorie und Rabatt zwischen 0 und 100 % angeben.';
+            if ($ids === [] || $pct <= 0 || $pct >= 100) {
+                $err[] = 'Bitte mindestens eine Kategorie wählen und Rabatt zwischen 0 und 100 % angeben.';
             } else {
-                $db->executeQueryPrepared(
-                    'INSERT INTO ' . DiscountService::T_RULE . ' (kKategorie, fRabatt, nInclSub, nActive)
-                     VALUES (:k, :p, :s, 1)
-                     ON DUPLICATE KEY UPDATE fRabatt = VALUES(fRabatt), nInclSub = VALUES(nInclSub), nActive = 1',
-                    ['k' => $cat, 'p' => \round($pct, 2), 's' => !empty($_POST['nInclSub']) ? 1 : 0]
-                );
+                foreach ($ids as $cat) {
+                    $db->executeQueryPrepared(
+                        'INSERT INTO ' . DiscountService::T_RULE . ' (kKategorie, fRabatt, nInclSub, nActive)
+                         VALUES (:k, :p, :s, 1)
+                         ON DUPLICATE KEY UPDATE fRabatt = VALUES(fRabatt), nInclSub = VALUES(nInclSub), nActive = 1',
+                        ['k' => $cat, 'p' => \round($pct, 2), 's' => !empty($_POST['nInclSub']) ? 1 : 0]
+                    );
+                }
                 $r     = $svc->applyAll();
-                $msg[] = 'Kategorie-Rabatt gespeichert (' . $r['target'] . ' Kombinationen aktiv).';
+                $msg[] = \count($ids) . ' Kategorie(n) mit ' . \round($pct, 2) . ' % gespeichert (' . $r['target'] . ' Kombinationen aktiv).';
             }
         } elseif ($action === 'saveRules') {
             $rows = \is_array($_POST['rule'] ?? null) ? $_POST['rule'] : [];
@@ -141,7 +146,7 @@ try {
 } catch (\Throwable $e) {
 }
 $cats = $db->getObjects(
-    'SELECT k.kKategorie, k.nLevel, COALESCE(NULLIF(ks.cName, ""), k.cName) AS cName,
+    'SELECT k.kKategorie, k.nLevel, k.lft, k.rght, COALESCE(NULLIF(ks.cName, ""), k.cName) AS cName,
             (SELECT COUNT(*) FROM tkategorieartikel ka WHERE ka.kKategorie = k.kKategorie) AS nArtikel
        FROM tkategorie k
   LEFT JOIN tkategoriesprache ks ON ks.kKategorie = k.kKategorie AND ks.kSprache = :l
@@ -168,6 +173,11 @@ $lastApply = $svc->getMeta('last_apply');
     .bf-adm .bf-off{background:#eee;color:#555}
     .bf-adm .table td{vertical-align:middle}
     .bf-adm .bf-pct{max-width:110px}
+    .bf-adm .bf-catlist{max-height:380px;overflow:auto;border:1px solid #dee2e6;border-radius:6px;padding:4px 0;background:#fff}
+    .bf-adm .bf-catrow{display:flex;align-items:center;gap:6px;margin:0;padding:3px 8px;cursor:pointer;font-weight:400}
+    .bf-adm .bf-catrow:hover{background:#f5f5f5}
+    .bf-adm .bf-catrow input{margin:0}
+    .bf-adm .bf-catpath{margin-left:auto;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%}
 </style>
 <div class="bf-adm">
     <?php foreach ($msg as $m) { ?><div class="alert alert-success"><?= bf_h($m) ?></div><?php } ?>
@@ -225,17 +235,36 @@ $lastApply = $svc->getMeta('last_apply');
     <div class="card mb-3">
         <div class="card-header"><h4 class="mb-0">Kategorie-Rabatte</h4></div>
         <div class="card-body">
-            <form method="post" class="form-row align-items-end mb-4">
+            <?php
+            $rulePct = [];
+            foreach ($rules as $r) {
+                $rulePct[(int)$r->kKategorie] = (float)$r->fRabatt;
+            }
+            ?>
+            <form method="post" class="form-row align-items-end mb-4" id="bfAddForm">
                 <?= Form::getTokenInput() ?>
                 <input type="hidden" name="bfAction" value="addRule">
-                <div class="col-md-6 mb-2">
-                    <label for="bfCat"><strong>Kategorie</strong></label>
-                    <select class="form-control" id="bfCat" name="kKategorie" required>
-                        <option value="">– Kategorie wählen –</option>
-                        <?php foreach ($cats as $c) { ?>
-                            <option value="<?= (int)$c->kKategorie ?>"><?= bf_h((string)$c->cPath) ?> (<?= (int)$c->nArtikel ?>)</option>
+                <div class="col-12 mb-2">
+                    <label for="bfCatSearch"><strong>Kategorien</strong> <small class="text-muted">(Mehrfachauswahl – Klick auf eine Oberkategorie wählt alle Unterkategorien mit)</small></label>
+                    <div class="d-flex flex-wrap mb-2" style="gap:.5rem">
+                        <input class="form-control" id="bfCatSearch" type="search" placeholder="Filtern, z. B. H-Serie oder Wohnmobil" style="max-width:340px">
+                        <button class="btn btn-outline-secondary btn-sm" type="button" id="bfSelVisible">Sichtbare auswählen</button>
+                        <button class="btn btn-outline-secondary btn-sm" type="button" id="bfSelNone">Auswahl aufheben</button>
+                        <span class="align-self-center text-muted"><strong id="bfSelCount">0</strong> ausgewählt</span>
+                    </div>
+                    <div class="bf-catlist" id="bfCatList">
+                        <?php foreach ($cats as $c) { $kid = (int)$c->kKategorie; ?>
+                            <label class="bf-catrow" style="padding-left:<?= 8 + \max(0, (int)$c->nLevel - 1) * 18 ?>px"
+                                   data-lft="<?= (int)$c->lft ?>" data-rght="<?= (int)$c->rght ?>"
+                                   data-path="<?= bf_h(\mb_strtolower((string)$c->cPath)) ?>">
+                                <input type="checkbox" name="kKategorie[]" value="<?= $kid ?>">
+                                <span class="bf-catname"><?= bf_h((string)$c->cName) ?></span>
+                                <small class="text-muted">(<?= (int)$c->nArtikel ?>)</small>
+                                <?php if (isset($rulePct[$kid])) { ?><span class="badge badge-dark">-<?= bf_h((string)$rulePct[$kid]) ?>%</span><?php } ?>
+                                <small class="bf-catpath text-muted"><?= bf_h((string)$c->cPath) ?></small>
+                            </label>
                         <?php } ?>
-                    </select>
+                    </div>
                 </div>
                 <div class="col-md-2 mb-2">
                     <label for="bfPct"><strong>Rabatt %</strong></label>
@@ -248,9 +277,55 @@ $lastApply = $svc->getMeta('last_apply');
                     </div>
                 </div>
                 <div class="col-md-2 mb-2">
-                    <button class="btn btn-primary btn-block" type="submit">Hinzufügen</button>
+                    <button class="btn btn-primary btn-block" type="submit">Für Auswahl speichern</button>
                 </div>
             </form>
+            <script>
+            (function () {
+                var list = document.getElementById('bfCatList');
+                if (!list) { return; }
+                var rows = Array.prototype.slice.call(list.querySelectorAll('.bf-catrow'));
+                var count = document.getElementById('bfSelCount');
+                function update() {
+                    count.textContent = list.querySelectorAll('input:checked').length;
+                }
+                list.addEventListener('change', function (e) {
+                    var row = e.target.closest('.bf-catrow');
+                    if (!row) { return; }
+                    var l = +row.dataset.lft, r = +row.dataset.rght, on = e.target.checked;
+                    if (r - l > 1) {
+                        rows.forEach(function (x) {
+                            if (+x.dataset.lft > l && +x.dataset.rght < r) {
+                                x.querySelector('input').checked = on;
+                            }
+                        });
+                    }
+                    update();
+                });
+                document.getElementById('bfCatSearch').addEventListener('input', function () {
+                    var q = this.value.trim().toLowerCase();
+                    rows.forEach(function (x) {
+                        x.style.display = q === '' || x.dataset.path.indexOf(q) !== -1 ? '' : 'none';
+                    });
+                });
+                document.getElementById('bfSelVisible').addEventListener('click', function () {
+                    rows.forEach(function (x) {
+                        if (x.style.display !== 'none') { x.querySelector('input').checked = true; }
+                    });
+                    update();
+                });
+                document.getElementById('bfSelNone').addEventListener('click', function () {
+                    rows.forEach(function (x) { x.querySelector('input').checked = false; });
+                    update();
+                });
+                document.getElementById('bfAddForm').addEventListener('submit', function (e) {
+                    if (!list.querySelector('input:checked')) {
+                        e.preventDefault();
+                        alert('Bitte mindestens eine Kategorie auswählen.');
+                    }
+                });
+            })();
+            </script>
 
             <?php if ($rules === []) { ?>
                 <p class="text-muted mb-0">Noch keine Kategorie-Rabatte angelegt.</p>
