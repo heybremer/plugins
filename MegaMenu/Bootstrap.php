@@ -88,7 +88,12 @@ class Bootstrap extends Bootstrapper
             $panels = [];
             foreach ($byID as $id => $root) {
                 if ($root->hasChildren()) {
-                    $panels[$id] = $this->panelHtml($root, $rules);
+                    $panels[$id]           = $this->panelHtml($root, $rules);
+                    $panels['mobile_' . $id] = $this->mobileHtml($root, $rules);
+                }
+                $thumb = $this->representativeImage($root);
+                if ($thumb !== '') {
+                    $panels['thumb_' . $id] = $thumb;
                 }
             }
             if ($cache !== null) {
@@ -118,7 +123,108 @@ class Bootstrap extends Bootstrapper
             }
             $menu->addClass('mm-enhanced');
             $menu->append($panels[$id]);
+            if (($panels['mobile_' . $id] ?? '') !== '') {
+                $menu->append($panels['mobile_' . $id]);
+            }
         }
+
+        foreach ($doc->find('.nav-scrollbar-inner > li.nav-item') as $el) {
+            if (\pq($el)->hasClass('nav-home-button')) {
+                continue;
+            }
+            $a    = \pq($el)->children('a')->eq(0);
+            $href = \rtrim((string)$a->attr('href'), '/');
+            $id   = isset($byURL[$href]) ? $byURL[$href]->getID() : 0;
+            if ($id < 1 || $a->find('.mm-m-thumb')->length > 0) {
+                continue;
+            }
+            $a->addClass('mm-m-top');
+            $inner = isset($panels['thumb_' . $id])
+                ? '<img src="' . \htmlspecialchars($panels['thumb_' . $id], \ENT_QUOTES, 'UTF-8') . '" alt="" loading="lazy" decoding="async">'
+                : '<span class="mm-m-thumb__mono">' . \htmlspecialchars(\mb_strtoupper(\mb_substr($byURL[$href]->getName(), 0, 1)), \ENT_QUOTES, 'UTF-8') . '</span>';
+            $a->prepend('<span class="mm-m-thumb" aria-hidden="true">' . $inner . '</span>');
+        }
+    }
+
+    /**
+     * Mobile Ansicht (Offcanvas): aufklappbare Gruppen mit Bildkacheln.
+     *
+     * @param list<array{lft:int,rght:int,pct:float,sub:int,id:int}> $rules
+     */
+    private function mobileHtml(MenuItem $root, array $rules): string
+    {
+        $e        = static fn(string $s): string => \htmlspecialchars($s, \ENT_QUOTES, 'UTF-8');
+        $children = \array_values(\array_filter($root->getChildren(), static fn($c) => $c instanceof MenuItem));
+        $rootPct  = $this->discountFor($root, $rules, true);
+        $img      = $this->representativeImage($root, Image::SIZE_MD);
+        $hasGroup = false;
+        foreach ($children as $c) {
+            if ($c->hasChildren()) {
+                $hasGroup = true;
+                break;
+            }
+        }
+
+        $html = '<div class="mm-m">'
+            . '<a class="mm-m__hero' . ($rootPct > 0 ? ' mm-m__hero--deal' : '') . '" href="' . $e($root->getURL()) . '">'
+            . ($img !== '' ? '<span class="mm-m__hero-img"><img src="' . $e($img) . '" alt="" loading="lazy" decoding="async"></span>' : '')
+            . '<span class="mm-m__hero-body">'
+            . ($rootPct > 0 ? '<span class="mm-m__kicker">Black Friday · bis zu -' . $this->pct($rootPct) . '%</span>' : '')
+            . '<span class="mm-m__hero-title">' . $e($root->getName()) . '</span>'
+            . '<span class="mm-m__hero-cta">Alle anzeigen →</span></span></a>';
+
+        if (!$hasGroup) {
+            return $html . $this->mobileGrid($children, $rules) . '</div>';
+        }
+        $first = true;
+        foreach ($children as $child) {
+            $pct   = $this->discountFor($child, $rules, true);
+            $badge = $pct > 0 ? '<span class="mm-m__deal">-' . $this->pct($pct) . '%</span>' : '';
+            if (!$child->hasChildren()) {
+                $html .= '<a class="mm-m__row" href="' . $e($child->getURL()) . '"><span class="mm-m__row-name">'
+                    . $e($child->getName()) . '</span>' . $badge . '<span class="mm-m__chev" aria-hidden="true">›</span></a>';
+                continue;
+            }
+            $html .= '<details class="mm-m__group"' . ($first ? ' open' : '') . '>'
+                . '<summary class="mm-m__row mm-m__row--group"><span class="mm-m__row-name">' . $e($child->getName()) . '</span>'
+                . $badge . '<span class="mm-m__count">' . \count($child->getChildren()) . '</span>'
+                . '<span class="mm-m__chev mm-m__chev--toggle" aria-hidden="true">›</span></summary>'
+                . $this->mobileGrid($child->getChildren(), $rules)
+                . '<a class="mm-m__all" href="' . $e($child->getURL()) . '">Alle ' . $e($child->getName()) . ' anzeigen →</a>'
+                . '</details>';
+            $first = false;
+        }
+
+        return $html . '</div>';
+    }
+
+    /**
+     * @param MenuItem[] $items
+     * @param list<array{lft:int,rght:int,pct:float,sub:int,id:int}> $rules
+     */
+    private function mobileGrid(array $items, array $rules): string
+    {
+        $e     = static fn(string $s): string => \htmlspecialchars($s, \ENT_QUOTES, 'UTF-8');
+        $tiles = '';
+        foreach ($items as $item) {
+            if (!$item instanceof MenuItem) {
+                continue;
+            }
+            $name   = $item->getName();
+            $img    = $this->categoryImage($item);
+            $pct    = $this->discountFor($item, $rules, false);
+            $short  = \trim((string)\preg_replace('/[\s\-]*Serie\s*$/iu', '', $name));
+            $visual = $img !== ''
+                ? '<img src="' . $e($img) . '" alt="" loading="lazy" decoding="async">'
+                : '<span class="mm-m__mono">' . $e(\mb_strtoupper(\mb_substr($short !== '' ? $short : $name, 0, 4))) . '</span>';
+            $tiles .= '<a class="mm-m__tile" href="' . $e($item->getURL()) . '">'
+                . '<span class="mm-m__tile-img">' . $visual . '</span>'
+                . '<span class="mm-m__tile-name">' . $e($name) . '</span>'
+                . ($pct > 0 ? '<span class="mm-m__tile-deal">-' . $this->pct($pct) . '%</span>' : '')
+                . '</a>';
+        }
+
+        return '<div class="mm-m__grid">' . $tiles . '</div>';
     }
 
     /**
@@ -217,6 +323,27 @@ class Bootstrap extends Bootstrapper
             . '<header class="mm-pane__head"><span class="mm-pane__title">' . $e($title) . '</span>'
             . '<a class="mm-pane__all" href="' . $e($url) . '">Alle anzeigen <span aria-hidden="true">→</span></a></header>'
             . '<div class="mm-grid">' . $tiles . '</div></section>';
+    }
+
+    /**
+     * Eigenes Bild, sonst das erste Bild im Teilbaum (Tiefensuche).
+     */
+    private function representativeImage(MenuItem $item, string $size = Image::SIZE_SM, int $depth = 0): string
+    {
+        $img = $this->categoryImage($item, $size);
+        if ($img !== '' || $depth > 2) {
+            return $img;
+        }
+        foreach ($item->getChildren() as $child) {
+            if ($child instanceof MenuItem) {
+                $img = $this->representativeImage($child, $size, $depth + 1);
+                if ($img !== '') {
+                    return $img;
+                }
+            }
+        }
+
+        return '';
     }
 
     private function categoryImage(MenuItem $item, string $size = Image::SIZE_SM): string

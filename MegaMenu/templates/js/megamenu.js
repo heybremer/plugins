@@ -30,8 +30,19 @@
     });
   }
 
+  function watchOffcanvas() {
+    var nav = document.getElementById('mainNavigation');
+    if (!nav || !window.MutationObserver) return;
+    var sync = function () {
+      document.documentElement.classList.toggle('mm-nav-open', nav.classList.contains('show'));
+    };
+    new MutationObserver(sync).observe(nav, { attributes: true, attributeFilter: ['class'] });
+    sync();
+  }
+
   function init() {
     Array.prototype.forEach.call(document.querySelectorAll('[data-mm-panel]'), bind);
+    watchOffcanvas();
   }
 
   if (document.readyState === 'loading') {
