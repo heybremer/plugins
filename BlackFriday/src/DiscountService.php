@@ -31,7 +31,7 @@ final class DiscountService
 
     public function ensureSchema(): void
     {
-        $flag = \sys_get_temp_dir() . '/bf_schema_v1_' . \md5(__DIR__ . \DB_NAME);
+        $flag = \sys_get_temp_dir() . '/bf_schema_v2_' . \md5(__DIR__ . \DB_NAME);
         if (self::$schemaEnsured || \is_file($flag)) {
             self::$schemaEnsured = true;
             return;
@@ -82,6 +82,10 @@ final class DiscountService
                 cValue VARCHAR(255) NOT NULL DEFAULT ""
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
         );
+        $col = $this->db->getSingleObject("SHOW COLUMNS FROM " . self::T_META . " LIKE 'cValue'");
+        if ($col !== null && \stripos((string)($col->Type ?? ''), 'text') === false) {
+            $this->db->executeQuery('ALTER TABLE ' . self::T_META . ' MODIFY cValue MEDIUMTEXT NULL');
+        }
         if ($this->db->getSingleObject('SELECT kID FROM ' . self::T_SETTINGS . ' LIMIT 1') === null) {
             $ins                  = new \stdClass();
             $ins->kID             = 1;
@@ -192,6 +196,64 @@ final class DiscountService
         return $out;
     }
 
+    /**
+     * Rabatt je Konfigurator-Serie, getrennt nach Hauptkategorie (pkw / wm), z. B. {"pkw":{"H":20},"wm":{"C":50}}.
+     *
+     * @return array{pkw: array<string, float>, wm: array<string, float>, max: float}
+     */
+    public function buildSeriesMap(): array
+    {
+        $rows = $this->db->getObjects(
+            'SELECT tp.kKategorie AS topID, tp.cName AS topName, c.cName, MAX(r.fRabatt) AS pct
+               FROM tkategorie c
+         INNER JOIN tkategorie tp ON tp.kOberKategorie = 0 AND c.lft BETWEEN tp.lft AND tp.rght
+         INNER JOIN tkategorie rc ON rc.lft <= c.lft AND rc.rght >= c.rght
+         INNER JOIN ' . self::T_RULE . ' r
+                 ON r.kKategorie = rc.kKategorie AND r.nActive = 1 AND r.fRabatt > 0
+                AND (r.nInclSub = 1 OR rc.kKategorie = c.kKategorie)
+              WHERE c.cName LIKE "%serie%"
+           GROUP BY tp.kKategorie, tp.cName, c.cName'
+        );
+        $map = ['pkw' => [], 'wm' => [], 'max' => 0.0];
+        foreach ($rows as $r) {
+            $top = \mb_strtolower((string)$r->topName);
+            $seg = (int)$r->topID === 19 || \str_contains($top, 'pkw') ? 'pkw'
+                : ((int)$r->topID === 24 || \str_contains($top, 'wohnmobil') ? 'wm' : '');
+            if ($seg === '') {
+                continue;
+            }
+            $pct = (float)$r->pct;
+            foreach (self::seriesKeys((string)$r->cName) as $key) {
+                $map[$seg][$key] = \max($map[$seg][$key] ?? 0.0, $pct);
+            }
+            $map['max'] = \max($map['max'], $pct);
+        }
+
+        return $map;
+    }
+
+    /**
+     * "H-Serie" → [H], "800er-Serie" → [800ER, 800], "Serie KT3" → [KT3]
+     *
+     * @return list<string>
+     */
+    public static function seriesKeys(string $name): array
+    {
+        $k = \mb_strtoupper(\trim($name));
+        $k = (string)\preg_replace('/[\s\-]*SERIE[\s\-]*/u', '', $k);
+        $k = (string)\preg_replace('/\s*\(\d+\)$/', '', $k);
+        $k = (string)\preg_replace('/[\s\-]+/', '', $k);
+        if ($k === '') {
+            return [];
+        }
+        $keys = [$k];
+        if (\preg_match('/^(\d+)ER$/', $k, $m)) {
+            $keys[] = $m[1];
+        }
+
+        return $keys;
+    }
+
     public static function previewKey(): string
     {
         return \substr(\hash('sha256', 'bf-preview|' . \DB_NAME . '|' . \DB_PASS), 0, 24);
@@ -246,6 +308,7 @@ final class DiscountService
         $this->setMeta('state', $running ? 'on' : 'off');
         $this->setMeta('rules_hash', $this->rulesHash());
         $this->setMeta('last_apply', \date('Y-m-d H:i:s'));
+        $this->setMeta('series_json', (string)\json_encode($this->buildSeriesMap()));
 
         return [
             'target'   => $running ? (int)$this->db->getSingleObject('SELECT COUNT(*) AS c FROM ' . self::T_APPLIED)->c : 0,
@@ -406,7 +469,7 @@ final class DiscountService
         return $row !== null ? (string)$row->cValue : '';
     }
 
-    private function setMeta(string $key, string $value): void
+    public function setMeta(string $key, string $value): void
     {
         $this->db->executeQueryPrepared(
             'INSERT INTO ' . self::T_META . ' (cKey, cValue) VALUES (:k, :v)

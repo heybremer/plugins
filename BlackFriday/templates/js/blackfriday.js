@@ -41,9 +41,117 @@
         }, 1000);
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
+    function serieKeys(code, label) {
+        var out = [];
+        [code, label].forEach(function (v) {
+            var k = String(v || '').toUpperCase()
+                .replace(/_\d+$/, '')
+                .replace(/[\s\-]*SERIE[\s\-]*/g, '')
+                .replace(/[\s\-]+/g, '');
+            if (k && out.indexOf(k) === -1) {
+                out.push(k);
+            }
+            var m = k.match(/^(\d+)ER$/);
+            if (m && out.indexOf(m[1]) === -1) {
+                out.push(m[1]);
+            }
+        });
+        return out;
+    }
+
+    function fmt(p) {
+        return String(Math.round(p * 10) / 10).replace('.', ',');
+    }
+
+    function decorateSeries() {
+        var map = window.BF_SERIES;
+        if (!map) {
+            return;
+        }
+        var tiles = document.querySelectorAll('.serie-tile-link[data-serie], .fk-micro-serie-tile[data-serie]');
+        Array.prototype.forEach.call(tiles, function (el) {
+            var seg = map[el.getAttribute('data-segment') === 'pkw' ? 'pkw' : 'wm'] || {};
+            var host = el.querySelector('.tile') || el;
+            var label = (el.querySelector('.serie-desc, .fk-micro-serie-name') || {}).textContent || '';
+            var pct = 0;
+            serieKeys(el.getAttribute('data-serie'), label).forEach(function (k) {
+                if (seg[k] > pct) {
+                    pct = seg[k];
+                }
+            });
+            var badge = host.querySelector(':scope > .bf-serie-badge');
+            if (pct <= 0) {
+                if (badge) {
+                    badge.remove();
+                }
+                host.classList.remove('bf-serie-deal');
+                return;
+            }
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'bf-serie-badge';
+                host.insertBefore(badge, host.firstChild);
+            }
+            var text = '-' + fmt(pct) + '%';
+            if (badge.getAttribute('data-pct') !== text) {
+                badge.setAttribute('data-pct', text);
+                badge.innerHTML = '<small>BLACK FRIDAY</small>' + text;
+            }
+            host.classList.add('bf-serie-deal');
+        });
+    }
+
+    function decorateBanner() {
+        var banner = document.querySelector('.womosi-konfigurator .konfig-banner');
+        if (!banner || banner.querySelector('.bf-fk-kicker')) {
+            return;
+        }
+        var max = window.BF_SERIES && window.BF_SERIES.max ? window.BF_SERIES.max : 0;
+        var kicker = document.createElement('div');
+        kicker.className = 'bf-fk-kicker';
+        kicker.innerHTML = '<span class="bf-fk-kicker__tag">BLACK FRIDAY</span>'
+            + (max > 0 ? '<span class="bf-fk-kicker__pct">bis zu -' + fmt(max) + '%</span>' : '');
+        banner.insertBefore(kicker, banner.firstChild);
+    }
+
+    var queued = false;
+    function schedule() {
+        if (queued) {
+            return;
+        }
+        queued = true;
+        (window.requestAnimationFrame || setTimeout)(function () {
+            queued = false;
+            decorateSeries();
+        });
+    }
+
+    function initDecorations() {
+        if (!document.body || !document.body.classList.contains('bf-active')) {
+            return;
+        }
+        decorateBanner();
+        decorateSeries();
+        if ('MutationObserver' in window) {
+            new MutationObserver(function (list) {
+                for (var i = 0; i < list.length; i++) {
+                    if (list[i].addedNodes.length) {
+                        schedule();
+                        return;
+                    }
+                }
+            }).observe(document.body, { childList: true, subtree: true });
+        }
+    }
+
+    function boot() {
         init();
+        initDecorations();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+    } else {
+        boot();
     }
 })();

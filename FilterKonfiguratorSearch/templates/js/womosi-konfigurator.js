@@ -1906,6 +1906,8 @@
             foundPreserve = true;
           }
           a.className = 'tile-link serie-tile-link' + ((preserveSerie && code === state.serie) ? ' is-active' : '');
+          a.setAttribute('data-serie', code);
+          a.setAttribute('data-segment', state.segment === 'pkw' ? 'pkw' : 'wm');
 
           var tile = document.createElement('div');
           tile.className = 'tile';

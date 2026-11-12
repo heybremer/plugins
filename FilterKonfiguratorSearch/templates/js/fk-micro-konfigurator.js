@@ -986,6 +986,7 @@
         var tile = document.createElement('div');
         tile.className = 'fk-micro-serie-tile' + (String(state.serie || '') === String(val) ? ' is-active' : '');
         tile.setAttribute('data-serie', val);
+        tile.setAttribute('data-segment', isPkw ? 'pkw' : 'wm');
         tile.title = meta.label;
         if (meta.color) {
           tile.style.backgroundColor = meta.color;

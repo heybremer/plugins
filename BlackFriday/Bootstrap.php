@@ -100,6 +100,16 @@ class Bootstrap extends Bootstrapper
 
         $classes = 'bf-active' . ((int)$s['theme'] === 1 ? ' bf-theme' : '');
 
+        $series = $svc->getMeta('series_json');
+        if ($series === '') {
+            $series = (string)\json_encode($svc->buildSeriesMap());
+            $svc->setMeta('series_json', $series);
+        }
+        $head = $doc->find('head')->eq(0);
+        if ($head->length > 0) {
+            $head->append('<script>window.BF_SERIES=' . \str_replace('</', '<\/', $series) . ';</script>');
+        }
+
         if ((int)$s['headerBar'] === 1) {
             $html = $this->fetchTpl($smarty, 'bf-topbar.tpl');
             if ($html !== '') {
