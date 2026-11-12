@@ -38,8 +38,10 @@
     max-width: 1720px !important;
     margin: 0 auto !important;
     background: #fff;
-    max-height: min(640px, calc(100vh - 170px));
+    --mm-max-h: min(640px, calc(100vh - 170px));
   }
+  .mm-panel .mm-side, .mm-panel .mm-main { max-height: var(--mm-max-h); overflow-y: auto; overscroll-behavior: contain; }
+  .mm-panel .mm-promo { max-height: calc(var(--mm-max-h) - 36px); }
   .mm-panel.mm-panel--flat .mm-panel__inner { grid-template-columns: minmax(0, 1fr) 280px; }
 
   /* Seitenleiste */
