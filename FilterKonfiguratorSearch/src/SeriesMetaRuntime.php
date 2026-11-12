@@ -114,7 +114,7 @@ final class SeriesMetaRuntime
             $lang = 0;
         }
 
-        return 'fk_series_meta_v1_' . $lang;
+        return 'fk_series_meta_v2_' . $lang;
     }
 
     /**

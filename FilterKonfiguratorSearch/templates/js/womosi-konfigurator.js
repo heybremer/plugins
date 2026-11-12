@@ -786,7 +786,7 @@
             SERIES_META[k] = {
               label: m.label != null ? String(m.label) : (SERIES_META[k] && SERIES_META[k].label) || String(k),
               color: m.color != null && String(m.color) !== '' ? String(m.color) : (SERIES_META[k] && SERIES_META[k].color) || '#f5f5f5',
-              img: m.img != null ? String(m.img) : (SERIES_META[k] && SERIES_META[k].img) || ''
+              img: m.img != null && String(m.img) !== '' ? String(m.img) : (SERIES_META[k] && SERIES_META[k].img) || ''
             };
           }
         });
