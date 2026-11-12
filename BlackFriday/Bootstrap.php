@@ -222,14 +222,19 @@ class Bootstrap extends Bootstrapper
           LEFT JOIN tkategoriepict kp ON kp.kKategorie = r.kKategorie
               WHERE r.nActive = 1 AND r.fRabatt > 0
            GROUP BY r.kKategorie
-           ORDER BY r.fRabatt DESC, cName ASC
-              LIMIT 12',
+           ORDER BY k.lft ASC
+              LIMIT 36',
             ['lang' => $langID]
         );
         $shopUrl = \rtrim((string)Shop::getURL(), '/');
         $cgID    = (int)Frontend::getCustomerGroup()->getID();
-        $out     = [];
+        $paths   = $this->service()->categoryPaths(\array_map(static fn($r): int => (int)$r->kKategorie, $rows), $langID);
+        $groups  = [];
         foreach ($rows as $r) {
+            $path  = $paths[(int)$r->kKategorie] ?? [];
+            $top   = $path[0] ?? ['id' => (int)$r->kKategorie, 'name' => (string)$r->cName];
+            $isTop = $top['id'] === (int)$r->kKategorie;
+            $sub   = \array_map(static fn(array $p): string => $p['name'], \array_slice($path, 1, -1));
             $img = '';
             $seo = (string)($r->cSeo ?? '');
             $url = $seo !== '' ? $shopUrl . '/' . $seo : $shopUrl . '/?k=' . (int)$r->kKategorie;
@@ -247,15 +252,19 @@ class Bootstrap extends Bootstrapper
                     $img = '';
                 }
             }
-            $out[] = [
-                'name' => (string)$r->cName,
+            if (!isset($groups[$top['id']])) {
+                $groups[$top['id']] = ['title' => $top['name'], 'items' => []];
+            }
+            $groups[$top['id']]['items'][] = [
+                'name' => $isTop ? 'Alle ' . $top['name'] : (string)$r->cName,
+                'sub'  => \implode(' › ', $sub),
                 'url'  => $url,
                 'img'  => $img,
                 'pct'  => self::fmtPct((float)$r->fRabatt),
             ];
         }
 
-        return $out;
+        return \array_values($groups);
     }
 
     private function fetchTpl(JTLSmarty $smarty, string $file): string

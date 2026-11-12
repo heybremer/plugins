@@ -163,6 +163,35 @@ final class DiscountService
         )->m;
     }
 
+    /**
+     * Kategoriepfade von der obersten Ebene bis zur Kategorie selbst.
+     *
+     * @param int[] $ids
+     * @return array<int, list<array{id:int, name:string}>>
+     */
+    public function categoryPaths(array $ids, int $langID): array
+    {
+        $ids = \array_values(\array_filter(\array_map('intval', $ids)));
+        if ($ids === []) {
+            return [];
+        }
+        $rows = $this->db->getObjects(
+            'SELECT c.kKategorie AS kCat, p.kKategorie, COALESCE(NULLIF(ps.cName, ""), p.cName) AS cName
+               FROM tkategorie c
+         INNER JOIN tkategorie p ON p.lft <= c.lft AND p.rght >= c.rght
+          LEFT JOIN tkategoriesprache ps ON ps.kKategorie = p.kKategorie AND ps.kSprache = :l
+              WHERE c.kKategorie IN (' . \implode(',', $ids) . ')
+           ORDER BY c.kKategorie, p.lft',
+            ['l' => $langID]
+        );
+        $out = [];
+        foreach ($rows as $r) {
+            $out[(int)$r->kCat][] = ['id' => (int)$r->kKategorie, 'name' => (string)$r->cName];
+        }
+
+        return $out;
+    }
+
     public static function previewKey(): string
     {
         return \substr(\hash('sha256', 'bf-preview|' . \DB_NAME . '|' . \DB_PASS), 0, 24);

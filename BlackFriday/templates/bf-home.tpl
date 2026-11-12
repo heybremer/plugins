@@ -17,21 +17,26 @@
                 </div>
             {/if}
         </div>
-        {if !empty($bfCategories)}
-            <div class="bf-home__grid">
-                {foreach $bfCategories as $c}
-                    <a class="bf-cat" href="{$c.url|escape:'html'}">
-                        <span class="bf-cat__badge">-{$c.pct}%</span>
-                        {if $c.img !== ''}
-                            <img class="bf-cat__img" src="{$c.img|escape:'html'}" alt="" loading="lazy" width="240" height="160">
-                        {else}
-                            <span class="bf-cat__img bf-cat__img--empty" aria-hidden="true">%</span>
-                        {/if}
-                        <span class="bf-cat__name">{$c.name|escape:'html'}</span>
-                        <span class="bf-cat__go">Zu den Deals &rarr;</span>
-                    </a>
-                {/foreach}
+        {foreach $bfCategories as $g}
+            <div class="bf-home__group">
+                <h3 class="bf-home__group-title"><span>{$g.title|escape:'html'}</span></h3>
+                <div class="bf-home__grid">
+                    {foreach $g.items as $c}
+                        <a class="bf-cat" href="{$c.url|escape:'html'}">
+                            <span class="bf-cat__badge">-{$c.pct}%</span>
+                            {if $c.img !== ''}
+                                <img class="bf-cat__img" src="{$c.img|escape:'html'}" alt="" loading="lazy" width="240" height="160">
+                            {else}
+                                <span class="bf-cat__img bf-cat__img--empty" aria-hidden="true">%</span>
+                            {/if}
+                            <span class="bf-cat__top">{$g.title|escape:'html'}</span>
+                            <span class="bf-cat__name">{$c.name|escape:'html'}</span>
+                            {if $c.sub !== ''}<span class="bf-cat__sub">{$c.sub|escape:'html'}</span>{/if}
+                            <span class="bf-cat__go">Zu den Deals &rarr;</span>
+                        </a>
+                    {/foreach}
+                </div>
             </div>
-        {/if}
+        {/foreach}
     </div>
 </section>

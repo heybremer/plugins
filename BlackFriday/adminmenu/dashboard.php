@@ -149,8 +149,13 @@ $cats = $db->getObjects(
     ['l' => $langID]
 );
 $catNames = [];
+$stack    = [];
 foreach ($cats as $c) {
-    $catNames[(int)$c->kKategorie] = (string)$c->cName;
+    $level         = \max(1, (int)$c->nLevel);
+    $stack         = \array_slice($stack, 0, $level - 1);
+    $stack[]       = (string)$c->cName;
+    $c->cPath      = \implode(' › ', $stack);
+    $catNames[(int)$c->kKategorie] = $c->cPath;
 }
 $stats = $db->getSingleObject(
     'SELECT COUNT(*) AS nRows, COUNT(DISTINCT kArtikel) AS nArt FROM ' . DiscountService::T_APPLIED
@@ -228,7 +233,7 @@ $lastApply = $svc->getMeta('last_apply');
                     <select class="form-control" id="bfCat" name="kKategorie" required>
                         <option value="">– Kategorie wählen –</option>
                         <?php foreach ($cats as $c) { ?>
-                            <option value="<?= (int)$c->kKategorie ?>"><?= \str_repeat('&nbsp;&nbsp;&nbsp;', \max(0, (int)$c->nLevel - 1)) . bf_h((string)$c->cName) ?> (<?= (int)$c->nArtikel ?>)</option>
+                            <option value="<?= (int)$c->kKategorie ?>"><?= bf_h((string)$c->cPath) ?> (<?= (int)$c->nArtikel ?>)</option>
                         <?php } ?>
                     </select>
                 </div>
