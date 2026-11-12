@@ -12,6 +12,8 @@ use JTL\Plugin\Bootstrapper;
 use JTL\Session\Frontend;
 use JTL\Shop;
 
+require_once __DIR__ . '/src/ImageStore.php';
+
 class Bootstrap extends Bootstrapper
 {
     private const ASSET_CSS = 'plugins/MegaMenu/templates/css/megamenu.css';
@@ -22,9 +24,18 @@ class Bootstrap extends Bootstrapper
     /** @var array<string, string>|null */
     private ?array $serieImages = null;
 
+    /** @var array<int, array{d:string, m:string}> */
+    private array $overrides = [];
+
+    /** @var array<int, string> automatisch ermittelte Bilder (Vorschau im Dashboard) */
+    private array $autoImages = [];
+
+    private static bool $adminMenuEnsured = false;
+
     public function boot(Dispatcher $dispatcher): void
     {
         parent::boot($dispatcher);
+        $this->ensureAdminMenuEntry();
         if ($this->isBackendRequest()) {
             return;
         }
@@ -74,8 +85,10 @@ class Bootstrap extends Bootstrapper
         if ($byID === []) {
             return;
         }
-        $rules    = $this->discountRules();
-        $cacheKey = 'mm_panels_' . \filemtime(__FILE__) . '_' . $langID . '_' . $cgID . '_' . \md5((string)\json_encode($rules));
+        $rules           = $this->discountRules();
+        $this->overrides = (new ImageStore(Shop::Container()->getDB()))->all();
+        $cacheKey        = 'mm_panels_' . \filemtime(__FILE__) . '_' . $langID . '_' . $cgID . '_'
+            . \md5((string)\json_encode([$rules, $this->overrides]));
         $cache    = null;
         $panels   = null;
         try {
@@ -91,13 +104,14 @@ class Bootstrap extends Bootstrapper
                     $panels[$id]           = $this->panelHtml($root, $rules);
                     $panels['mobile_' . $id] = $this->mobileHtml($root, $rules);
                 }
-                $thumb = $this->representativeImage($root);
+                $thumb = $this->representativeImage($root, Image::SIZE_SM, 0, 'm');
                 if ($thumb !== '') {
                     $panels['thumb_' . $id] = $thumb;
                 }
             }
             if ($cache !== null) {
                 try {
+                    $cache->set(ImageStore::AUTO_CACHE, $this->autoImages, [\CACHING_GROUP_CORE], 86400 * 7);
                     $cache->set($cacheKey, $panels, [\CACHING_GROUP_CATEGORY, \CACHING_GROUP_CORE], self::CACHE_TTL);
                 } catch (\Throwable $e) {
                 }
@@ -156,7 +170,7 @@ class Bootstrap extends Bootstrapper
         $e        = static fn(string $s): string => \htmlspecialchars($s, \ENT_QUOTES, 'UTF-8');
         $children = \array_values(\array_filter($root->getChildren(), static fn($c) => $c instanceof MenuItem));
         $rootPct  = $this->discountFor($root, $rules, true);
-        $img      = $this->representativeImage($root, Image::SIZE_MD);
+        $img      = $this->representativeImage($root, Image::SIZE_MD, 0, 'm');
         $hasGroup = false;
         foreach ($children as $c) {
             if ($c->hasChildren()) {
@@ -211,7 +225,7 @@ class Bootstrap extends Bootstrapper
                 continue;
             }
             $name   = $item->getName();
-            $img    = $this->categoryImage($item);
+            $img    = $this->categoryImage($item, Image::SIZE_SM, 'm');
             $pct    = $this->discountFor($item, $rules, false);
             $short  = \trim((string)\preg_replace('/[\s\-]*Serie\s*$/iu', '', $name));
             $visual = $img !== ''
@@ -271,7 +285,7 @@ class Bootstrap extends Bootstrapper
             }
         }
 
-        $img   = $this->categoryImage($root, Image::SIZE_LG);
+        $img   = $this->categoryImage($root, Image::SIZE_LG, 'd');
         $promo = '<a class="mm-promo' . ($rootPct > 0 ? ' mm-promo--deal' : '') . '" href="' . $e($root->getURL()) . '">'
             . ($img !== '' ? '<span class="mm-promo__img"><img src="' . $e($img) . '" alt="" loading="lazy" decoding="async"></span>' : '')
             . '<span class="mm-promo__body">'
@@ -306,7 +320,7 @@ class Bootstrap extends Bootstrapper
                 break;
             }
             $name  = $item->getName();
-            $img   = $this->categoryImage($item);
+            $img   = $this->categoryImage($item, Image::SIZE_SM, 'd');
             $pct   = $this->discountFor($item, $rules, false);
             $short = \trim((string)\preg_replace('/[\s\-]*Serie\s*$/iu', '', $name));
             $visual = $img !== ''
@@ -328,15 +342,15 @@ class Bootstrap extends Bootstrapper
     /**
      * Eigenes Bild, sonst das erste Bild im Teilbaum (Tiefensuche).
      */
-    private function representativeImage(MenuItem $item, string $size = Image::SIZE_SM, int $depth = 0): string
+    private function representativeImage(MenuItem $item, string $size = Image::SIZE_SM, int $depth = 0, string $ctx = 'd'): string
     {
-        $img = $this->categoryImage($item, $size);
+        $img = $this->categoryImage($item, $size, $ctx);
         if ($img !== '' || $depth > 2) {
             return $img;
         }
         foreach ($item->getChildren() as $child) {
             if ($child instanceof MenuItem) {
-                $img = $this->representativeImage($child, $size, $depth + 1);
+                $img = $this->representativeImage($child, $size, $depth + 1, $ctx);
                 if ($img !== '') {
                     return $img;
                 }
@@ -346,7 +360,28 @@ class Bootstrap extends Bootstrapper
         return '';
     }
 
-    private function categoryImage(MenuItem $item, string $size = Image::SIZE_SM): string
+    /**
+     * @param string $ctx 'd' = Web/Desktop, 'm' = Mobil (fällt auf Web-Auswahl zurück)
+     */
+    private function categoryImage(MenuItem $item, string $size = Image::SIZE_SM, string $ctx = 'd'): string
+    {
+        $id   = $item->getID();
+        $over = $this->overrides[$id] ?? null;
+        if ($over !== null) {
+            $pick = $ctx === 'm' ? ($over['m'] !== '' ? $over['m'] : $over['d']) : $over['d'];
+            if ($pick !== '') {
+                return $pick;
+            }
+        }
+        $auto = $this->autoImage($item, $size);
+        if ($auto !== '' && !isset($this->autoImages[$id])) {
+            $this->autoImages[$id] = $auto;
+        }
+
+        return $auto;
+    }
+
+    private function autoImage(MenuItem $item, string $size): string
     {
         $url = (string)($item->getImage($size) ?? '');
         if ($url !== '' && !\str_contains($url, \BILD_KEIN_KATEGORIEBILD_VORHANDEN)
@@ -463,6 +498,35 @@ class Bootstrap extends Bootstrapper
     private function pct(float $v): string
     {
         return \rtrim(\rtrim(\number_format($v, 1, ',', ''), '0'), ',');
+    }
+
+    private function ensureAdminMenuEntry(): void
+    {
+        if (self::$adminMenuEnsured) {
+            return;
+        }
+        self::$adminMenuEnsured = true;
+        try {
+            $db       = Shop::Container()->getDB();
+            $pluginID = (int)$this->getPlugin()->getID();
+            if ($pluginID <= 0) {
+                return;
+            }
+            $exists = $db->getSingleObject(
+                'SELECT kPluginAdminMenu FROM tpluginadminmenu WHERE kPlugin = :p AND cDateiname = :c LIMIT 1',
+                ['p' => $pluginID, 'c' => 'dashboard.php']
+            );
+            if ($exists === null) {
+                $db->insert('tpluginadminmenu', (object)[
+                    'kPlugin'    => $pluginID,
+                    'cName'      => 'Mega Menü Bilder',
+                    'cDateiname' => 'dashboard.php',
+                    'nSort'      => 1,
+                    'nConf'      => 0,
+                ]);
+            }
+        } catch (\Throwable $e) {
+        }
     }
 
     private function isBackendRequest(): bool
