@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jtlshopplugin>
+    <Name>MegaMenu</Name>
+    <Description>Modernes Mega-Menü für die Hauptnavigation (Desktop): Unterkategorie-Tabs, Bildkacheln für Serien, Black-Friday-Rabattbadges und Promo-Karte. Mobile Navigation bleibt unverändert.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>110</XMLVersion>
+    <ShopVersion>5.6.0</ShopVersion>
+    <PluginID>MegaMenu</PluginID>
+    <CreateDate>2026-11-12</CreateDate>
+    <Version>1.0.0</Version>
+    <Bootstrap>Plugin\MegaMenu\Bootstrap</Bootstrap>
+    <Install>
+        <empty></empty>
+    </Install>
+</jtlshopplugin>
