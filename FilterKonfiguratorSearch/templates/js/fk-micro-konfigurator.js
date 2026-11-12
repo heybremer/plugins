@@ -52,7 +52,7 @@
     BC: { label: 'Serie BC', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/bc-serie.avif' },
     DS: { label: 'Serie DS', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/ds-serie.avif' },
     LT: { label: 'Serie LT', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/lt-serie.avif' },
-    800: { label: 'Serie 800er', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/800er-serie.avif' },
+    800: { label: 'Serie 800er', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/800er-serie.webp' },
     WMA: { label: 'Aguti Sitze', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/aguti-sitze-serie.avif' },
     WDS: { label: 'Serie WDS', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/wds-serie.webp' },
     SMD: { label: 'Serie SMD', color: '#f5f5f5', img: 'https://bremer-sitzbezuege.de/mediafiles/seat/smd-serie.webp' },

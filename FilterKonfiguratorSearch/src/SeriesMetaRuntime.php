@@ -57,7 +57,7 @@ final class SeriesMetaRuntime
             'BC'    => ['label' => 'Serie BC', 'color' => '#f5f5f5', 'img' => ''],
             'DS'    => ['label' => 'Serie DS', 'color' => '#f5f5f5', 'img' => ''],
             'LT'    => ['label' => 'Serie LT', 'color' => '#f5f5f5', 'img' => ''],
-            '800'   => ['label' => 'Serie 800er', 'color' => '#f5f5f5', 'img' => ''],
+            '800'   => ['label' => 'Serie 800er', 'color' => '#f5f5f5', 'img' => 'https://bremer-sitzbezuege.de/mediafiles/seat/800er-serie.webp'],
             'WMA'   => ['label' => 'Aguti Sitze', 'color' => '#f5f5f5', 'img' => ''],
             'WDS'   => ['label' => 'Serie WDS', 'color' => '#f5f5f5', 'img' => 'https://bremer-sitzbezuege.de/mediafiles/seat/wds-serie.webp'],
             'SMD'   => ['label' => 'Serie SMD', 'color' => '#f5f5f5', 'img' => 'https://bremer-sitzbezuege.de/mediafiles/seat/smd-serie.webp'],
