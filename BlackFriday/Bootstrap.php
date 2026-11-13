@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Plugin\BlackFriday;
 
+use JTL\Cart\Cart;
+use JTL\Cart\CartHelper;
+use JTL\Cart\CartItem;
 use JTL\Catalog\Category\Kategorie;
 use JTL\Catalog\Product\Preise;
 use JTL\Checkout\Kupon;
@@ -43,6 +46,23 @@ class Bootstrap extends Bootstrapper
         $dispatcher->hookInto(\HOOK_GLOBALINCLUDE_INC, function (): void {
             try {
                 $this->blockCouponsOnDeals();
+            } catch (\Throwable $e) {
+                \error_log('[BlackFriday] coupon: ' . $e->getMessage());
+            }
+        });
+        foreach ([\HOOK_WARENKORB_PAGE_KUPONANNEHMEN, \HOOK_LETZTERINCLUDE_INC] as $hook) {
+            $dispatcher->hookInto($hook, function (): void {
+                try {
+                    $this->adjustCouponForDeals(Frontend::getCart());
+                } catch (\Throwable $e) {
+                    \error_log('[BlackFriday] coupon: ' . $e->getMessage());
+                }
+            });
+        }
+        $dispatcher->hookInto(\HOOK_BESTELLABSCHLUSS_INC_WARENKORBINDB, function (array $args): void {
+            try {
+                $cart = $args['oWarenkorb'] ?? null;
+                $this->adjustCouponForDeals($cart instanceof Cart ? $cart : Frontend::getCart());
             } catch (\Throwable $e) {
                 \error_log('[BlackFriday] coupon: ' . $e->getMessage());
             }
@@ -134,6 +154,8 @@ class Bootstrap extends Bootstrapper
                 $classes .= ' bf-deal-page';
             }
         }
+
+        $this->injectCouponNote($doc);
 
         $body->addClass($classes);
     }
@@ -348,35 +370,112 @@ class Bootstrap extends Bootstrapper
     }
 
     /**
-     * Aktionscoupons nicht zusätzlich zum Black-Friday-Rabatt: neue Eingabe (Warenkorb/Checkout)
-     * wird verworfen, ein bereits eingelöster Standardkupon wieder entfernt.
+     * Aktionscoupons nicht zusätzlich zum Black-Friday-Rabatt: Enthält der Warenkorb nur Deal-Artikel,
+     * wird die Eingabe verworfen; sonst gilt der Coupon nur für die übrigen Artikel.
      */
     private function blockCouponsOnDeals(): void
     {
-        $code     = \trim((string)($_POST['Kuponcode'] ?? ''));
-        $inCart   = isset($_SESSION['Kupon']) && ($_SESSION['Kupon']->cKuponTyp ?? '') === Kupon::TYPE_STANDARD;
-        if ($code === '' && !$inCart) {
+        $code = \trim((string)($_POST['Kuponcode'] ?? ''));
+        if ($code === '' && !$this->hasStandardCoupon()) {
             return;
         }
-        $deals = $this->dealsInCart();
-        if ($deals === []) {
+        $scan = $this->scanCart(Frontend::getCart());
+        if ($scan['deals'] === []) {
             return;
         }
-        if ($code !== '') {
+        if ($code !== '' && $scan['free'] === []) {
             $coupon = (new Kupon())->getByCode($code);
             if ($coupon !== false && (int)$coupon->kKupon > 0 && $coupon->cKuponTyp === Kupon::TYPE_STANDARD) {
                 unset($_POST['Kuponcode'], $_REQUEST['Kuponcode']);
-            } elseif (!$inCart) {
-                return;
+                $this->warnCouponBlocked($scan['deals']);
             }
         }
-        if ($inCart) {
-            Frontend::getCart()->loescheSpezialPos(\C_WARENKORBPOS_TYP_KUPON);
-            unset($_SESSION['Kupon']);
-        }
+        $this->adjustCouponForDeals(Frontend::getCart());
+    }
 
+    private function hasStandardCoupon(): bool
+    {
+        return isset($_SESSION['Kupon']) && ($_SESSION['Kupon']->cKuponTyp ?? '') === Kupon::TYPE_STANDARD;
+    }
+
+    /**
+     * Coupon-Position neu berechnen: Basis sind nur Artikel ohne Black-Friday-Rabatt.
+     */
+    private function adjustCouponForDeals(Cart $cart): void
+    {
+        if (!$this->hasStandardCoupon()) {
+            return;
+        }
+        $scan = $this->scanCart($cart);
+        if ($scan['deals'] === []) {
+            return;
+        }
+        /** @var Kupon $coupon */
+        $coupon  = $_SESSION['Kupon'];
+        $percent = ($coupon->cWertTyp ?? '') === 'prozent';
+        $base    = 0.0;
+        foreach ($scan['free'] as $item) {
+            if ((int)($coupon->nGanzenWKRabattieren ?? 1) === 0) {
+                $base += $percent
+                    ? (float)CartHelper::checkSetPercentCouponWKPos($item, $coupon)->fPreis
+                    : CartHelper::getCouponProductsTotal($coupon, [$item]);
+            } else {
+                $base += (float)$item->fPreis * (float)$item->nAnzahl * ((100 + CartItem::getTaxRate($item)) / 100);
+            }
+        }
+        $base = \round($base, 2);
+        // Festpreis wird von JTL bei Bestellabschluss auf den Warenkorbwert zurückgesetzt → nicht kürzen
+        if ($base <= 0 || (!$percent && (float)$coupon->fWert > $base)) {
+            $cart->loescheSpezialPos(\C_WARENKORBPOS_TYP_KUPON);
+            unset($_SESSION['Kupon']);
+            $this->warnCouponBlocked($scan['deals']);
+
+            return;
+        }
+        if (!$percent) {
+            return;
+        }
+        $value = \round($base * (float)$coupon->fWert / 100, 2);
+        $pos   = null;
+        foreach ($cart->PositionenArr as $p) {
+            if ((int)$p->nPosTyp === \C_WARENKORBPOS_TYP_KUPON) {
+                $pos = $p;
+                break;
+            }
+        }
+        if ($pos === null) {
+            return;
+        }
+        $current = \round((float)$pos->fPreis * (float)$pos->nAnzahl * ((100 + (float)$pos->fMwSt) / 100), 2);
+        if (\abs($current + $value) < 0.01) {
+            return;
+        }
+        $checksumOk = !empty($cart->cChecksumme) && $cart->cChecksumme === Cart::getChecksum($cart);
+        $cart->erstelleSpezialPos(
+            (object)['cName' => $pos->cName],
+            1,
+            $value * -1,
+            (int)$coupon->kSteuerklasse,
+            \C_WARENKORBPOS_TYP_KUPON
+        );
+        if ($checksumOk) {
+            $cart->cChecksumme = Cart::getChecksum($cart);
+        }
+        Shop::Container()->getAlertService()->addInfo(
+            'Black-Friday-Artikel sind bereits reduziert und vom Aktionscoupon ausgenommen. '
+            . 'Der Coupon wurde nur auf die übrigen Artikel in Ihrem Warenkorb angerechnet.',
+            'bfCouponPartial',
+            ['saveInSession' => true, 'dismissable' => true]
+        );
+    }
+
+    /**
+     * @param list<array{name:string, pct:float}> $deals
+     */
+    private function warnCouponBlocked(array $deals): void
+    {
         $max   = \max(\array_column($deals, 'pct'));
-        $names = \array_slice(\array_unique(\array_column($deals, 'name')), 0, 3);
+        $names = \array_slice(\array_unique(\array_filter(\array_column($deals, 'name'))), 0, 3);
         $list  = \implode(', ', \array_map(static fn(string $n): string => '„' . $n . '“', $names));
         Shop::Container()->getAlertService()->addWarning(
             'Für ' . ($list !== '' ? $list : 'Artikel in Ihrem Warenkorb')
@@ -388,41 +487,77 @@ class Bootstrap extends Bootstrapper
     }
 
     /**
-     * @return list<array{name:string, pct:float}>
+     * @return array{deals: list<array{name:string, pct:float}>, free: list<CartItem>}
      */
-    private function dealsInCart(): array
+    private function scanCart(Cart $cart): array
     {
         $ids   = [];
-        $names = [];
-        foreach (Frontend::getCart()->PositionenArr ?? [] as $item) {
+        $items = [];
+        foreach ($cart->PositionenArr ?? [] as $item) {
             if ((int)($item->nPosTyp ?? 0) !== \C_WARENKORBPOS_TYP_ARTIKEL || empty($item->Artikel)) {
                 continue;
             }
-            $name = \is_array($item->cName ?? null)
-                ? (string)($item->cName[Shop::getLanguageCode()] ?? \reset($item->cName))
-                : (string)($item->Artikel->cName ?? '');
-            foreach ([(int)($item->Artikel->kArtikel ?? 0), (int)($item->Artikel->kVaterArtikel ?? 0)] as $id) {
+            $own    = (int)($item->Artikel->kArtikel ?? 0);
+            $parent = (int)($item->Artikel->kVaterArtikel ?? 0);
+            foreach ([$own, $parent] as $id) {
                 if ($id > 0) {
-                    $ids[$id]   = $id;
-                    $names[$id] = $names[$id] ?? $name;
+                    $ids[$id] = $id;
                 }
             }
+            $items[] = [$item, $own, $parent];
         }
         if ($ids === []) {
-            return [];
+            return ['deals' => [], 'free' => []];
         }
-        $rows = Shop::Container()->getDB()->getObjects(
+        $pct = [];
+        foreach (Shop::Container()->getDB()->getObjects(
             'SELECT kArtikel, MAX(fRabatt) AS fRabatt FROM ' . DiscountService::T_APPLIED
             . ' WHERE kKundengruppe = :g AND fRabatt > 0 AND kArtikel IN (' . \implode(',', $ids) . ')'
             . ' GROUP BY kArtikel',
             ['g' => Frontend::getCustomerGroup()->getID()]
-        );
-        $out = [];
-        foreach ($rows as $r) {
-            $out[] = ['name' => $names[(int)$r->kArtikel] ?? '', 'pct' => (float)$r->fRabatt];
+        ) as $r) {
+            $pct[(int)$r->kArtikel] = (float)$r->fRabatt;
+        }
+        $deals = [];
+        $free  = [];
+        foreach ($items as [$item, $own, $parent]) {
+            $p = \max($pct[$own] ?? 0.0, $pct[$parent] ?? 0.0);
+            if ($p <= 0) {
+                $free[] = $item;
+                continue;
+            }
+            $deals[] = [
+                'name' => \is_array($item->cName ?? null)
+                    ? (string)($item->cName[Shop::getLanguageCode()] ?? \reset($item->cName))
+                    : (string)($item->Artikel->cName ?? ''),
+                'pct'  => $p,
+            ];
         }
 
-        return $out;
+        return ['deals' => $deals, 'free' => $free];
+    }
+
+    private function injectCouponNote($doc): void
+    {
+        $inputs = $doc->find('input[name="Kuponcode"]');
+        if ($inputs->length < 1) {
+            return;
+        }
+        $scan = $this->scanCart(Frontend::getCart());
+        if ($scan['deals'] === []) {
+            return;
+        }
+        $text = $scan['free'] === []
+            ? 'Ihr Warenkorb enthält nur bereits reduzierte Black-Friday-Artikel. Aktionscoupons können daher nicht zusätzlich eingelöst werden.'
+            : 'Black-Friday-Artikel sind bereits reduziert und vom Aktionscoupon ausgenommen. Der Coupon gilt nur für die übrigen Artikel.';
+        $note = '<div class="bf-coupon-note"><span class="bf-coupon-note__tag">BLACK FRIDAY</span>'
+            . \htmlspecialchars($text, \ENT_QUOTES, 'UTF-8') . '</div>';
+        foreach ($inputs as $input) {
+            $form = pq($input)->parents('form')->eq(0);
+            if ($form->length > 0 && $form->find('.bf-coupon-note')->length < 1) {
+                $form->append($note);
+            }
+        }
     }
 
     private function service(): DiscountService

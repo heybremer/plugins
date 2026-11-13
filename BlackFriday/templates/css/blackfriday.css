@@ -491,3 +491,26 @@ body.bf-active .fk-micro-serie-tile.is-active {
     .bf-deal__new { font-size: 28px; }
     .bf-ribbon strong { font-size: 20px; }
 }
+
+.bf-coupon-note {
+    margin-top: 10px;
+    padding: 9px 11px;
+    border-left: 3px solid var(--bf-yellow);
+    border-radius: 4px;
+    background: var(--bf-black);
+    color: var(--bf-white);
+    font-size: 12.5px;
+    line-height: 1.45;
+}
+.bf-coupon-note__tag {
+    display: inline-block;
+    margin-right: 6px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--bf-yellow);
+    color: var(--bf-black);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    vertical-align: 1px;
+}
