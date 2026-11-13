@@ -6,6 +6,7 @@ namespace Plugin\BlackFriday;
 
 use JTL\Catalog\Category\Kategorie;
 use JTL\Catalog\Product\Preise;
+use JTL\Checkout\Kupon;
 use JTL\Events\Dispatcher;
 use JTL\Media\Image;
 use JTL\Plugin\Bootstrapper;
@@ -38,6 +39,14 @@ class Bootstrap extends Bootstrapper
             return;
         }
         $this->maybeScheduleTick();
+
+        $dispatcher->hookInto(\HOOK_GLOBALINCLUDE_INC, function (): void {
+            try {
+                $this->blockCouponsOnDeals();
+            } catch (\Throwable $e) {
+                \error_log('[BlackFriday] coupon: ' . $e->getMessage());
+            }
+        });
 
         $dispatcher->hookInto(\HOOK_LETZTERINCLUDE_CSS_JS, function (array &$args): void {
             if (!$this->isRunning()) {
@@ -317,6 +326,84 @@ class Bootstrap extends Bootstrapper
                 \error_log('[BlackFriday] tick: ' . $e->getMessage());
             }
         });
+    }
+
+    /**
+     * Aktionscoupons nicht zusätzlich zum Black-Friday-Rabatt: neue Eingabe (Warenkorb/Checkout)
+     * wird verworfen, ein bereits eingelöster Standardkupon wieder entfernt.
+     */
+    private function blockCouponsOnDeals(): void
+    {
+        $code     = \trim((string)($_POST['Kuponcode'] ?? ''));
+        $inCart   = isset($_SESSION['Kupon']) && ($_SESSION['Kupon']->cKuponTyp ?? '') === Kupon::TYPE_STANDARD;
+        if ($code === '' && !$inCart) {
+            return;
+        }
+        $deals = $this->dealsInCart();
+        if ($deals === []) {
+            return;
+        }
+        if ($code !== '') {
+            $coupon = (new Kupon())->getByCode($code);
+            if ($coupon !== false && (int)$coupon->kKupon > 0 && $coupon->cKuponTyp === Kupon::TYPE_STANDARD) {
+                unset($_POST['Kuponcode'], $_REQUEST['Kuponcode']);
+            } elseif (!$inCart) {
+                return;
+            }
+        }
+        if ($inCart) {
+            Frontend::getCart()->loescheSpezialPos(\C_WARENKORBPOS_TYP_KUPON);
+            unset($_SESSION['Kupon']);
+        }
+
+        $max   = \max(\array_column($deals, 'pct'));
+        $names = \array_slice(\array_unique(\array_column($deals, 'name')), 0, 3);
+        $list  = \implode(', ', \array_map(static fn(string $n): string => '„' . $n . '“', $names));
+        Shop::Container()->getAlertService()->addWarning(
+            'Für ' . ($list !== '' ? $list : 'Artikel in Ihrem Warenkorb')
+            . ' erhalten Sie im Rahmen unserer Black-Friday-Aktion bereits einen höheren Rabatt (bis zu -'
+            . self::fmtPct($max) . ' %). Ein Aktionscoupon kann daher nicht zusätzlich eingelöst werden.',
+            'bfCouponBlocked',
+            ['saveInSession' => true, 'dismissable' => true]
+        );
+    }
+
+    /**
+     * @return list<array{name:string, pct:float}>
+     */
+    private function dealsInCart(): array
+    {
+        $ids   = [];
+        $names = [];
+        foreach (Frontend::getCart()->PositionenArr ?? [] as $item) {
+            if ((int)($item->nPosTyp ?? 0) !== \C_WARENKORBPOS_TYP_ARTIKEL || empty($item->Artikel)) {
+                continue;
+            }
+            $name = \is_array($item->cName ?? null)
+                ? (string)($item->cName[Shop::getLanguageCode()] ?? \reset($item->cName))
+                : (string)($item->Artikel->cName ?? '');
+            foreach ([(int)($item->Artikel->kArtikel ?? 0), (int)($item->Artikel->kVaterArtikel ?? 0)] as $id) {
+                if ($id > 0) {
+                    $ids[$id]   = $id;
+                    $names[$id] = $names[$id] ?? $name;
+                }
+            }
+        }
+        if ($ids === []) {
+            return [];
+        }
+        $rows = Shop::Container()->getDB()->getObjects(
+            'SELECT kArtikel, MAX(fRabatt) AS fRabatt FROM ' . DiscountService::T_APPLIED
+            . ' WHERE kKundengruppe = :g AND fRabatt > 0 AND kArtikel IN (' . \implode(',', $ids) . ')'
+            . ' GROUP BY kArtikel',
+            ['g' => Frontend::getCustomerGroup()->getID()]
+        );
+        $out = [];
+        foreach ($rows as $r) {
+            $out[] = ['name' => $names[(int)$r->kArtikel] ?? '', 'pct' => (float)$r->fRabatt];
+        }
+
+        return $out;
     }
 
     private function service(): DiscountService
