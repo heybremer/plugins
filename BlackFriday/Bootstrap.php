@@ -79,33 +79,28 @@ class Bootstrap extends Bootstrapper
     private function render(JTLSmarty $smarty, $doc): void
     {
         $body = $doc->find('body')->eq(0);
-        if ($body->length < 1 || $doc->find('#bf-topbar')->length > 0) {
+        if ($body->length < 1) {
+            // Varkombi-Wechsel lädt nur #result-wrapper per ?isAjax nach
+            if (
+                (int)$this->getSettings()['productBlock'] === 1
+                && Shop::getPageType() === \PAGE_ARTIKEL
+                && $doc->find('#result-wrapper')->length > 0
+                && $doc->find('#bf-product-deal')->length < 1
+            ) {
+                $this->assignBase($smarty);
+                $this->injectProduct($smarty, $doc);
+            }
+            return;
+        }
+        if ($doc->find('#bf-topbar')->length > 0) {
             return;
         }
         if ($this->isPreview() && !\headers_sent()) {
             \header('Cache-Control: private, no-store');
         }
-        $s       = $this->getSettings();
-        $svc     = $this->service();
-        $max     = $svc->maxDiscount();
-        $endTs   = $s['end'] !== '' ? (int)\strtotime($s['end']) : 0;
-        $shopUrl = \rtrim((string)Shop::getURL(), '/');
-        $btnUrl  = \trim((string)$s['buttonUrl']);
-        if ($btnUrl === '') {
-            $btnUrl = '#bf-home';
-        } elseif (!\preg_match('~^(https?:)?//|^#~i', $btnUrl)) {
-            $btnUrl = $shopUrl . '/' . \ltrim($btnUrl, '/');
-        }
-
-        $smarty->assign('bf', [
-            'max'         => self::fmtPct($max),
-            'endIso'      => $endTs > 0 ? \date('c', $endTs) : '',
-            'topText'     => \str_replace('{max}', self::fmtPct($max), (string)$s['topText']),
-            'homeTitle'   => (string)$s['homeTitle'],
-            'homeSub'     => (string)$s['homeSub'],
-            'buttonLabel' => (string)$s['buttonLabel'],
-            'buttonUrl'   => $btnUrl,
-        ]);
+        $s   = $this->getSettings();
+        $svc = $this->service();
+        $this->assignBase($smarty);
 
         $classes = 'bf-active' . ((int)$s['theme'] === 1 ? ' bf-theme' : '');
 
@@ -141,6 +136,30 @@ class Bootstrap extends Bootstrapper
         }
 
         $body->addClass($classes);
+    }
+
+    private function assignBase(JTLSmarty $smarty): void
+    {
+        $s       = $this->getSettings();
+        $max     = $this->service()->maxDiscount();
+        $endTs   = $s['end'] !== '' ? (int)\strtotime($s['end']) : 0;
+        $shopUrl = \rtrim((string)Shop::getURL(), '/');
+        $btnUrl  = \trim((string)$s['buttonUrl']);
+        if ($btnUrl === '') {
+            $btnUrl = '#bf-home';
+        } elseif (!\preg_match('~^(https?:)?//|^#~i', $btnUrl)) {
+            $btnUrl = $shopUrl . '/' . \ltrim($btnUrl, '/');
+        }
+
+        $smarty->assign('bf', [
+            'max'         => self::fmtPct($max),
+            'endIso'      => $endTs > 0 ? \date('c', $endTs) : '',
+            'topText'     => \str_replace('{max}', self::fmtPct($max), (string)$s['topText']),
+            'homeTitle'   => (string)$s['homeTitle'],
+            'homeSub'     => (string)$s['homeSub'],
+            'buttonLabel' => (string)$s['buttonLabel'],
+            'buttonUrl'   => $btnUrl,
+        ]);
     }
 
     private function injectHome($doc, string $html, string $selector): void

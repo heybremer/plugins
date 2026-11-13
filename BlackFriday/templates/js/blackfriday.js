@@ -27,18 +27,33 @@
         });
     }
 
+    var timer = null;
     function init() {
         var nodes = Array.prototype.slice.call(document.querySelectorAll('[data-bf-end]')).filter(function (el) {
             el._bfEnd = Date.parse(el.getAttribute('data-bf-end'));
             return !isNaN(el._bfEnd);
         });
+        if (timer) {
+            clearInterval(timer);
+            timer = null;
+        }
         if (!nodes.length) {
             return;
         }
         tick(nodes);
-        setInterval(function () {
+        timer = setInterval(function () {
             tick(nodes);
         }, 1000);
+    }
+
+    function refreshCountdowns() {
+        var fresh = document.querySelectorAll('[data-bf-end]');
+        for (var i = 0; i < fresh.length; i++) {
+            if (fresh[i]._bfEnd === undefined) {
+                init();
+                return;
+            }
+        }
     }
 
     function serieKeys(code, label) {
@@ -123,6 +138,8 @@
         (window.requestAnimationFrame || setTimeout)(function () {
             queued = false;
             decorateSeries();
+            refreshCountdowns();
+            document.body.classList.toggle('bf-deal-page', !!document.getElementById('bf-product-deal'));
         });
     }
 
