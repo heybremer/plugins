@@ -611,23 +611,27 @@ class Bootstrap extends Bootstrapper
     private function injectCartBadges($doc): void
     {
         try {
-            $rows = $doc->find('.cart-items-body');
-            if ($rows->length < 1) {
-                return;
-            }
-            $deals = [];
-            foreach ($this->scanCart(Frontend::getCart())['deals'] as $deal) {
-                $deals[$deal['idx']] = $deal;
-            }
-            if ($deals === []) {
+            $scan = $this->scanCart(Frontend::getCart());
+            if ($scan['deals'] === []) {
                 return;
             }
             $merchant = Frontend::getCustomerGroup()->isMerchant();
-            foreach ($rows as $node) {
-                $row = pq($node);
-                if ($row->hasClass('bf-cart-item')) {
-                    continue;
+            $byIdx    = [];
+            $byUrl    = [];
+            $total    = 0.0;
+            foreach ($scan['deals'] as $deal) {
+                $info = $this->dealPriceInfo($deal, $merchant);
+                $byIdx[$deal['idx']] = $info;
+                $url = (string)($deal['item']->Artikel->cURLFull ?? '');
+                if ($url !== '') {
+                    $byUrl[$url] = $info;
                 }
+                $total += $info['save'];
+            }
+
+            // Warenkorb-Seite: Zuordnung über anzahl[<Positionsindex>]
+            foreach ($doc->find('.cart-items-body') as $node) {
+                $row = pq($node);
                 $idx = null;
                 foreach ($row->find('input') as $input) {
                     if (\preg_match('~^anzahl\[(\d+)\]$~', (string)pq($input)->attr('name'), $m)) {
@@ -635,43 +639,130 @@ class Bootstrap extends Bootstrapper
                         break;
                     }
                 }
-                if ($idx === null || !isset($deals[$idx])) {
+                if ($idx !== null && isset($byIdx[$idx])) {
+                    $this->decorateCartRow($row, $byIdx[$idx], '.cart-items-name', '.cart-items-image');
+                }
+            }
+
+            // Bestellvorgang (Bestätigung)
+            foreach ($doc->find('.checkout-items-item') as $node) {
+                $row  = pq($node);
+                $info = $this->matchDealByLink($row, $byUrl);
+                if ($info !== null) {
+                    $this->decorateCartRow(
+                        $row,
+                        $info,
+                        '.checkout-items-item-main p',
+                        '.checkout-items-item-image-wrapper'
+                    );
+                }
+            }
+
+            // Mini-Warenkorb im Header
+            foreach ($doc->find('.dropdown-cart-items tbody tr') as $node) {
+                $row  = pq($node);
+                $info = $this->matchDealByLink($row, $byUrl);
+                if ($info === null || $row->hasClass('bf-mini-item')) {
                     continue;
                 }
-                $deal = $deals[$idx];
-                $item = $deal['item'];
-                $pct  = (float)$deal['pct'];
-                $qty  = (float)($item->nAnzahl ?? 1);
-                $unit = (float)($item->fPreis ?? 0);
-                if (!$merchant) {
-                    $unit = Tax::getGross($unit, Tax::getSalesTax((int)($item->kSteuerklasse ?? 0)));
-                }
-                $old   = $pct < 100 ? \round($unit / (1 - $pct / 100), 2) : 0.0;
-                $save  = $old > $unit ? ($old - $unit) * $qty : 0.0;
-                $badge = '<div class="bf-cart-badge"><span class="bf-cart-badge__tag">BLACK FRIDAY</span>'
-                    . '<span class="bf-cart-badge__pct">-' . self::fmtPct($pct) . '%</span>';
-                if ($old > $unit) {
-                    $badge .= '<span class="bf-cart-badge__old">statt <del>'
-                        . Preise::getLocalizedPriceString($old) . '</del></span>'
-                        . '<span class="bf-cart-badge__save">Du sparst <strong>'
-                        . Preise::getLocalizedPriceString($save) . '</strong></span>';
-                }
-                $badge .= '</div>';
-                $row->addClass('bf-cart-item');
-                $name = $row->find('.cart-items-name')->eq(0);
+                $row->addClass('bf-mini-item');
+                $name = $row->find('td .col')->eq(2);
+                $html = '<span class="bf-mini-badge"><b>BLACK FRIDAY</b> -' . $info['pct'] . '%</span>';
                 if ($name->length > 0) {
-                    $name->before($badge);
+                    $name->append($html);
                 } else {
-                    $row->prepend($badge);
+                    $row->find('td')->eq(0)->append($html);
                 }
-                $img = $row->find('.cart-items-image')->eq(0);
-                if ($img->length > 0) {
-                    $img->addClass('bf-cart-item__img')
-                        ->prepend('<span class="bf-cart-item__ribbon">-' . self::fmtPct($pct) . '%</span>');
+            }
+
+            if ($total >= 0.01) {
+                $loc = Preise::getLocalizedPriceString($total);
+                $box = $doc->find('.basket-summary .card-body')->eq(0);
+                if ($box->length > 0 && $box->find('.bf-cart-savings')->length < 1) {
+                    $box->prepend(
+                        '<div class="bf-cart-savings"><span class="bf-cart-savings__tag">BLACK FRIDAY</span>'
+                        . '<span class="bf-cart-savings__label">Ihre Ersparnis</span>'
+                        . '<strong class="bf-cart-savings__value">' . $loc . '</strong></div>'
+                    );
+                }
+                $mini = $doc->find('.cart-dropdown .dropdown-body ul')->eq(0);
+                if ($mini->length > 0 && $mini->find('.bf-mini-savings')->length < 1) {
+                    $mini->prepend(
+                        '<li class="bf-mini-savings">Black-Friday-Ersparnis'
+                        . '<span class="cart-dropdown-total-item-price">' . $loc . '</span></li>'
+                    );
                 }
             }
         } catch (\Throwable $e) {
             \error_log('[BlackFriday] cart badges: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $deal
+     * @return array{pct: string, old: float, unit: float, save: float}
+     */
+    private function dealPriceInfo(array $deal, bool $merchant): array
+    {
+        $item = $deal['item'];
+        $pct  = (float)$deal['pct'];
+        $unit = (float)($item->fPreis ?? 0);
+        if (!$merchant) {
+            $unit = Tax::getGross($unit, Tax::getSalesTax((int)($item->kSteuerklasse ?? 0)));
+        }
+        $old = $pct < 100 ? \round($unit / (1 - $pct / 100), 2) : 0.0;
+
+        return [
+            'pct'  => self::fmtPct($pct),
+            'old'  => $old,
+            'unit' => $unit,
+            'save' => $old > $unit ? ($old - $unit) * (float)($item->nAnzahl ?? 1) : 0.0,
+        ];
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $byUrl
+     */
+    private function matchDealByLink($row, array $byUrl): ?array
+    {
+        foreach ($row->find('a') as $link) {
+            $href = (string)pq($link)->attr('href');
+            if (isset($byUrl[$href])) {
+                return $byUrl[$href];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $info
+     */
+    private function decorateCartRow($row, array $info, string $nameSel, string $imgSel): void
+    {
+        if ($row->hasClass('bf-cart-item')) {
+            return;
+        }
+        $badge = '<div class="bf-cart-badge"><span class="bf-cart-badge__tag">BLACK FRIDAY</span>'
+            . '<span class="bf-cart-badge__pct">-' . $info['pct'] . '%</span>';
+        if ($info['old'] > $info['unit']) {
+            $badge .= '<span class="bf-cart-badge__old">statt <del>'
+                . Preise::getLocalizedPriceString($info['old']) . '</del></span>'
+                . '<span class="bf-cart-badge__save">Du sparst <strong>'
+                . Preise::getLocalizedPriceString($info['save']) . '</strong></span>';
+        }
+        $badge .= '</div>';
+        $row->addClass('bf-cart-item');
+        $name = $row->find($nameSel)->eq(0);
+        if ($name->length > 0) {
+            $name->before($badge);
+        } else {
+            $row->prepend($badge);
+        }
+        $img = $row->find($imgSel)->eq(0);
+        if ($img->length > 0) {
+            $img->addClass('bf-cart-item__img')
+                ->prepend('<span class="bf-cart-item__ribbon">-' . $info['pct'] . '%</span>');
         }
     }
 
