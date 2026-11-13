@@ -11,6 +11,7 @@ use JTL\Catalog\Category\Kategorie;
 use JTL\Catalog\Product\Preise;
 use JTL\Checkout\Kupon;
 use JTL\Events\Dispatcher;
+use JTL\Helpers\Tax;
 use JTL\Media\Image;
 use JTL\Plugin\Bootstrapper;
 use JTL\Session\Frontend;
@@ -156,6 +157,7 @@ class Bootstrap extends Bootstrapper
         }
 
         $this->injectCouponNote($doc);
+        $this->injectCartBadges($doc);
         $this->injectKonfiguratorButton($smarty, $doc);
 
         $body->addClass($classes);
@@ -534,7 +536,7 @@ class Bootstrap extends Bootstrapper
     {
         $ids   = [];
         $items = [];
-        foreach ($cart->PositionenArr ?? [] as $item) {
+        foreach ($cart->PositionenArr ?? [] as $idx => $item) {
             if ((int)($item->nPosTyp ?? 0) !== \C_WARENKORBPOS_TYP_ARTIKEL || empty($item->Artikel)) {
                 continue;
             }
@@ -545,7 +547,7 @@ class Bootstrap extends Bootstrapper
                     $ids[$id] = $id;
                 }
             }
-            $items[] = [$item, $own, $parent];
+            $items[] = [$item, $own, $parent, $idx];
         }
         if ($ids === []) {
             return ['deals' => [], 'free' => []];
@@ -561,13 +563,15 @@ class Bootstrap extends Bootstrapper
         }
         $deals = [];
         $free  = [];
-        foreach ($items as [$item, $own, $parent]) {
+        foreach ($items as [$item, $own, $parent, $idx]) {
             $p = \max($pct[$own] ?? 0.0, $pct[$parent] ?? 0.0);
             if ($p <= 0) {
                 $free[] = $item;
                 continue;
             }
             $deals[] = [
+                'idx'  => (int)$idx,
+                'item' => $item,
                 'name' => \is_array($item->cName ?? null)
                     ? (string)($item->cName[Shop::getLanguageCode()] ?? \reset($item->cName))
                     : (string)($item->Artikel->cName ?? ''),
@@ -598,6 +602,76 @@ class Bootstrap extends Bootstrapper
             if ($form->length > 0 && $form->find('.bf-coupon-note')->length < 1) {
                 $form->append($note);
             }
+        }
+    }
+
+    /**
+     * Markiert Black-Friday-Artikel im Warenkorb (Badge, Streichpreis, Ersparnis).
+     */
+    private function injectCartBadges($doc): void
+    {
+        try {
+            $rows = $doc->find('.cart-items-body');
+            if ($rows->length < 1) {
+                return;
+            }
+            $deals = [];
+            foreach ($this->scanCart(Frontend::getCart())['deals'] as $deal) {
+                $deals[$deal['idx']] = $deal;
+            }
+            if ($deals === []) {
+                return;
+            }
+            $merchant = Frontend::getCustomerGroup()->isMerchant();
+            foreach ($rows as $node) {
+                $row = pq($node);
+                if ($row->hasClass('bf-cart-item')) {
+                    continue;
+                }
+                $idx = null;
+                foreach ($row->find('input') as $input) {
+                    if (\preg_match('~^anzahl\[(\d+)\]$~', (string)pq($input)->attr('name'), $m)) {
+                        $idx = (int)$m[1];
+                        break;
+                    }
+                }
+                if ($idx === null || !isset($deals[$idx])) {
+                    continue;
+                }
+                $deal = $deals[$idx];
+                $item = $deal['item'];
+                $pct  = (float)$deal['pct'];
+                $qty  = (float)($item->nAnzahl ?? 1);
+                $unit = (float)($item->fPreis ?? 0);
+                if (!$merchant) {
+                    $unit = Tax::getGross($unit, Tax::getSalesTax((int)($item->kSteuerklasse ?? 0)));
+                }
+                $old   = $pct < 100 ? \round($unit / (1 - $pct / 100), 2) : 0.0;
+                $save  = $old > $unit ? ($old - $unit) * $qty : 0.0;
+                $badge = '<div class="bf-cart-badge"><span class="bf-cart-badge__tag">BLACK FRIDAY</span>'
+                    . '<span class="bf-cart-badge__pct">-' . self::fmtPct($pct) . '%</span>';
+                if ($old > $unit) {
+                    $badge .= '<span class="bf-cart-badge__old">statt <del>'
+                        . Preise::getLocalizedPriceString($old) . '</del></span>'
+                        . '<span class="bf-cart-badge__save">Du sparst <strong>'
+                        . Preise::getLocalizedPriceString($save) . '</strong></span>';
+                }
+                $badge .= '</div>';
+                $row->addClass('bf-cart-item');
+                $name = $row->find('.cart-items-name')->eq(0);
+                if ($name->length > 0) {
+                    $name->before($badge);
+                } else {
+                    $row->prepend($badge);
+                }
+                $img = $row->find('.cart-items-image')->eq(0);
+                if ($img->length > 0) {
+                    $img->addClass('bf-cart-item__img')
+                        ->prepend('<span class="bf-cart-item__ribbon">-' . self::fmtPct($pct) . '%</span>');
+                }
+            }
+        } catch (\Throwable $e) {
+            \error_log('[BlackFriday] cart badges: ' . $e->getMessage());
         }
     }
 
@@ -655,8 +729,12 @@ class Bootstrap extends Bootstrapper
 
     private function isHomepageRequest(): bool
     {
-        if (Shop::getPageType() === \PAGE_STARTSEITE) {
+        $pageType = Shop::getPageType();
+        if ($pageType === \PAGE_STARTSEITE) {
             return true;
+        }
+        if ($pageType !== \PAGE_UNBEKANNT) {
+            return false;
         }
         $path     = \rtrim((string)(\parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), \PHP_URL_PATH) ?? ''), '/');
         $basePath = \rtrim((string)(\parse_url((string)Shop::getURL(), \PHP_URL_PATH) ?? ''), '/');

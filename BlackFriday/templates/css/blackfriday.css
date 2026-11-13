@@ -559,3 +559,68 @@ html { scroll-behavior: smooth; }
     border-radius: 3px;
     font-size: 12px;
 }
+/* Warenkorb: Black-Friday-Artikel */
+.cart-items-body.bf-cart-item {
+    position: relative;
+    margin: 0 0 14px;
+    padding: 14px 10px 4px;
+    background: linear-gradient(135deg, #0b0b0b 0%, #1c1c1c 100%);
+    border-left: 5px solid #ffd400;
+    border-radius: 6px;
+    color: #f2f2f2;
+    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+}
+.cart-items-body.bf-cart-item a,
+.cart-items-body.bf-cart-item .cart-items-name { color: #fff !important; }
+.cart-items-body.bf-cart-item .cart-items-price,
+.cart-items-body.bf-cart-item .cart-items-single-price,
+.cart-items-body.bf-cart-item strong { color: #ffd400; }
+.cart-items-body.bf-cart-item ul,
+.cart-items-body.bf-cart-item li,
+.cart-items-body.bf-cart-item small,
+.cart-items-body.bf-cart-item .text-muted-util { color: #cfcfcf !important; }
+.cart-items-body.bf-cart-item hr { border-color: rgba(255,255,255,.12); }
+.cart-items-body.bf-cart-item .btn-link,
+.cart-items-body.bf-cart-item .btn-link i { color: #e0e0e0 !important; }
+.bf-cart-item__img { position: relative; }
+.bf-cart-item__ribbon {
+    position: absolute;
+    top: 6px;
+    left: 20px;
+    z-index: 2;
+    padding: 3px 8px;
+    background: #e30613;
+    color: #fff;
+    font-weight: 900;
+    font-size: 13px;
+    border-radius: 3px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.35);
+}
+.bf-cart-badge {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    margin: 0 0 8px;
+    font-size: 13px;
+}
+.bf-cart-badge__tag {
+    background: #ffd400;
+    color: #000;
+    padding: 2px 9px;
+    font-weight: 900;
+    letter-spacing: .04em;
+    border-radius: 3px;
+    transform: skewX(-10deg);
+}
+.bf-cart-badge__pct {
+    background: #e30613;
+    color: #fff;
+    padding: 2px 8px;
+    font-weight: 900;
+    border-radius: 3px;
+}
+.bf-cart-badge__old { color: #bdbdbd; }
+.bf-cart-badge__old del { color: #bdbdbd; }
+.bf-cart-badge__save { color: #fff; }
+.bf-cart-badge__save strong { color: #ffd400; }
