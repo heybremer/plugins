@@ -168,9 +168,17 @@ class Bootstrap extends Bootstrapper
         $shopUrl = \rtrim((string)Shop::getURL(), '/');
         $btnUrl  = \trim((string)$s['buttonUrl']);
         if ($btnUrl === '') {
-            $btnUrl = '#bf-home';
+            $btnUrl = $this->isHomepageRequest() ? '#bf-home' : $shopUrl . '/#bf-home';
         } elseif (!\preg_match('~^(https?:)?//|^#~i', $btnUrl)) {
             $btnUrl = $shopUrl . '/' . \ltrim($btnUrl, '/');
+        } elseif ($btnUrl[0] === '#' && !$this->isHomepageRequest()) {
+            // Anker existiert nur auf der Startseite
+            $btnUrl = $shopUrl . '/' . $btnUrl;
+        }
+        if ($btnUrl === '#bf-home' && (int)$s['homeBlock'] === 1) {
+            $btnUrl = '#bf-deals';
+        } elseif ($btnUrl === $shopUrl . '/#bf-home' && (int)$s['homeBlock'] === 1) {
+            $btnUrl = $shopUrl . '/#bf-deals';
         }
 
         $smarty->assign('bf', [

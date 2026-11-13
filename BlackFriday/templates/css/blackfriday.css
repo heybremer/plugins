@@ -514,3 +514,23 @@ body.bf-active .fk-micro-serie-tile.is-active {
     letter-spacing: .04em;
     vertical-align: 1px;
 }
+
+/* Banner-Button: scrollt zu den Deal-Kategorien */
+html { scroll-behavior: smooth; }
+.bf-home__anchor { scroll-margin-top: 90px; height: 0; }
+#bf-deals { scroll-margin-top: 90px; }
+.bf-home__cta {
+    display: inline-block;
+    margin-top: 22px;
+    padding: 13px 30px;
+    background: var(--bf-yellow);
+    color: #000 !important;
+    font-weight: 900;
+    font-size: 16px;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    text-decoration: none !important;
+    border-radius: 4px;
+    transition: transform .15s, background .15s;
+}
+.bf-home__cta:hover { background: #fff; transform: translateY(-2px); }

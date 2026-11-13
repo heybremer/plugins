@@ -16,7 +16,9 @@
                     <div><b data-u="s">00</b><small>Sek</small></div>
                 </div>
             {/if}
+            <a class="bf-home__cta" href="#bf-deals">Zu den Black-Friday-Deals &darr;</a>
         </div>
+        <div id="bf-deals" class="bf-home__anchor"></div>
         {foreach $bfCategories as $g}
             <div class="bf-home__group">
                 <h3 class="bf-home__group-title"><span>{$g.title|escape:'html'}</span></h3>
