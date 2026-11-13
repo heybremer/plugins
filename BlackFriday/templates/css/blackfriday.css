@@ -534,3 +534,28 @@ html { scroll-behavior: smooth; }
     transition: transform .15s, background .15s;
 }
 .bf-home__cta:hover { background: #fff; transform: translateY(-2px); }
+/* Button im Konfigurator-Banner */
+.bf-konfig-cta { margin-top: 14px; text-align: center; }
+.bf-konfig-btn {
+    display: inline-block;
+    padding: 12px 28px;
+    background: #ffd400;
+    color: #000 !important;
+    font-weight: 900;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    text-decoration: none !important;
+    border-radius: 4px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.35);
+    transition: transform .15s, background .15s;
+}
+.bf-konfig-btn:hover { background: #fff; transform: translateY(-2px); }
+.bf-konfig-btn__tag {
+    background: #000;
+    color: #ffd400;
+    padding: 2px 8px;
+    margin-right: 6px;
+    border-radius: 3px;
+    font-size: 12px;
+}

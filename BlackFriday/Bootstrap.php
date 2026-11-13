@@ -156,6 +156,7 @@ class Bootstrap extends Bootstrapper
         }
 
         $this->injectCouponNote($doc);
+        $this->injectKonfiguratorButton($smarty, $doc);
 
         $body->addClass($classes);
     }
@@ -190,6 +191,33 @@ class Bootstrap extends Bootstrapper
             'buttonLabel' => (string)$s['buttonLabel'],
             'buttonUrl'   => $btnUrl,
         ]);
+    }
+
+    /**
+     * Button im Konfigurator-Banner (FilterKonfiguratorSearch) -> springt zu den Black-Friday-Kategorien.
+     */
+    private function injectKonfiguratorButton(JTLSmarty $smarty, $doc): void
+    {
+        try {
+            $banner = $doc->find('.konfig-banner')->eq(0);
+            if ($banner->length < 1 || $doc->find('.bf-konfig-btn')->length > 0) {
+                return;
+            }
+            $bf = $smarty->getTemplateVars('bf');
+            if (!\is_array($bf) || (string)($bf['buttonUrl'] ?? '') === '') {
+                return;
+            }
+            $label = \trim((string)($bf['buttonLabel'] ?? ''));
+            $label = $label !== '' ? $label : 'Zu den Deals';
+            $banner->append(
+                '<div class="bf-konfig-cta"><a class="bf-konfig-btn" href="'
+                . \htmlspecialchars((string)$bf['buttonUrl'], \ENT_QUOTES, 'UTF-8') . '">'
+                . '<span class="bf-konfig-btn__tag">BLACK FRIDAY</span> '
+                . \htmlspecialchars($label, \ENT_QUOTES, 'UTF-8') . ' &darr;</a></div>'
+            );
+        } catch (\Throwable $e) {
+            \error_log('[BlackFriday] konfigurator button: ' . $e->getMessage());
+        }
     }
 
     private function injectHome($doc, string $html, string $selector): void
