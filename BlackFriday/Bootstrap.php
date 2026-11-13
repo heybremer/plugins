@@ -50,7 +50,7 @@ class Bootstrap extends Bootstrapper
                 \error_log('[BlackFriday] coupon: ' . $e->getMessage());
             }
         });
-        foreach ([\HOOK_WARENKORB_PAGE_KUPONANNEHMEN, \HOOK_LETZTERINCLUDE_INC] as $hook) {
+        foreach ([\HOOK_WARENKORB_PAGE_KUPONANNEHMEN, \HOOK_BESTELLVORGANG_PAGE_STEPBESTAETIGUNG, \HOOK_LETZTERINCLUDE_INC] as $hook) {
             $dispatcher->hookInto($hook, function (): void {
                 try {
                     $this->adjustCouponForDeals(Frontend::getCart());
@@ -376,7 +376,7 @@ class Bootstrap extends Bootstrapper
     private function blockCouponsOnDeals(): void
     {
         $code = \trim((string)($_POST['Kuponcode'] ?? ''));
-        if ($code === '' && !$this->hasStandardCoupon()) {
+        if (($code === '' && !$this->hasStandardCoupon()) || !$this->couponRuleActive()) {
             return;
         }
         $scan = $this->scanCart(Frontend::getCart());
@@ -398,12 +398,17 @@ class Bootstrap extends Bootstrapper
         return isset($_SESSION['Kupon']) && ($_SESSION['Kupon']->cKuponTyp ?? '') === Kupon::TYPE_STANDARD;
     }
 
+    private function couponRuleActive(): bool
+    {
+        return (int)($this->getSettings()['couponOnDeals'] ?? 0) !== 1;
+    }
+
     /**
      * Coupon-Position neu berechnen: Basis sind nur Artikel ohne Black-Friday-Rabatt.
      */
     private function adjustCouponForDeals(Cart $cart): void
     {
-        if (!$this->hasStandardCoupon()) {
+        if (!$this->hasStandardCoupon() || !$this->couponRuleActive()) {
             return;
         }
         $scan = $this->scanCart($cart);
@@ -540,7 +545,7 @@ class Bootstrap extends Bootstrapper
     private function injectCouponNote($doc): void
     {
         $inputs = $doc->find('input[name="Kuponcode"]');
-        if ($inputs->length < 1) {
+        if ($inputs->length < 1 || !$this->couponRuleActive()) {
             return;
         }
         $scan = $this->scanCart(Frontend::getCart());
