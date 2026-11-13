@@ -116,12 +116,15 @@ final class DiscountService
     public function getSettings(): array
     {
         $row = $this->db->getSingleObject('SELECT * FROM ' . self::T_SETTINGS . ' ORDER BY kID ASC LIMIT 1');
-        if ($row !== null && !\property_exists($row, 'nCouponOnDeals')) {
-            try {
-                $this->db->executeQuery(
-                    'ALTER TABLE ' . self::T_SETTINGS . ' ADD COLUMN nCouponOnDeals TINYINT(1) NOT NULL DEFAULT 0'
-                );
-            } catch (\Throwable $e) {
+        foreach (['nCouponOnDeals' => 0, 'nCountdown' => 1] as $col => $default) {
+            if ($row !== null && !\property_exists($row, $col)) {
+                try {
+                    $this->db->executeQuery(
+                        'ALTER TABLE ' . self::T_SETTINGS . ' ADD COLUMN ' . $col
+                        . ' TINYINT(1) NOT NULL DEFAULT ' . $default
+                    );
+                } catch (\Throwable $e) {
+                }
             }
         }
 
@@ -134,6 +137,7 @@ final class DiscountService
             'productBlock'   => (int)($row->nProductBlock ?? 1),
             'theme'          => (int)($row->nTheme ?? 1),
             'couponOnDeals'  => (int)($row->nCouponOnDeals ?? 0),
+            'countdown'      => (int)($row->nCountdown ?? 1),
             'topText'        => (string)($row->cTopText ?? ''),
             'homeTitle'      => (string)($row->cHomeTitle ?? ''),
             'homeSub'        => (string)($row->cHomeSub ?? ''),

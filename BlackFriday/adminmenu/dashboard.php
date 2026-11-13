@@ -56,7 +56,7 @@ if ($action !== '' && Form::validateToken()) {
                     'UPDATE ' . DiscountService::T_SETTINGS . ' SET
                         nActive = :a, dStart = :s, dEnd = :e,
                         nHeaderBar = :hb, nHomeBlock = :hm, nProductBlock = :pb, nTheme = :th,
-                        nCouponOnDeals = :cd,
+                        nCouponOnDeals = :cd, nCountdown = :cdn,
                         cTopText = :tt, cHomeTitle = :ht, cHomeSub = :hs,
                         cButtonLabel = :bl, cButtonUrl = :bu, cInjectSelector = :is, dUpdated = NOW()',
                     [
@@ -68,6 +68,7 @@ if ($action !== '' && Form::validateToken()) {
                         'pb' => !empty($_POST['nProductBlock']) ? 1 : 0,
                         'th' => !empty($_POST['nTheme']) ? 1 : 0,
                         'cd' => !empty($_POST['nCouponOnDeals']) ? 1 : 0,
+                        'cdn' => !empty($_POST['nCountdown']) ? 1 : 0,
                         'tt' => \mb_substr(\trim((string)($_POST['cTopText'] ?? '')), 0, 255),
                         'ht' => \mb_substr(\trim((string)($_POST['cHomeTitle'] ?? '')), 0, 190),
                         'hs' => \mb_substr(\trim((string)($_POST['cHomeSub'] ?? '')), 0, 512),
@@ -379,7 +380,7 @@ $lastApply = $svc->getMeta('last_apply');
                     </div>
                 </div>
                 <div class="form-row mb-2">
-                    <?php foreach (['nHeaderBar' => ['headerBar', 'Header-Leiste'], 'nHomeBlock' => ['homeBlock', 'Startseiten-Bereich'], 'nProductBlock' => ['productBlock', 'Deal-Box auf Produktseite'], 'nTheme' => ['theme', 'Theme-Farben (Preise/Ribbons)'], 'nCouponOnDeals' => ['couponOnDeals', 'Aktionscoupons zusätzlich auf Deal-Artikel erlauben']] as $name => [$key, $label]) { ?>
+                    <?php foreach (['nHeaderBar' => ['headerBar', 'Header-Leiste'], 'nHomeBlock' => ['homeBlock', 'Startseiten-Bereich'], 'nProductBlock' => ['productBlock', 'Deal-Box auf Produktseite'], 'nTheme' => ['theme', 'Theme-Farben (Preise/Ribbons)'], 'nCountdown' => ['countdown', 'Countdown anzeigen'], 'nCouponOnDeals' => ['couponOnDeals', 'Aktionscoupons zusätzlich auf Deal-Artikel erlauben']] as $name => [$key, $label]) { ?>
                         <div class="col-md-3">
                             <div class="custom-control custom-checkbox">
                                 <input type="checkbox" class="custom-control-input" id="bf<?= $name ?>" name="<?= $name ?>" value="1"<?= (int)$s[$key] === 1 ? ' checked' : '' ?>>

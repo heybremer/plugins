@@ -175,7 +175,7 @@ class Bootstrap extends Bootstrapper
 
         $smarty->assign('bf', [
             'max'         => self::fmtPct($max),
-            'endIso'      => $endTs > 0 ? \date('c', $endTs) : '',
+            'endIso'      => $endTs > 0 && (int)($s['countdown'] ?? 1) === 1 ? \date('c', $endTs) : '',
             'topText'     => \str_replace('{max}', self::fmtPct($max), (string)$s['topText']),
             'homeTitle'   => (string)$s['homeTitle'],
             'homeSub'     => (string)$s['homeSub'],
