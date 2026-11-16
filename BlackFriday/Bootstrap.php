@@ -152,7 +152,8 @@ class Bootstrap extends Bootstrapper
         }
 
         if ((int)$s['homeBlock'] === 1 && $this->isHomepageRequest()) {
-            $smarty->assign('bfCategories', $this->categoryTiles());
+            $smarty->assign('bfCategories', $this->categoryTiles())
+                ->assign('bfShopUrl', \rtrim((string)Shop::getURL(), '/'));
             $html = $this->fetchTpl($smarty, 'bf-home.tpl');
             if ($html !== '') {
                 $this->injectHome($doc, $html, (string)$s['injectSelector']);
@@ -228,9 +229,9 @@ class Bootstrap extends Bootstrapper
             $label = $label !== '' ? $label : 'Zu den Deals';
             $banner->append(
                 '<div class="bf-konfig-cta"><a class="bf-konfig-btn" href="'
-                . \htmlspecialchars((string)$bf['buttonUrl'], \ENT_QUOTES, 'UTF-8') . '">'
+                . \htmlspecialchars((string)($bf['topbarUrl'] ?? $bf['buttonUrl']), \ENT_QUOTES, 'UTF-8') . '">'
                 . '<span class="bf-konfig-btn__tag">BLACK FRIDAY</span> '
-                . \htmlspecialchars($label, \ENT_QUOTES, 'UTF-8') . ' &darr;</a></div>'
+                . \htmlspecialchars($label, \ENT_QUOTES, 'UTF-8') . ' &rarr;</a></div>'
             );
         } catch (\Throwable $e) {
             \error_log('[BlackFriday] konfigurator button: ' . $e->getMessage());
@@ -366,7 +367,11 @@ class Bootstrap extends Bootstrapper
                 }
             }
             if (!isset($groups[$top['id']])) {
-                $groups[$top['id']] = ['title' => $top['name'], 'items' => []];
+                $groups[$top['id']] = [
+                    'title'  => $top['name'],
+                    'oneRow' => \stripos((string)$top['name'], 'PKW') !== false,
+                    'items'  => [],
+                ];
             }
             $groups[$top['id']]['items'][] = [
                 'name' => $isTop ? 'Alle ' . $top['name'] : (string)$r->cName,

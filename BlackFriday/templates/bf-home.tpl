@@ -20,7 +20,7 @@
         </div>
         <div id="bf-deals" class="bf-home__anchor"></div>
         {foreach $bfCategories as $g}
-            <div class="bf-home__group">
+            <div class="bf-home__group{if $g.oneRow} bf-home__group--row{/if}">
                 <h3 class="bf-home__group-title"><span>{$g.title|escape:'html'}</span></h3>
                 <div class="bf-home__grid">
                     {foreach $g.items as $c}
@@ -38,6 +38,9 @@
                         </a>
                     {/foreach}
                 </div>
+                {if $g.oneRow}
+                    <div class="bf-home__more"><a class="bf-home__more-btn" href="{$bfShopUrl}/blackfriday">Mehr {$g.title|escape:'html'} &rarr;</a></div>
+                {/if}
             </div>
         {/foreach}
     </div>
