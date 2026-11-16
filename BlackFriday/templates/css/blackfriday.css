@@ -922,4 +922,4 @@ html { scroll-behavior: smooth; }
 body.bf-landing-page { overflow-x: hidden; }
 body.bf-landing-page #content { padding-top: 0; }
 .bf-landing-col { padding-left: 0; padding-right: 0; }
-.bf-landing { width: 100vw; }.bf-landing-col { flex: 0 0 100% !important; max-width: 100% !important; margin-left: 0 !important; }
+.bf-landing { width: 100vw; }.bf-landing-col { flex: 0 0 100% !important; max-width: 100% !important; margin-left: 0 !important; }body.bf-landing-page #content-wrapper:not(.has-fluid) { padding-top: 0 !important; }
