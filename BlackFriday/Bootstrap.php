@@ -183,6 +183,7 @@ class Bootstrap extends Bootstrapper
         $endTs   = $s['end'] !== '' ? (int)\strtotime($s['end']) : 0;
         $shopUrl = \rtrim((string)Shop::getURL(), '/');
         $btnUrl  = \trim((string)$s['buttonUrl']);
+        $topUrl  = $btnUrl === '' ? $shopUrl . '/' . self::LANDING_SLUG : '';
         if ($btnUrl === '') {
             $btnUrl = $this->isHomepageRequest() ? '#bf-home' : $shopUrl . '/#bf-home';
         } elseif (!\preg_match('~^(https?:)?//|^#~i', $btnUrl)) {
@@ -205,6 +206,7 @@ class Bootstrap extends Bootstrapper
             'homeSub'     => (string)$s['homeSub'],
             'buttonLabel' => (string)$s['buttonLabel'],
             'buttonUrl'   => $btnUrl,
+            'topbarUrl'   => $topUrl !== '' ? $topUrl : $btnUrl,
         ]);
     }
 

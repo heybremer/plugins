@@ -163,16 +163,16 @@
 
     function initLandingFilter() {
         document.addEventListener('click', function (e) {
-            var chip = e.target.closest ? e.target.closest('[data-bf-filter]') : null;
+            var chip = e.target.closest ? e.target.closest('[data-bf-group-tab]') : null;
             if (!chip) {
                 return;
             }
-            var min = parseInt(chip.getAttribute('data-bf-filter'), 10) || 0;
-            Array.prototype.forEach.call(document.querySelectorAll('[data-bf-filter]'), function (c) {
+            var tab = chip.getAttribute('data-bf-group-tab');
+            Array.prototype.forEach.call(document.querySelectorAll('[data-bf-group-tab]'), function (c) {
                 c.classList.toggle('is-active', c === chip);
             });
-            Array.prototype.forEach.call(document.querySelectorAll('.bf-pcard[data-pct]'), function (card) {
-                card.hidden = (parseInt(card.getAttribute('data-pct'), 10) || 0) < min;
+            Array.prototype.forEach.call(document.querySelectorAll('[data-bf-group]'), function (g) {
+                g.hidden = tab !== '' && g.getAttribute('data-bf-group') !== tab;
             });
         });
     }

@@ -31,9 +31,19 @@
 
     {if $bfCategories}
         <section id="bf-l-cats" class="bf-landing__section bf-landing__section--cats">
-            <h2 class="bf-landing__h2"><span>Alle Black-Friday-Kategorien</span></h2>
+            <div class="bf-landing__head">
+                <h2 class="bf-landing__h2"><span>Alle Black-Friday-Kategorien</span></h2>
+                {if $bfCategories|count > 1}
+                    <div class="bf-landing__chips" role="group" aria-label="Kategorien filtern">
+                        <button type="button" class="bf-chip is-active" data-bf-group-tab="">Alle</button>
+                        {foreach $bfCategories as $g}
+                            <button type="button" class="bf-chip" data-bf-group-tab="{$g@index}">{$g.title|escape:'html'}</button>
+                        {/foreach}
+                    </div>
+                {/if}
+            </div>
             {foreach $bfCategories as $g}
-                <div class="bf-home__group">
+                <div class="bf-home__group" data-bf-group="{$g@index}">
                     <h3 class="bf-home__group-title"><span>{$g.title|escape:'html'}</span></h3>
                     <div class="bf-home__grid">
                         {foreach $g.items as $c}

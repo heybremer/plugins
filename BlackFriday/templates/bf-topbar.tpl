@@ -7,6 +7,6 @@
                 <b data-u="d">00</b>T <b data-u="h">00</b>:<b data-u="m">00</b>:<b data-u="s">00</b>
             </span>
         {/if}
-        <a class="bf-topbar__cta" href="{$bf.buttonUrl|escape:'html'}">{$bf.buttonLabel|escape:'html'} &rarr;</a>
+        <a class="bf-topbar__cta" href="{$bf.topbarUrl|escape:'html'}">{$bf.buttonLabel|escape:'html'} &rarr;</a>
     </div>
 </div>
