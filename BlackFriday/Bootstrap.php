@@ -8,7 +8,6 @@ use JTL\Cart\Cart;
 use JTL\Cart\CartHelper;
 use JTL\Cart\CartItem;
 use JTL\Catalog\Category\Kategorie;
-use JTL\Catalog\Product\Artikel;
 use JTL\Catalog\Product\Preise;
 use JTL\Checkout\Kupon;
 use JTL\Events\Dispatcher;
@@ -382,7 +381,6 @@ class Bootstrap extends Bootstrapper
     private function injectLanding(JTLSmarty $smarty, $doc): bool
     {
         $smarty->assign('bfCategories', $this->categoryTiles())
-            ->assign('bfProducts', $this->landingProducts())
             ->assign('bfShopUrl', \rtrim((string)Shop::getURL(), '/'));
         $html = $this->fetchTpl($smarty, 'bf-landing.tpl');
         if ($html === '') {
@@ -401,76 +399,6 @@ class Bootstrap extends Bootstrapper
         $doc->find('#content-wrapper')->removeClass('has-left-sidebar');
 
         return true;
-    }
-
-    /**
-     * Top-Deals (Vaterartikel / Einzelartikel mit Bild), höchster Rabatt zuerst.
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function landingProducts(int $limit = 24): array
-    {
-        $db   = Shop::Container()->getDB();
-        $rows = $db->getObjects(
-            'SELECT ap.kKategorie, MAX(ap.fRabatt) AS fRabatt,
-                    MAX(ap.kArtikel) AS kA, MIN(ap.kArtikel) AS kB
-               FROM ' . DiscountService::T_APPLIED . ' ap
-         INNER JOIN tartikel a ON a.kArtikel = ap.kArtikel AND a.kVaterArtikel = 0
-              WHERE ap.kKundengruppe = :g AND ap.fRabatt > 0
-                AND EXISTS (SELECT 1 FROM tartikelpict p WHERE p.kArtikel = ap.kArtikel)
-           GROUP BY ap.kKategorie
-           ORDER BY fRabatt DESC',
-            ['g' => Frontend::getCustomerGroup()->getID()]
-        );
-        // je Rabatt-Kategorie max. 2 Artikel, damit die Auswahl abwechslungsreich bleibt
-        $picked = [];
-        foreach ([0, 1] as $round) {
-            foreach ($rows as $r) {
-                $id = $round === 0 ? (int)$r->kA : (int)$r->kB;
-                if ($id > 0 && !isset($picked[$id])) {
-                    $picked[$id] = (object)['kArtikel' => $id, 'fRabatt' => $r->fRabatt];
-                }
-            }
-        }
-        $net   = Frontend::getCustomerGroup()->isMerchant() ? 1 : 0;
-        $opt   = Artikel::getDefaultOptions();
-        $items = [];
-        foreach ($picked as $r) {
-            if (\count($items) >= $limit) {
-                break;
-            }
-            try {
-                $a = (new Artikel())->fuelleArtikel((int)$r->kArtikel, $opt);
-            } catch (\Throwable $e) {
-                continue;
-            }
-            if ($a === null || (int)($a->kArtikel ?? 0) <= 0 || empty($a->Bilder[0])) {
-                continue;
-            }
-            $img = (string)($a->Bilder[0]->cURLNormal ?? $a->Bilder[0]->cURLKlein ?? '');
-            if ($img === '' || \str_contains($img, 'keinBild')) {
-                continue;
-            }
-            $pct = (float)$r->fRabatt;
-            $new = (float)($a->Preise->fVK[$net] ?? 0);
-            $old = (float)($a->Preise->alterVK[$net] ?? 0);
-            if ($old <= $new && $pct < 100) {
-                $old = \round($new / (1 - $pct / 100), 2);
-            }
-            $items[] = [
-                'name' => \html_entity_decode((string)$a->cName, \ENT_QUOTES | \ENT_HTML5, 'UTF-8'),
-                'url'  => (string)($a->cURLFull ?? ''),
-                'img'  => $img,
-                'pct'  => self::fmtPct($pct),
-                'pctN' => (int)\floor($pct),
-                'new'  => \html_entity_decode((string)($a->Preise->cVKLocalized[$net] ?? Preise::getLocalizedPriceString($new)), \ENT_QUOTES | \ENT_HTML5, 'UTF-8'),
-                'old'  => $old > $new ? \html_entity_decode(Preise::getLocalizedPriceString($old), \ENT_QUOTES | \ENT_HTML5, 'UTF-8') : '',
-                'save' => $old > $new ? \html_entity_decode(Preise::getLocalizedPriceString($old - $new), \ENT_QUOTES | \ENT_HTML5, 'UTF-8') : '',
-                'from' => (int)($a->nIstVater ?? 0) === 1,
-            ];
-        }
-
-        return $items;
     }
 
     /**

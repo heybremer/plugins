@@ -924,5 +924,41 @@ body.bf-landing-page #content { padding-top: 0; }
 .bf-landing-col { padding-left: 0; padding-right: 0; }
 .bf-landing { width: 100vw; }.bf-landing-col { flex: 0 0 100% !important; max-width: 100% !important; margin-left: 0 !important; }body.bf-landing-page #content-wrapper:not(.has-fluid) { padding-top: 0 !important; }.bf-landing__finder:has(#bf-micro-slot) { display: none; }
 .bf-landing__finder-sub { color: rgba(255,255,255,.75); margin: 1rem 0 1rem; }
-.bf-landing__finder-box { background: #fff; color: #111; border-radius: 14px; padding: 1rem; border: 2px solid #ffd400; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
-.bf-landing__finder-box .fk-selection-micro { margin: 0; box-shadow: none; }
+.bf-landing__finder-box { background: #111; color: #fff; border-radius: 14px; padding: 1rem; border: 2px solid #ffd400; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.bf-landing__finder-box .fk-selection-micro { margin: 0; box-shadow: none; }/* Mikro-Konfigurator: Dark-Theme nur auf der BF-Landing */
+.bf-landing__finder-box .fk-selection-micro {
+  --fk-micro-bg: #161616; --fk-micro-glass: #161616; --fk-micro-border: rgba(255,255,255,.14);
+  --fk-micro-accent: #ffd400; --fk-micro-lime: #ffd400; --fk-micro-text: #fff; --fk-micro-text-muted: rgba(255,255,255,.65);
+  --fk-micro-shadow: none; color: #fff;
+}
+.bf-landing__finder-box .fk-selection-micro-inner { background: #161616; }
+.bf-landing__finder-box .fk-selection-micro-tabsbar { background: rgba(255,255,255,.08); }
+.bf-landing__finder-box .fk-micro-tab { color: rgba(255,255,255,.7); background: transparent; }
+.bf-landing__finder-box .fk-micro-tab[aria-selected="true"] { background: #ffd400; color: #111; box-shadow: none; }
+.bf-landing__finder-box .fk-micro-field > label,
+.bf-landing__finder-box .fk-micro-serie-field > label { color: rgba(255,255,255,.8); }
+.bf-landing__finder-box .fk-selection-micro label[data-step]::before { background: rgba(255,255,255,.12); color: #fff; }
+.bf-landing__finder-box .fk-selection-micro .is-selected > label[data-step]::before { background: #ffd400; color: #111; }
+.bf-landing__finder-box .fk-micro-field .custom-select {
+  background-color: #222; color: #fff; border-color: rgba(255,255,255,.18);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3e%3cpath fill='none' stroke='%23ffd400' stroke-width='2' d='M1 1l5 5 5-5'/%3e%3c/svg%3e");
+  background-repeat: no-repeat; background-position: right 12px center; background-size: 12px 8px;
+}
+.bf-landing__finder-box .fk-micro-field .custom-select option { background: #222; color: #fff; }
+.bf-landing__finder-box .fk-micro-field .custom-select:disabled { background-color: #1b1b1b; }
+.bf-landing__finder-box .fk-micro-field.is-selected .custom-select { border-color: #ffd400; background-color: rgba(255,212,0,.08); box-shadow: 0 0 0 2px rgba(255,212,0,.2); }
+.bf-landing__finder-box .fk-micro-field .custom-select:focus { border-color: #ffd400; box-shadow: 0 0 0 3px rgba(255,212,0,.25); }
+.bf-landing__finder-box .fk-micro-required-status { background: rgba(255,255,255,.08); color: #fff; }
+.bf-landing__finder-box .fk-micro-progress { background: rgba(255,212,0,.2); }
+.bf-landing__finder-box .fk-micro-status { color: #ffd400; }
+.bf-landing__finder-box .fk-micro-status-msg { background: rgba(255,255,255,.06); }
+.bf-landing__finder-box .fk-micro-serie-grid .fk-micro-grid-loading { background: rgba(255,212,0,.08); border-color: rgba(255,212,0,.35); }
+.bf-landing__finder-box .fk-micro-serie-empty { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.2); color: rgba(255,255,255,.7); }
+.bf-landing__finder-box .fk-micro-serie-tile { background: #1e1e1e !important; border-color: rgba(255,255,255,.14); }
+.bf-landing__finder-box .fk-micro-serie-tile img { background: #f5f5f5; }
+.bf-landing__finder-box .fk-micro-serie-tile.is-active { border-color: #ffd400; box-shadow: 0 0 0 4px rgba(255,212,0,.3); }
+.bf-landing__finder-box .fk-micro-serie-nav { background: #222; color: #ffd400; border-color: rgba(255,255,255,.2); }
+.bf-landing__finder-box .fk-micro-serie-nav:hover { background: #ffd400; color: #111; }
+.bf-landing__finder-box .fk-selection-micro:not(.fk-micro-is-pkw) .fk-micro-form--vehicle { border-top-color: rgba(255,255,255,.15); }.bf-landing__finder-box .fk-selection-micro .fk-micro-field > label[data-step]::before,
+.bf-landing__finder-box .fk-selection-micro .fk-micro-serie-field > label[data-step]::before { background: rgba(255,255,255,.12); color: #fff; border-color: transparent; }
+.bf-landing__finder-box .fk-selection-micro .is-selected > label[data-step]::before { background: #ffd400 !important; color: #111 !important; }
