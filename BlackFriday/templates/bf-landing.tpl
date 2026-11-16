@@ -23,13 +23,6 @@
         </div>
     </section>
 
-    <ul class="bf-landing__usp">
-        <li><b>%</b><span><strong>Bereits reduziert</strong>Kein Coupon nötig</span></li>
-        <li><b>&#10003;</b><span><strong>Passgenau</strong>Für Ihr Fahrzeugmodell</span></li>
-        <li><b>&#9201;</b><span><strong>Schnell geliefert</strong>2&ndash;3 Werktage (DE)</span></li>
-        <li><b>&#9733;</b><span><strong>Nur solange die Aktion läuft</strong>Danach gelten wieder reguläre Preise</span></li>
-    </ul>
-
     {if $bfProducts}
         <section id="bf-l-deals" class="bf-landing__section">
             <div class="bf-landing__head">
