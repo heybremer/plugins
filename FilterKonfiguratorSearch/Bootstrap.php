@@ -319,6 +319,38 @@ class Bootstrap extends Bootstrapper
             }
         });
 
+        // Fremde Seiten (z. B. BlackFriday-Landing) können per #bf-micro-slot den Mikro-Konfigurator anfordern.
+        // Priorität 20: läuft nach Plugins, die den Slot erst im Output-Filter einsetzen.
+        $dispatcher->hookInto(\HOOK_SMARTY_OUTPUTFILTER, function (array &$args): void {
+            if (!isset($args['document'])) {
+                return;
+            }
+            $doc  = $args['document'];
+            $slot = $doc->find('#bf-micro-slot');
+            if ($slot->length === 0 || $doc->find('.fk-selection-micro')->length > 0) {
+                return;
+            }
+            $micro = $this->fkBuildMicroFilterHtml([], '', $this->fkGetKonfiguratorChangeUrl(), 0);
+            if ($micro === '') {
+                return;
+            }
+            $slot->eq(0)->replaceWith($micro);
+            $this->injectFkSeriesConfigInDocumentHead($doc);
+            try {
+                $ver = (string)$this->getPlugin()->getMeta()->getSemVer()->getOriginalVersion();
+            } catch (\Throwable $e) {
+                $ver = '1';
+            }
+            $ver  = \preg_replace('/[^0-9A-Za-z._-]/', '', $ver) ?: '1';
+            $base = \rtrim((string)Shop::getURL(), '/') . '/plugins/FilterKonfiguratorSearch/templates/';
+            if ($doc->find('link[href*="fk-micro-filter.css"]')->length === 0) {
+                $doc->find('head')->append('<link rel="stylesheet" href="' . $base . 'css/fk-micro-filter.css?fkver=' . $ver . '">');
+            }
+            if ($doc->find('script[src*="fk-micro-konfigurator.js"]')->length === 0) {
+                $doc->find('body')->append('<script defer src="' . $base . 'js/fk-micro-konfigurator.js?fkver=' . $ver . '"></script>');
+            }
+        }, 20);
+
         // Liste + Artikel + Warenkorb + Checkout: Konfigurator-Auswahl (GET/SEO-Pfad); Warenkorb/Checkout meist per fk-liste-title.js (localStorage)
         $dispatcher->hookInto(\HOOK_SMARTY_OUTPUTFILTER, function (array &$args): void {
             $pt = Shop::getPageType();

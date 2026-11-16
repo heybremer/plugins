@@ -922,4 +922,7 @@ html { scroll-behavior: smooth; }
 body.bf-landing-page { overflow-x: hidden; }
 body.bf-landing-page #content { padding-top: 0; }
 .bf-landing-col { padding-left: 0; padding-right: 0; }
-.bf-landing { width: 100vw; }.bf-landing-col { flex: 0 0 100% !important; max-width: 100% !important; margin-left: 0 !important; }body.bf-landing-page #content-wrapper:not(.has-fluid) { padding-top: 0 !important; }
+.bf-landing { width: 100vw; }.bf-landing-col { flex: 0 0 100% !important; max-width: 100% !important; margin-left: 0 !important; }body.bf-landing-page #content-wrapper:not(.has-fluid) { padding-top: 0 !important; }.bf-landing__finder:has(#bf-micro-slot) { display: none; }
+.bf-landing__finder-sub { color: rgba(255,255,255,.75); margin: 1rem 0 1rem; }
+.bf-landing__finder-box { background: #fff; color: #111; border-radius: 14px; padding: 1rem; border: 2px solid #ffd400; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.bf-landing__finder-box .fk-selection-micro { margin: 0; box-shadow: none; }

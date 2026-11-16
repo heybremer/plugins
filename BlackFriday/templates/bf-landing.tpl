@@ -23,6 +23,12 @@
         </div>
     </section>
 
+    <section id="bf-l-finder" class="bf-landing__section bf-landing__finder">
+        <h2 class="bf-landing__h2"><span>Passend für Ihr Fahrzeug</span></h2>
+        <p class="bf-landing__finder-sub">Fahrzeug wählen und direkt die passenden Black-Friday-Sitzbezüge sehen.</p>
+        <div class="bf-landing__finder-box"><div id="bf-micro-slot"></div></div>
+    </section>
+
     {if $bfProducts}
         <section id="bf-l-deals" class="bf-landing__section">
             <div class="bf-landing__head">
