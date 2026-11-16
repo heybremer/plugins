@@ -8,10 +8,13 @@ use JTL\Cart\Cart;
 use JTL\Cart\CartHelper;
 use JTL\Cart\CartItem;
 use JTL\Catalog\Category\Kategorie;
+use JTL\Catalog\Product\Artikel;
 use JTL\Catalog\Product\Preise;
 use JTL\Checkout\Kupon;
 use JTL\Events\Dispatcher;
 use JTL\Helpers\Tax;
+use JTL\Language\LanguageHelper;
+use JTL\Link\Admin\LinkAdmin;
 use JTL\Media\Image;
 use JTL\Plugin\Bootstrapper;
 use JTL\Session\Frontend;
@@ -24,6 +27,12 @@ class Bootstrap extends Bootstrapper
 {
     private const ASSET_CSS = 'plugins/BlackFriday/templates/css/blackfriday.css';
     private const ASSET_JS  = 'plugins/BlackFriday/templates/js/blackfriday.js';
+
+    private const LANDING_SLUG     = 'blackfriday';
+    private const LANDING_TITLE    = 'Black Friday Deals';
+    private const LANDING_IDENT    = 'womosi_blackfriday';
+    private const LANDING_DATEI    = 'blackfriday_page.php';
+    private const LANDING_TEMPLATE = 'bf-page.tpl';
 
     private static bool $adminMenuEnsured = false;
 
@@ -39,6 +48,7 @@ class Bootstrap extends Bootstrapper
             return;
         }
         $this->ensureAdminMenuEntry();
+        $this->ensureLandingPage();
         if ($this->isBackendRequest()) {
             return;
         }
@@ -148,6 +158,10 @@ class Bootstrap extends Bootstrapper
             if ($html !== '') {
                 $this->injectHome($doc, $html, (string)$s['injectSelector']);
             }
+        }
+
+        if ($doc->find('#bf-landing-slot')->length > 0 && $this->injectLanding($smarty, $doc)) {
+            $classes .= ' bf-landing-page';
         }
 
         if ((int)$s['productBlock'] === 1 && Shop::getPageType() === \PAGE_ARTIKEL) {
@@ -363,6 +377,172 @@ class Bootstrap extends Bootstrapper
         }
 
         return \array_values($groups);
+    }
+
+    private function injectLanding(JTLSmarty $smarty, $doc): bool
+    {
+        $smarty->assign('bfCategories', $this->categoryTiles())
+            ->assign('bfProducts', $this->landingProducts())
+            ->assign('bfShopUrl', \rtrim((string)Shop::getURL(), '/'));
+        $html = $this->fetchTpl($smarty, 'bf-landing.tpl');
+        if ($html === '') {
+            return false;
+        }
+        $slot = $doc->find('#bf-landing-slot')->eq(0);
+        $col = $slot->parent();
+        foreach (['col-lg-8', 'col-xl-9', 'ml-auto-util'] as $cls) {
+            $col->removeClass($cls);
+        }
+        $col->addClass('col-12 bf-landing-col');
+        $slot->replaceWith($html);
+        foreach (['.index-heading-wrapper', '#content-wrapper .breadcrumb-container', '#content aside.sidepanel-left'] as $sel) {
+            $doc->find($sel)->remove();
+        }
+        $doc->find('#content-wrapper')->removeClass('has-left-sidebar');
+
+        return true;
+    }
+
+    /**
+     * Top-Deals (Vaterartikel / Einzelartikel mit Bild), höchster Rabatt zuerst.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function landingProducts(int $limit = 24): array
+    {
+        $db   = Shop::Container()->getDB();
+        $rows = $db->getObjects(
+            'SELECT ap.kKategorie, MAX(ap.fRabatt) AS fRabatt,
+                    MAX(ap.kArtikel) AS kA, MIN(ap.kArtikel) AS kB
+               FROM ' . DiscountService::T_APPLIED . ' ap
+         INNER JOIN tartikel a ON a.kArtikel = ap.kArtikel AND a.kVaterArtikel = 0
+              WHERE ap.kKundengruppe = :g AND ap.fRabatt > 0
+                AND EXISTS (SELECT 1 FROM tartikelpict p WHERE p.kArtikel = ap.kArtikel)
+           GROUP BY ap.kKategorie
+           ORDER BY fRabatt DESC',
+            ['g' => Frontend::getCustomerGroup()->getID()]
+        );
+        // je Rabatt-Kategorie max. 2 Artikel, damit die Auswahl abwechslungsreich bleibt
+        $picked = [];
+        foreach ([0, 1] as $round) {
+            foreach ($rows as $r) {
+                $id = $round === 0 ? (int)$r->kA : (int)$r->kB;
+                if ($id > 0 && !isset($picked[$id])) {
+                    $picked[$id] = (object)['kArtikel' => $id, 'fRabatt' => $r->fRabatt];
+                }
+            }
+        }
+        $net   = Frontend::getCustomerGroup()->isMerchant() ? 1 : 0;
+        $opt   = Artikel::getDefaultOptions();
+        $items = [];
+        foreach ($picked as $r) {
+            if (\count($items) >= $limit) {
+                break;
+            }
+            try {
+                $a = (new Artikel())->fuelleArtikel((int)$r->kArtikel, $opt);
+            } catch (\Throwable $e) {
+                continue;
+            }
+            if ($a === null || (int)($a->kArtikel ?? 0) <= 0 || empty($a->Bilder[0])) {
+                continue;
+            }
+            $img = (string)($a->Bilder[0]->cURLNormal ?? $a->Bilder[0]->cURLKlein ?? '');
+            if ($img === '' || \str_contains($img, 'keinBild')) {
+                continue;
+            }
+            $pct = (float)$r->fRabatt;
+            $new = (float)($a->Preise->fVK[$net] ?? 0);
+            $old = (float)($a->Preise->alterVK[$net] ?? 0);
+            if ($old <= $new && $pct < 100) {
+                $old = \round($new / (1 - $pct / 100), 2);
+            }
+            $items[] = [
+                'name' => \html_entity_decode((string)$a->cName, \ENT_QUOTES | \ENT_HTML5, 'UTF-8'),
+                'url'  => (string)($a->cURLFull ?? ''),
+                'img'  => $img,
+                'pct'  => self::fmtPct($pct),
+                'pctN' => (int)\floor($pct),
+                'new'  => \html_entity_decode((string)($a->Preise->cVKLocalized[$net] ?? Preise::getLocalizedPriceString($new)), \ENT_QUOTES | \ENT_HTML5, 'UTF-8'),
+                'old'  => $old > $new ? \html_entity_decode(Preise::getLocalizedPriceString($old), \ENT_QUOTES | \ENT_HTML5, 'UTF-8') : '',
+                'save' => $old > $new ? \html_entity_decode(Preise::getLocalizedPriceString($old - $new), \ENT_QUOTES | \ENT_HTML5, 'UTF-8') : '',
+                'from' => (int)($a->nIstVater ?? 0) === 1,
+            ];
+        }
+
+        return $items;
+    }
+
+    /**
+     * Legt die Plugin-Seite /blackfriday (versteckte Linkgruppe) einmalig an.
+     */
+    private function ensureLandingPage(): void
+    {
+        $pluginID = (int)$this->getPlugin()->getID();
+        if ($pluginID <= 0) {
+            return;
+        }
+        try {
+            $svc = $this->service();
+            if ($svc->getMeta('landing_link') !== '') {
+                return;
+            }
+            $db    = Shop::Container()->getDB();
+            $kLink = 0;
+            $seo   = $db->getSingleObject(
+                "SELECT kKey FROM tseo WHERE cKey = 'kLink' AND cSeo = :seo ORDER BY kSprache ASC LIMIT 1",
+                ['seo' => self::LANDING_SLUG]
+            );
+            if ($seo !== null) {
+                $kLink = (int)$seo->kKey;
+            }
+            if ($kLink <= 0) {
+                $hidden = $db->select('tlinkgruppe', 'cTemplatename', 'hidden');
+                $lgID   = (int)($hidden->kLinkgruppe ?? 0) > 0 ? (int)$hidden->kLinkgruppe : 1;
+                $data   = [
+                    'kLink'              => 0,
+                    'kPlugin'            => $pluginID,
+                    'cName'              => self::LANDING_TITLE,
+                    'nLinkart'           => \LINKTYP_PLUGIN,
+                    'nSort'              => 0,
+                    'bSSL'               => 0,
+                    'bIsActive'          => 1,
+                    'bIsFluid'           => 1,
+                    'cSichtbarNachLogin' => 'N',
+                    'cNoFollow'          => 'N',
+                    'cIdentifier'        => self::LANDING_IDENT,
+                    'linkTarget'         => '_self',
+                    'cKundengruppen'     => '_DBNULL_',
+                    'kLinkgruppe'        => $lgID,
+                ];
+                foreach (LanguageHelper::getAllLanguages(0, true) as $language) {
+                    $iso = $language->getIso();
+                    $data['cName_' . $iso]            = self::LANDING_TITLE;
+                    $data['cTitle_' . $iso]           = 'Black Friday Deals | Bremer Sitzbezüge';
+                    $data['cSeo_' . $iso]             = self::LANDING_SLUG;
+                    $data['cContent_' . $iso]         = '';
+                    $data['cMetaTitle_' . $iso]       = 'Black Friday Deals – Sitzbezüge stark reduziert | Bremer Sitzbezüge';
+                    $data['cMetaDescription_' . $iso] = 'Black Friday bei Bremer Sitzbezüge: Auto- und Wohnmobil-Sitzbezüge stark reduziert. Nur für kurze Zeit – jetzt Deals sichern.';
+                }
+                $kLink = (int)(new LinkAdmin($db, Shop::Container()->getCache()))->createOrUpdateLink($data)->getID();
+            }
+            if ($kLink <= 0) {
+                return;
+            }
+            if ($db->getSingleObject('SELECT kLink FROM tpluginlinkdatei WHERE kLink = :k LIMIT 1', ['k' => $kLink]) === null) {
+                $row                      = new \stdClass();
+                $row->kPlugin             = $pluginID;
+                $row->kLink               = $kLink;
+                $row->cDatei              = self::LANDING_DATEI;
+                $row->cTemplate           = self::LANDING_TEMPLATE;
+                $row->cFullscreenTemplate = '_DBNULL_';
+                $db->insert('tpluginlinkdatei', $row);
+            }
+            $svc->setMeta('landing_link', (string)$kLink);
+            Shop::Container()->getCache()->flushTags([\CACHING_GROUP_CORE]);
+        } catch (\Throwable $e) {
+            \error_log('[BlackFriday] landing page: ' . $e->getMessage());
+        }
     }
 
     private function fetchTpl(JTLSmarty $smarty, string $file): string

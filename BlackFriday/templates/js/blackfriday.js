@@ -161,9 +161,26 @@
         }
     }
 
+    function initLandingFilter() {
+        document.addEventListener('click', function (e) {
+            var chip = e.target.closest ? e.target.closest('[data-bf-filter]') : null;
+            if (!chip) {
+                return;
+            }
+            var min = parseInt(chip.getAttribute('data-bf-filter'), 10) || 0;
+            Array.prototype.forEach.call(document.querySelectorAll('[data-bf-filter]'), function (c) {
+                c.classList.toggle('is-active', c === chip);
+            });
+            Array.prototype.forEach.call(document.querySelectorAll('.bf-pcard[data-pct]'), function (card) {
+                card.hidden = (parseInt(card.getAttribute('data-pct'), 10) || 0) < min;
+            });
+        });
+    }
+
     function boot() {
         init();
         initDecorations();
+        initLandingFilter();
     }
 
     if (document.readyState === 'loading') {
