@@ -10,16 +10,16 @@
 <div class="index-filter-konfigurator" id="womosi-fk-konfigurator-anchor">
     <div class="womosi-konfigurator fk-wm-seat-only {if $fkSegPkw == 1 && $fkSegWm != 1}fk-segment-pkw{else}fk-segment-wm{/if}">
         <div class="konfig-banner">
-            <h1 class="konfig-banner-title">{$fkBanner->cHeadline|default:'Besuchen Sie uns auf der HanseMesse Rostock'|escape:'html'}</h1>
+            <h1 class="konfig-banner-title">{$fkBanner->cHeadline|default:'Passende Sitzbezüge für Ihr Fahrzeug finden'|escape:'html'}</h1>
             <p class="konfig-banner-sub">
-                {if $fkBanner->nSub1Active == 1}
-                    <b>{$fkBanner->cSub1|default:'Boot &amp; Angeln Camping'|escape:'html'}</b> <br>
+                {if $fkBanner->nSub1Active == 1 && $fkBanner->cSub1 != ''}
+                    <b>{$fkBanner->cSub1|escape:'html'}</b> <br>
                 {/if}
                 {if $fkBanner->nSub2Active == 1}
                     <a class="konfig-banner-btn" href="{$fkBanner->cSub2ButtonUrl|default:'#'|escape:'html'}">{$fkBanner->cSub2ButtonLabel|default:'Aktivieren'|escape:'html'}</a> <br>
                 {/if}
-                {if $fkBanner->nSub3Active == 1}
-                    {$fkBanner->cSub3|default:'20. bis 22. März 2026 | HanseMesse Rostock'|escape:'html'}
+                {if $fkBanner->nSub3Active == 1 && $fkBanner->cSub3 != ''}
+                    {$fkBanner->cSub3|escape:'html'}
                 {/if}
             </p>
         </div>

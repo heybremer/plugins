@@ -65,7 +65,7 @@ try {
             nSub1Active TINYINT(1) NOT NULL DEFAULT 1,
             nSub2Active TINYINT(1) NOT NULL DEFAULT 1,
             nSub3Active TINYINT(1) NOT NULL DEFAULT 1,
-            cSub2ButtonLabel VARCHAR(255) NOT NULL DEFAULT 'Aktif et',
+            cSub2ButtonLabel VARCHAR(255) NOT NULL DEFAULT 'Aktivieren',
             cSub2ButtonUrl VARCHAR(500) NOT NULL DEFAULT '#',
             nSegmentWmActive TINYINT(1) NOT NULL DEFAULT 1,
             nSegmentPkwActive TINYINT(1) NOT NULL DEFAULT 1,
@@ -90,7 +90,7 @@ try {
         'nSub1Active' => "TINYINT(1) NOT NULL DEFAULT 1 AFTER cSub3",
         'nSub2Active' => "TINYINT(1) NOT NULL DEFAULT 1 AFTER nSub1Active",
         'nSub3Active' => "TINYINT(1) NOT NULL DEFAULT 1 AFTER nSub2Active",
-        'cSub2ButtonLabel' => "VARCHAR(255) NOT NULL DEFAULT 'Aktif et' AFTER nSub3Active",
+        'cSub2ButtonLabel' => "VARCHAR(255) NOT NULL DEFAULT 'Aktivieren' AFTER nSub3Active",
         'cSub2ButtonUrl' => "VARCHAR(500) NOT NULL DEFAULT '#' AFTER cSub2ButtonLabel",
         'nSegmentWmActive' => "TINYINT(1) NOT NULL DEFAULT 1 AFTER cSub2ButtonUrl",
         'nSegmentPkwActive' => "TINYINT(1) NOT NULL DEFAULT 1 AFTER nSegmentWmActive",
@@ -131,14 +131,14 @@ try {
     $bannerEnsureError = $e->getMessage();
 }
 $banner = (object)[
-    'cHeadline' => 'Besuchen Sie uns auf der HanseMesse Rostock',
-    'cSub1'     => 'Boot & Angeln Camping',
+    'cHeadline' => 'Passende Sitzbezüge für Ihr Fahrzeug finden',
+    'cSub1'     => '',
     'cSub2'     => '',
-    'cSub3'     => '20. bis 22. März 2026 | HanseMesse Rostock',
-    'nSub1Active' => 1,
-    'nSub2Active' => 1,
-    'nSub3Active' => 1,
-    'cSub2ButtonLabel' => 'Aktif et',
+    'cSub3'     => '',
+    'nSub1Active' => 0,
+    'nSub2Active' => 0,
+    'nSub3Active' => 0,
+    'cSub2ButtonLabel' => 'Aktivieren',
     'cSub2ButtonUrl' => '#',
     'nSegmentWmActive' => 1,
     'nSegmentPkwActive' => 1,
@@ -307,98 +307,38 @@ if (Form::validateToken()) {
                 }
             }
             
-            // Tüm banner satırlarını güncelle: aksi halde yeni eklenen boş satır ORDER BY dUpdated ile
-            // "son satır" olup cActiveCategories'i gizleyebiliyor (vitrinde allowed hep boş görünür).
-            $cntBanner = $db->getSingleObject('SELECT COUNT(*) AS c FROM twomosi_fk_banner');
-            if ($cntBanner !== null && (int)($cntBanner->c ?? 0) > 0) {
-                $db->executeQueryPrepared(
-                    'UPDATE twomosi_fk_banner SET cActiveCategories = :cats, cSegmentPkwFirstCategories = :pkw, dUpdated = NOW()',
-                    ['cats' => $activeCats, 'pkw' => $pkwFirstCats]
-                );
-            } else {
-                $db->executeQueryPrepared(
-                    "INSERT INTO twomosi_fk_banner (cActiveCategories, cSegmentPkwFirstCategories, dUpdated) VALUES (:cats, :pkw, NOW())",
-                    ['cats' => $activeCats, 'pkw' => $pkwFirstCats]
-                );
-            }
-            // Kanonische Whitelist (Vitrin liest zuerst hieraus)
+            // Einzige Quelle für Kategorien (Mikrofilter + PKW-zuerst); Bootstrap liest nur hieraus.
+            $db->executeQueryPrepared(
+                'REPLACE INTO twomosi_fk_micro_scope (kID, cCategoryIds, cCategoryIdsPkwFirst, dUpdated) VALUES (1, :cats, :pkw, NOW())',
+                ['cats' => $activeCats, 'pkw' => $pkwFirstCats]
+            );
             try {
-                $db->executeQueryPrepared(
-                    'REPLACE INTO twomosi_fk_micro_scope (kID, cCategoryIds, cCategoryIdsPkwFirst, dUpdated) VALUES (1, :cats, :pkw, NOW())',
-                    ['cats' => $activeCats, 'pkw' => $pkwFirstCats]
-                );
-            } catch (\Throwable $e) {
-                if ($message === '') {
-                    $message = 'twomosi_fk_micro_scope konnte nicht geschrieben werden: ' . $e->getMessage();
-                }
-            }
-            // JTL plugin ayarı (getConfig()->getValue): vitrin her zaman buradan da okuyabilsin.
-            try {
-                $plg = $db->getSingleObject(
-                    "SELECT kPlugin FROM tplugin WHERE cPluginID = 'FilterKonfiguratorSearch' OR TRIM(cVerzeichnis) = 'FilterKonfiguratorSearch' ORDER BY kPlugin DESC LIMIT 1"
-                );
-                if ($plg !== null && (int)($plg->kPlugin ?? 0) > 0) {
-                    $kPlugin = (int)$plg->kPlugin;
-                    $confNm  = 'fk_micro_active_categories';
-                    $ex = $db->getSingleObject(
-                        'SELECT kPlugin FROM tplugineinstellungen WHERE kPlugin = :pid AND cName = :n LIMIT 1',
-                        ['pid' => $kPlugin, 'n' => $confNm]
-                    );
-                    if ($ex !== null) {
-                        $db->executeQueryPrepared(
-                            'UPDATE tplugineinstellungen SET cWert = :v WHERE kPlugin = :pid AND cName = :n',
-                            ['v' => $activeCats, 'pid' => $kPlugin, 'n' => $confNm]
-                        );
-                    } else {
-                        $db->executeQueryPrepared(
-                            'INSERT INTO tplugineinstellungen (kPlugin, cName, cWert) VALUES (:pid, :n, :v)',
-                            ['pid' => $kPlugin, 'n' => $confNm, 'v' => $activeCats]
-                        );
-                    }
-
-                    // PKW first sync
-                    $confNm2 = 'fk_micro_pkw_first_categories';
-                    $ex2 = $db->getSingleObject(
-                        'SELECT kPlugin FROM tplugineinstellungen WHERE kPlugin = :pid AND cName = :n LIMIT 1',
-                        ['pid' => $kPlugin, 'n' => $confNm2]
-                    );
-                    if ($ex2 !== null) {
-                        $db->executeQueryPrepared(
-                            'UPDATE tplugineinstellungen SET cWert = :v WHERE kPlugin = :pid AND cName = :n',
-                            ['v' => $pkwFirstCats, 'pid' => $kPlugin, 'n' => $confNm2]
-                        );
-                    } else {
-                        $db->executeQueryPrepared(
-                            'INSERT INTO tplugineinstellungen (kPlugin, cName, cWert) VALUES (:pid, :n, :v)',
-                            ['pid' => $kPlugin, 'n' => $confNm2, 'v' => $pkwFirstCats]
-                        );
-                    }
-
+                if ($fkPluginId > 0) {
                     $aiSettings = [
                         'fk_seat_photo_enabled_v2' => (string)$aiPhotoEnabled,
-                        'fk_openai_api_key'     => $aiApiKey,
-                        'fk_openai_model'       => $aiModel,
+                        'fk_openai_api_key'        => $aiApiKey,
+                        'fk_openai_model'          => $aiModel,
                     ];
                     foreach ($aiSettings as $settingName => $settingValue) {
                         $settingExists = $db->getSingleObject(
                             'SELECT kPlugin FROM tplugineinstellungen WHERE kPlugin = :pid AND cName = :n LIMIT 1',
-                            ['pid' => $kPlugin, 'n' => $settingName]
+                            ['pid' => $fkPluginId, 'n' => $settingName]
                         );
                         if ($settingExists !== null) {
                             $db->executeQueryPrepared(
                                 'UPDATE tplugineinstellungen SET cWert = :v WHERE kPlugin = :pid AND cName = :n',
-                                ['v' => $settingValue, 'pid' => $kPlugin, 'n' => $settingName]
+                                ['v' => $settingValue, 'pid' => $fkPluginId, 'n' => $settingName]
                             );
                         } else {
                             $db->executeQueryPrepared(
                                 'INSERT INTO tplugineinstellungen (kPlugin, cName, cWert) VALUES (:pid, :n, :v)',
-                                ['pid' => $kPlugin, 'n' => $settingName, 'v' => $settingValue]
+                                ['pid' => $fkPluginId, 'n' => $settingName, 'v' => $settingValue]
                             );
                         }
                     }
                 }
             } catch (\Throwable $e) {
-                $message = 'Allgemeine Einstellungen gespeichert (Banner). Plugin-Einstellungen konnten nicht geschrieben werden: ' . $e->getMessage();
+                $message = 'Kategorien gespeichert. KI-Einstellungen konnten nicht geschrieben werden: ' . $e->getMessage();
             }
             if ($message === '') {
                 $nSel = 0;
@@ -464,10 +404,10 @@ if (Form::validateToken()) {
                 $nSegWm = 1;
             }
             $nSegOrder = (int)($_POST['fkSegmentOrder'] ?? 0);
-            $btnLabel = trim((string)($_POST['fkSub2ButtonLabel'] ?? 'Aktif et'));
+            $btnLabel = trim((string)($_POST['fkSub2ButtonLabel'] ?? 'Aktivieren'));
             $btnUrl   = trim((string)($_POST['fkSub2ButtonUrl'] ?? '#'));
             if ($btnLabel === '') {
-                $btnLabel = 'Aktif et';
+                $btnLabel = 'Aktivieren';
             }
             if ($btnUrl === '') {
                 $btnUrl = '#';
@@ -600,12 +540,10 @@ try {
     // keep default values if table does not exist yet
 }
 try {
-    $scopeRow = $db->getSingleObject('SELECT cCategoryIds FROM twomosi_fk_micro_scope WHERE kID = 1 LIMIT 1');
+    $scopeRow = $db->getSingleObject('SELECT cCategoryIds, cCategoryIdsPkwFirst FROM twomosi_fk_micro_scope WHERE kID = 1 LIMIT 1');
     if ($scopeRow !== null) {
-        $sc = trim((string)($scopeRow->cCategoryIds ?? ''));
-        if ($sc !== '') {
-            $banner->cActiveCategories = $sc;
-        }
+        $banner->cActiveCategories = trim((string)($scopeRow->cCategoryIds ?? ''));
+        $banner->cSegmentPkwFirstCategories = trim((string)($scopeRow->cCategoryIdsPkwFirst ?? ''));
     }
 } catch (\Throwable $e) {
 }
@@ -666,36 +604,63 @@ if ($tab === 'summary') {
 }
 ?>
 
-<div style="padding: 10px 0;">
-    <h2 style="margin: 0 0 12px;"><?= htmlspecialchars((string)($message ? $message : 'Filter Konfigurator Dashboard')) ?></h2>
+<style>
+.fkd { padding: 10px 0; color: #1f2933; }
+.fkd h2.fkd-title { margin: 0 0 14px; font-size: 20px; font-weight: 700; }
+.fkd-msg { margin: 0 0 14px; padding: 10px 14px; border-radius: 8px; background: #eaf6ef; border: 1px solid #b7e1c8; color: #14532d; font-weight: 600; }
+.fkd-msg.is-error { background: #fdecec; border-color: #f5c2c2; color: #8a1c1c; }
+.fkd-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid #e4e7eb; }
+.fkd-tabs a { padding: 9px 14px; margin-bottom: -2px; text-decoration: none; color: #52606d; font-weight: 600; border-bottom: 2px solid transparent; }
+.fkd-tabs a:hover { color: #197149; }
+.fkd-tabs a.is-active { color: #197149; border-bottom-color: #197149; }
+.fkd-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.fkd-stat { padding: 10px 12px; background: #fff; border: 1px solid #e4e7eb; border-radius: 8px; font-size: 12px; color: #616e7c; }
+.fkd-stat b { display: block; font-size: 18px; color: #1f2933; }
+.fkd-stat small { display: block; margin-top: 2px; color: #9aa5b1; }
+.fkd-card { padding: 16px; background: #fff; border: 1px solid #e4e7eb; border-radius: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+.fkd-card h3 { font-size: 16px; font-weight: 700; }
+.fkd table th { background: #f5f7fa; font-weight: 700; color: #3e4c59; }
+.fkd table tbody tr:hover td { background: #fafbfc; }
+.fkd input[type=text], .fkd input[type=password], .fkd select { border: 1px solid #cbd2d9; border-radius: 6px; }
+.fkd input[type=text]:focus, .fkd input[type=password]:focus, .fkd select:focus { outline: none; border-color: #197149; box-shadow: 0 0 0 3px rgba(25,113,73,.15); }
+.fkd button[type=submit] { background: #197149; color: #fff; border: 0; border-radius: 6px; font-weight: 700; cursor: pointer; }
+.fkd button[type=submit]:hover { background: #145c3b; }
+.fkd button[name=fkClearStep4Cache], .fkd button[name=fkClearQueryLog] { background: #fff; color: #8a1c1c; border: 1px solid #f5c2c2; }
+.fkd button[name=fkClearStep4Cache]:hover, .fkd button[name=fkClearQueryLog]:hover { background: #fdecec; }
+.fkd-pager a { text-decoration: none; padding: 6px 10px; border: 1px solid #cbd2d9; border-radius: 6px; color: #3e4c59; }
+</style>
+<?php
+$fkdTabs = [
+    'logs'     => 'Suchprotokoll',
+    'summary'  => 'Auswahlübersicht',
+    'banner'   => 'Banner',
+    'settings' => 'Einstellungen',
+    'series'   => 'Serien',
+];
+$fkdIsError = $message !== '' && \preg_match('/fehl|Fehler|ungültig|nicht/i', $message) === 1;
+?>
+<div class="fkd">
+    <h2 class="fkd-title">Filter Konfigurator</h2>
+    <?php if ($message !== ''): ?>
+        <div class="fkd-msg<?= $fkdIsError ? ' is-error' : '' ?>"><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?></div>
+    <?php endif; ?>
 
-    <div style="margin-bottom: 14px; display: flex; gap: 10px; align-items: center;">
-        <a href="?tab=logs" style="text-decoration: none; padding: 8px 10px; border: 1px solid rgba(0,0,0,.15); border-radius: 8px; <?= $tab === 'logs' ? 'background: rgba(204,255,0,.15);' : '' ?>">Suchprotokoll</a>
-        <a href="?tab=summary" style="text-decoration: none; padding: 8px 10px; border: 1px solid rgba(0,0,0,.15); border-radius: 8px; <?= $tab === 'summary' ? 'background: rgba(204,255,0,.15);' : '' ?>">Step-4-Auswahlübersicht</a>
-        <a href="?tab=banner" style="text-decoration: none; padding: 8px 10px; border: 1px solid rgba(0,0,0,.15); border-radius: 8px; <?= $tab === 'banner' ? 'background: rgba(204,255,0,.15);' : '' ?>">Banner</a>
-        <a href="?tab=settings" style="text-decoration: none; padding: 8px 10px; border: 1px solid rgba(0,0,0,.15); border-radius: 8px; <?= $tab === 'settings' ? 'background: rgba(204,255,0,.15);' : '' ?>">Einstellungen</a>
-        <a href="?tab=series" style="text-decoration: none; padding: 8px 10px; border: 1px solid rgba(0,0,0,.15); border-radius: 8px; <?= $tab === 'series' ? 'background: rgba(204,255,0,.15);' : '' ?>">Serie (Bilder)</a>
-    </div>
+    <nav class="fkd-tabs">
+        <?php foreach ($fkdTabs as $tk => $tl): ?>
+            <a href="?tab=<?= $tk ?>" class="<?= $tab === $tk ? 'is-active' : '' ?>"><?= htmlspecialchars($tl, ENT_QUOTES, 'UTF-8') ?></a>
+        <?php endforeach; ?>
+    </nav>
 
-    <div style="margin-bottom: 16px; font-size: 13px; line-height: 1.5;">
-        <div><b>Step-4-Cache:</b> <?= (int)$cacheCount ?> Einträge</div>
-        <div><b>Suchprotokoll:</b> <?= (int)$logCount ?> Einträge</div>
-        <div><b>Step-4-Auswahlen:</b> <?= (int)$selCount ?> Einträge</div>
-        <div style="margin-top: 4px;">
-            <b>Snapshot (Wohnmobil):</b> Hersteller=<?= (int)$optHerCnt ?>, Basis=<?= (int)$optBasCnt ?>, Modell=<?= (int)$optModCnt ?> <?= $optLast ? '<span style="color:rgba(0,0,0,.5);">(Aktualisiert: ' . htmlspecialchars($optLast) . ')</span>' : '' ?>
-        </div>
-        <div>
-            <b>Snapshot (PKW):</b>
-            Hersteller=<?= (int)$pkwHerCnt ?>,
-            Modell=<?= (int)$pkwModCnt ?>,
-            Baujahr=<?= (int)$pkwBjCnt ?>,
-            Serien=<?= (int)$pkwSerieCnt ?>
-            <?= $pkwLast ? '<span style="color:rgba(0,0,0,.5);">(Aktualisiert: ' . htmlspecialchars($pkwLast) . ')</span>' : '' ?>
-        </div>
+    <div class="fkd-stats">
+        <div class="fkd-stat">Step-4-Cache<b><?= (int)$cacheCount ?></b></div>
+        <div class="fkd-stat">Suchprotokoll<b><?= (int)$logCount ?></b></div>
+        <div class="fkd-stat">Auswahlen<b><?= (int)$selCount ?></b></div>
+        <div class="fkd-stat">Snapshot Wohnmobil<b><?= (int)$optHerCnt ?> / <?= (int)$optBasCnt ?> / <?= (int)$optModCnt ?></b><small>Marke / Basis / Modell<?= $optLast ? ' · ' . htmlspecialchars($optLast) : '' ?></small></div>
+        <div class="fkd-stat">Snapshot PKW<b><?= (int)$pkwHerCnt ?> / <?= (int)$pkwModCnt ?> / <?= (int)$pkwBjCnt ?> / <?= (int)$pkwSerieCnt ?></b><small>Marke / Modell / Baujahr / Serien<?= $pkwLast ? ' · ' . htmlspecialchars($pkwLast) : '' ?></small></div>
     </div>
 
     <?php if ($tab === 'series'): ?>
-        <div style="padding: 12px; border: 1px solid rgba(0,0,0,.08); border-radius: 8px; max-width: 1100px;">
+        <div class="fkd-card" style="max-width: 1100px;">
             <h3 style="margin-top: 0;">Serie — Labels, Farben, Bild-URLs, Ausblenden</h3>
             <p style="font-size: 13px; color: rgba(0,0,0,.6); max-width: 900px;">
                 Gilt für den großen Konfigurator (Startseite) und den Micro-Konfigurator (Kategorie-Listen). Leere Label-/Farb-/Bild-Felder nutzen die fest eingebauten Standardwerte.
@@ -816,7 +781,7 @@ if ($tab === 'summary') {
             }
         }
         ?>
-        <div style="margin-bottom: 18px; padding: 12px; border: 1px solid rgba(0,0,0,.08); border-radius: 8px; max-width: 760px;">
+        <div class="fkd-card" style="max-width: 860px;">
             <h3 style="margin-top: 0;">System-Werkzeuge</h3>
 
             <form method="post" id="fkToolsForm" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px;">
@@ -1019,7 +984,7 @@ if ($tab === 'summary') {
             </form>
         </div>
     <?php elseif ($tab === 'banner'): ?>
-        <div style="padding: 12px; border: 1px solid rgba(0,0,0,.08); border-radius: 8px; max-width: 760px;">
+        <div class="fkd-card" style="max-width: 760px;">
             <h3 style="margin-top: 0;">Banner bearbeiten</h3>
 
             <form method="post" style="display: grid; gap: 10px;">
@@ -1052,7 +1017,7 @@ if ($tab === 'summary') {
                         <div>
                             <label for="fkSub2ButtonLabel">Button-Text</label><br>
                             <input type="text" id="fkSub2ButtonLabel" name="fkSub2ButtonLabel"
-                                   value="<?= htmlspecialchars((string)($banner->cSub2ButtonLabel ?? 'Aktif et'), ENT_QUOTES, 'UTF-8') ?>"
+                                   value="<?= htmlspecialchars((string)($banner->cSub2ButtonLabel ?? 'Aktivieren'), ENT_QUOTES, 'UTF-8') ?>"
                                    placeholder="Aktif et"
                                    style="width:100%; padding:8px;">
                         </div>
@@ -1105,7 +1070,7 @@ if ($tab === 'summary') {
             </form>
         </div>
     <?php elseif ($tab === 'summary'): ?>
-        <div style="padding: 12px; border: 1px solid rgba(0,0,0,.08); border-radius: 8px;">
+        <div class="fkd-card">
             <h3 style="margin-top: 0;">Step-4-Auswahlübersicht (Serie gewählt)</h3>
 
             <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
@@ -1140,7 +1105,7 @@ if ($tab === 'summary') {
                 </tbody>
             </table>
 
-            <div style="margin-top: 12px; display: flex; gap: 10px; align-items: center;">
+            <div class="fkd-pager" style="margin-top: 12px; display: flex; gap: 10px; align-items: center;">
                 <div>Seite: <?= (int)$page ?></div>
                 <a href="?tab=summary&page=<?= (int)max(1, $page - 1) ?>" style="text-decoration: none; padding: 6px 10px; border: 1px solid rgba(0,0,0,.15); border-radius: 6px;">
                     &laquo; Zurück
@@ -1151,7 +1116,7 @@ if ($tab === 'summary') {
             </div>
         </div>
     <?php else: ?>
-        <div style="padding: 12px; border: 1px solid rgba(0,0,0,.08); border-radius: 8px;">
+        <div class="fkd-card">
             <h3 style="margin-top: 0;">Letzte Suchanfragen</h3>
 
             <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
@@ -1200,7 +1165,7 @@ if ($tab === 'summary') {
                 </tbody>
             </table>
 
-            <div style="margin-top: 12px; display: flex; gap: 10px; align-items: center;">
+            <div class="fkd-pager" style="margin-top: 12px; display: flex; gap: 10px; align-items: center;">
                 <div>Seite: <?= (int)$page ?></div>
                 <a href="?tab=logs&page=<?= (int)max(1, $page - 1) ?>" style="text-decoration: none; padding: 6px 10px; border: 1px solid rgba(0,0,0,.15); border-radius: 6px;">
                     &laquo; Zurück

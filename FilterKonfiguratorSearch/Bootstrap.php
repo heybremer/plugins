@@ -203,34 +203,10 @@ class Bootstrap extends Bootstrapper
                     }
                     $smarty->assign('fkBanner', $banner);
                 } else {
-                    $smarty->assign('fkBanner', (object)[
-                        'cHeadline' => 'Besuchen Sie uns auf der HanseMesse Rostock',
-                        'cSub1'     => 'Boot & Angeln Camping',
-                        'cSub2'     => '',
-                        'cSub3'     => '20. bis 22. März 2026 | HanseMesse Rostock',
-                        'nSub1Active' => 1,
-                        'nSub2Active' => 1,
-                        'nSub3Active' => 1,
-                        'cSub2ButtonLabel' => 'Aktivieren',
-                        'cSub2ButtonUrl' => '#',
-                        'nSegmentWmActive' => 1,
-                        'nSegmentPkwActive' => 1,
-                    ]);
+                    $smarty->assign('fkBanner', self::fkDefaultBanner());
                 }
             } catch (\Throwable $e) {
-                $smarty->assign('fkBanner', (object)[
-                    'cHeadline' => 'Besuchen Sie uns auf der HanseMesse Rostock',
-                    'cSub1'     => 'Boot & Angeln Camping',
-                    'cSub2'     => '',
-                    'cSub3'     => '20. bis 22. März 2026 | HanseMesse Rostock',
-                    'nSub1Active' => 1,
-                    'nSub2Active' => 1,
-                    'nSub3Active' => 1,
-                    'cSub2ButtonLabel' => 'Aktivieren',
-                    'cSub2ButtonUrl' => '#',
-                    'nSegmentWmActive' => 1,
-                    'nSegmentPkwActive' => 1,
-                ]);
+                $smarty->assign('fkBanner', self::fkDefaultBanner());
             }
 
             $seatPhotoEnabledRaw = '0';
@@ -940,12 +916,9 @@ class Bootstrap extends Bootstrapper
             if ($cnt !== null && (int)($cnt->c ?? 0) === 0) {
                 $db->executeQueryPrepared(
                     "INSERT INTO twomosi_fk_banner (cHeadline, cSub1, cSub2, cSub3, nSub1Active, nSub2Active, nSub3Active, cSub2ButtonLabel, cSub2ButtonUrl, nSegmentWmActive, nSegmentPkwActive, dUpdated)
-                     VALUES (:h, :s1, :s2, :s3, 1, 1, 1, :btn, :url, 1, 1, NOW())",
+                     VALUES (:h, '', '', '', 0, 0, 0, :btn, :url, 1, 1, NOW())",
                     [
-                        'h'  => 'Besuchen Sie uns auf der HanseMesse Rostock',
-                        's1' => 'Boot & Angeln Camping',
-                        's2' => 'Bremer-Sitzbezüge GmbH | Stand Nr: C19',
-                        's3' => '20. bis 22. März 2026 | HanseMesse Rostock',
+                        'h'   => self::fkDefaultBanner()->cHeadline,
                         'btn' => 'Aktivieren',
                         'url' => '#',
                     ]
@@ -1028,9 +1001,24 @@ class Bootstrap extends Bootstrapper
         }
     }
 
-    /**
-     * Direkt aus `tplugineinstellungen` (Fallback, falls getConfig im Outputfilter-Kontext leer ist).
-     */
+    /** Banner ohne DB-Zeile: neutrale Überschrift, keine Zusatzzeilen. */
+    private static function fkDefaultBanner(): object
+    {
+        return (object)[
+            'cHeadline'         => 'Passende Sitzbezüge für Ihr Fahrzeug finden',
+            'cSub1'             => '',
+            'cSub2'             => '',
+            'cSub3'             => '',
+            'nSub1Active'       => 0,
+            'nSub2Active'       => 0,
+            'nSub3Active'       => 0,
+            'cSub2ButtonLabel'  => 'Aktivieren',
+            'cSub2ButtonUrl'    => '#',
+            'nSegmentWmActive'  => 1,
+            'nSegmentPkwActive' => 1,
+        ];
+    }
+
     /**
      * Shop-DB (Frontend/Backend konsistent).
      */
@@ -1039,6 +1027,9 @@ class Bootstrap extends Bootstrapper
         return Shop::Container()->getDB();
     }
 
+    /**
+     * Direkt aus `tplugineinstellungen` (Fallback, falls getConfig im Outputfilter-Kontext leer ist).
+     */
     private function fkMicroReadCategoriesFromPluginSettingsTable(): string
     {
         try {
@@ -1101,13 +1092,69 @@ class Bootstrap extends Bootstrapper
     }
 
     /**
-     * Banner `cActiveCategories` + Plugin-Einstellung `fk_micro_active_categories` zusammenführen (komma/semi/leerzeichen).
+     * Zeile kID=1 aus twomosi_fk_micro_scope (einzige Quelle, sobald das Dashboard einmal gespeichert hat).
+     */
+    private function fkMicroScopeRow(): ?object
+    {
+        static $loaded = false;
+        static $row    = null;
+        if (!$loaded) {
+            $loaded = true;
+            try {
+                $row = $this->fkMicroShopDb()->getSingleObject(
+                    'SELECT cCategoryIds, cCategoryIdsPkwFirst FROM twomosi_fk_micro_scope WHERE kID = 1 LIMIT 1'
+                );
+            } catch (\Throwable $e) {
+                self::$fkMicroScopeLastErr = $e->getMessage();
+                $row = null;
+            }
+        }
+
+        return $row;
+    }
+
+    /**
+     * Erlaubte Kategorien: Scope-Tabelle; ältere Quellen (Banner, Plugin-Einstellung) nur ohne Scope-Zeile.
      */
     private function fkMicroMergeAllowedCategoriesCsv(): string
     {
-        // Reihenfolge: dedizierter Scope (Admin) → Banner → getConfig → SQL-Pluginzeile
         $chunks = ['', '', '', ''];
-        $chunks[0] = $this->fkMicroReadScopeTableCsv();
+        $scope  = $this->fkMicroScopeRow();
+        if ($scope !== null) {
+            $chunks[0] = \trim((string)($scope->cCategoryIds ?? ''));
+        } else {
+            $this->fkMicroLegacyCategoryChunks($chunks);
+        }
+        $ids = [];
+        foreach ($chunks as $c) {
+            if ($c === '') {
+                continue;
+            }
+            foreach (preg_split('/[\s,;]+/', $c) as $p) {
+                $n = (int)trim((string)$p);
+                if ($n > 0) {
+                    $ids[$n] = $n;
+                }
+            }
+        }
+        $envCsv = \trim((string)(\getenv('FK_MICRO_ALLOWED_CATEGORIES') ?: ''));
+        if ($envCsv !== '') {
+            foreach (\preg_split('/[\s,;]+/', $envCsv) as $p) {
+                $n = (int)\trim((string)$p);
+                if ($n > 0) {
+                    $ids[$n] = $n;
+                }
+            }
+        }
+
+        return \implode(',', \array_values($ids));
+    }
+
+    /**
+     * @param array<int, string> $chunks
+     */
+    private function fkMicroLegacyCategoryChunks(array &$chunks): void
+    {
         try {
             $db = $this->fkMicroShopDb();
             // Prefer the most recent NON-empty list (table may have multiple rows)
@@ -1131,37 +1178,6 @@ class Bootstrap extends Bootstrapper
         } catch (\Throwable $e) {
         }
         $chunks[3] = $this->fkMicroReadCategoriesFromPluginSettingsTable();
-        $ids = [];
-        foreach ($chunks as $c) {
-            if ($c === '') {
-                continue;
-            }
-            foreach (preg_split('/[\s,;]+/', $c) as $p) {
-                $p = trim((string)$p);
-                if ($p === '') {
-                    continue;
-                }
-                $n = (int)$p;
-                if ($n > 0) {
-                    $ids[$n] = $n;
-                }
-            }
-        }
-        $envCsv = \trim((string)(\getenv('FK_MICRO_ALLOWED_CATEGORIES') ?: ''));
-        if ($envCsv !== '') {
-            foreach (\preg_split('/[\s,;]+/', $envCsv) as $p) {
-                $p = \trim((string)$p);
-                if ($p === '') {
-                    continue;
-                }
-                $n = (int)$p;
-                if ($n > 0) {
-                    $ids[$n] = $n;
-                }
-            }
-        }
-
-        return \implode(',', \array_values($ids));
     }
 
     /**
@@ -1493,16 +1509,15 @@ class Bootstrap extends Bootstrapper
             try {
                 $db = $this->fkMicroShopDb();
                 $pkwFirstCsv = '';
-                $pkwFirstRow = $db->getSingleObject('SELECT cCategoryIdsPkwFirst FROM twomosi_fk_micro_scope WHERE kID = 1 LIMIT 1');
+                $pkwFirstRow = $this->fkMicroScopeRow();
                 if ($pkwFirstRow !== null) {
                     $pkwFirstCsv = trim((string)($pkwFirstRow->cCategoryIdsPkwFirst ?? ''));
-                }
-                if ($pkwFirstCsv === '') {
+                } else {
                     $bannerRow = $db->getSingleObject("SELECT cSegmentPkwFirstCategories FROM twomosi_fk_banner WHERE TRIM(cSegmentPkwFirstCategories) <> '' ORDER BY dUpdated DESC, kID DESC LIMIT 1");
                     $pkwFirstCsv = $bannerRow !== null ? trim((string)($bannerRow->cSegmentPkwFirstCategories ?? '')) : '';
-                }
-                if ($pkwFirstCsv === '') {
-                    $pkwFirstCsv = trim((string)($this->getPlugin()->getConfig()->getValue('fk_micro_pkw_first_categories') ?? ''));
+                    if ($pkwFirstCsv === '') {
+                        $pkwFirstCsv = trim((string)($this->getPlugin()->getConfig()->getValue('fk_micro_pkw_first_categories') ?? ''));
+                    }
                 }
 
                 if ($pkwFirstCsv !== '') {
