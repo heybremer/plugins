@@ -18,6 +18,7 @@ $fkPluginId = 0;
 $aiPhotoEnabled = 0;
 $aiApiKey = '';
 $aiModel = 'gpt-5.6';
+$fkSerieAliases = ['Serie 01' => '01', 'KT300' => 'KT3'];
 
 try {
     $pluginRow = $db->getSingleObject(
@@ -358,15 +359,15 @@ if (Form::validateToken()) {
             $defaults = SeriesMetaRuntime::getBuiltInDefaults();
             $db->executeQuery('DELETE FROM twomosi_fk_serie_meta');
             $labels = isset($_POST['fk_serie_label']) && \is_array($_POST['fk_serie_label']) ? $_POST['fk_serie_label'] : [];
-            $colors = isset($_POST['fk_serie_color']) && \is_array($_POST['fk_serie_color']) ? $_POST['fk_serie_color'] : [];
             $imgs   = isset($_POST['fk_serie_img']) && \is_array($_POST['fk_serie_img']) ? $_POST['fk_serie_img'] : [];
             $hides  = isset($_POST['fk_serie_hide']) && \is_array($_POST['fk_serie_hide']) ? $_POST['fk_serie_hide'] : [];
             foreach ($defaults as $key => $_def) {
-                $k = (string)$key;
-                $label = \trim((string)($labels[$k] ?? ''));
-                $color = \trim((string)($colors[$k] ?? ''));
-                $img   = \trim((string)($imgs[$k] ?? ''));
-                $hide  = !empty($hides[$k]) ? 1 : 0;
+                $k     = (string)$key;
+                $src   = $fkSerieAliases[$k] ?? $k;
+                $label = \trim((string)($labels[$src] ?? ''));
+                $color = '';
+                $img   = \trim((string)($imgs[$src] ?? ''));
+                $hide  = !empty($hides[$src]) ? 1 : 0;
                 $db->executeQueryPrepared(
                     'INSERT INTO twomosi_fk_serie_meta (cSerieKey, cLabel, cColor, cImg, nHide, dUpdated) VALUES (:k, :l, :c, :i, :h, NOW())',
                     ['k' => $k, 'l' => $label, 'c' => $color, 'i' => $img, 'h' => $hide]
@@ -376,7 +377,7 @@ if (Form::validateToken()) {
             if ($extraKey !== '' && $extraKey !== '0') {
                 if (!isset($defaults[$extraKey])) {
                     $el = \trim((string)($_POST['fk_serie_extra_label'] ?? ''));
-                    $ec = \trim((string)($_POST['fk_serie_extra_color'] ?? ''));
+                    $ec = '';
                     $ei = \trim((string)($_POST['fk_serie_extra_img'] ?? ''));
                     $eh = !empty($_POST['fk_serie_extra_hide']) ? 1 : 0;
                     $db->executeQueryPrepared(
@@ -635,7 +636,7 @@ $fkdTabs = [
     'summary'  => 'Auswahlübersicht',
     'banner'   => 'Banner',
     'settings' => 'Einstellungen',
-    'series'   => 'Serien',
+    'series'   => 'Serien (Schritt 4)',
 ];
 $fkdIsError = $message !== '' && \preg_match('/fehl|Fehler|ungültig|nicht/i', $message) === 1;
 ?>
@@ -661,10 +662,11 @@ $fkdIsError = $message !== '' && \preg_match('/fehl|Fehler|ungültig|nicht/i', $
 
     <?php if ($tab === 'series'): ?>
         <div class="fkd-card" style="max-width: 1100px;">
-            <h3 style="margin-top: 0;">Serie — Labels, Farben, Bild-URLs, Ausblenden</h3>
+            <h3 style="margin-top: 0;">Serien-Darstellung im Konfigurator (Schritt 4)</h3>
             <p style="font-size: 13px; color: rgba(0,0,0,.6); max-width: 900px;">
-                Gilt für den großen Konfigurator (Startseite) und den Micro-Konfigurator (Kategorie-Listen). Leere Label-/Farb-/Bild-Felder nutzen die fest eingebauten Standardwerte.
-                <strong>„In Liste ausblenden“</strong> entfernt die Serie aus der Kachel- und Dropdown-Auswahl (API liefert sie weiter, Frontend filtert).
+                Steuert Name, Bild und Sichtbarkeit der Serien-Kacheln im großen Konfigurator (Startseite) und im Mikrofilter (Kategorien, Black Friday).
+                Leere Felder nutzen den Standardnamen bzw. automatisch das Bild der gleichnamigen Serien-Kategorie.
+                <strong>„Ausblenden“</strong> entfernt die Serie aus der Auswahl.
             </p>
             <form method="post" style="display: block;">
                 <?= Form::getTokenInput(); ?>
@@ -674,7 +676,6 @@ $fkdIsError = $message !== '' && \preg_match('/fehl|Fehler|ungültig|nicht/i', $
                         <tr>
                             <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 8px;">Code</th>
                             <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 8px;">Label</th>
-                            <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 8px; white-space: nowrap;">Farbe</th>
                             <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 8px;">Bild-URL</th>
                             <th style="text-align: center; border-bottom: 1px solid #ddd; padding: 8px; white-space: nowrap;">Ausblenden</th>
                         </tr>
@@ -682,9 +683,11 @@ $fkdIsError = $message !== '' && \preg_match('/fehl|Fehler|ungültig|nicht/i', $
                         <tbody>
                         <?php foreach ($seriesDefaults as $code => $def): ?>
                             <?php
+                            if (isset($fkSerieAliases[(string)$code])) {
+                                continue;
+                            }
                             $dbR = $seriesDbMap[$code] ?? null;
                             $dLabel = $dbR ? \trim((string)($dbR->cLabel ?? '')) : '';
-                            $dColor = $dbR ? \trim((string)($dbR->cColor ?? '')) : '';
                             $dImg   = $dbR ? \trim((string)($dbR->cImg ?? '')) : '';
                             $dHide  = $dbR && (int)($dbR->nHide ?? 0) === 1;
                             $dispL  = $dLabel !== '' ? $dLabel : (string)($def['label'] ?? '');
@@ -693,9 +696,6 @@ $fkdIsError = $message !== '' && \preg_match('/fehl|Fehler|ungültig|nicht/i', $
                                 <td style="border-bottom: 1px solid #f0f0f0; padding: 6px; font-weight: 600;"><?= htmlspecialchars((string)$code, ENT_QUOTES, 'UTF-8') ?></td>
                                 <td style="border-bottom: 1px solid #f0f0f0; padding: 4px;">
                                     <input type="text" name="fk_serie_label[<?= htmlspecialchars((string)$code, ENT_QUOTES, 'UTF-8') ?>]" value="<?= htmlspecialchars($dLabel, ENT_QUOTES, 'UTF-8') ?>" placeholder="<?= htmlspecialchars($dispL, ENT_QUOTES, 'UTF-8') ?>" style="width: 100%; padding: 6px; box-sizing: border-box;">
-                                </td>
-                                <td style="border-bottom: 1px solid #f0f0f0; padding: 4px;">
-                                    <input type="text" name="fk_serie_color[<?= htmlspecialchars((string)$code, ENT_QUOTES, 'UTF-8') ?>]" value="<?= htmlspecialchars($dColor, ENT_QUOTES, 'UTF-8') ?>" placeholder="#f5f5f5" style="width: 100%; min-width: 90px; padding: 6px; box-sizing: border-box;">
                                 </td>
                                 <td style="border-bottom: 1px solid #f0f0f0; padding: 4px;">
                                     <input type="text" name="fk_serie_img[<?= htmlspecialchars((string)$code, ENT_QUOTES, 'UTF-8') ?>]" value="<?= htmlspecialchars($dImg, ENT_QUOTES, 'UTF-8') ?>" placeholder="<?= htmlspecialchars((string)($def['img'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" style="width: 100%; min-width: 200px; padding: 6px; box-sizing: border-box;">
@@ -716,12 +716,10 @@ $fkdIsError = $message !== '' && \preg_match('/fehl|Fehler|ungültig|nicht/i', $
                         <?php
                         $exR = $seriesExtraKey !== '' && isset($seriesDbMap[$seriesExtraKey]) ? $seriesDbMap[$seriesExtraKey] : null;
                         $exL = $exR ? \trim((string)($exR->cLabel ?? '')) : '';
-                        $exC = $exR ? \trim((string)($exR->cColor ?? '')) : '';
                         $exI = $exR ? \trim((string)($exR->cImg ?? '')) : '';
                         $exH = $exR && (int)($exR->nHide ?? 0) === 1;
                         ?>
                         <input type="text" name="fk_serie_extra_label" value="<?= htmlspecialchars($exL, ENT_QUOTES, 'UTF-8') ?>" placeholder="Label" style="flex: 1; min-width: 140px; padding: 6px;">
-                        <input type="text" name="fk_serie_extra_color" value="<?= htmlspecialchars($exC, ENT_QUOTES, 'UTF-8') ?>" placeholder="#f5f5f5" style="width: 100px; padding: 6px;">
                         <input type="text" name="fk_serie_extra_img" value="<?= htmlspecialchars($exI, ENT_QUOTES, 'UTF-8') ?>" placeholder="Bild-URL" style="flex: 2; min-width: 200px; padding: 6px;">
                         <label style="font-size: 12px; white-space: nowrap;"><input type="checkbox" name="fk_serie_extra_hide" value="1" <?= $exH ? 'checked' : '' ?>> ausblenden</label>
                     </div>
@@ -926,7 +924,7 @@ $fkdIsError = $message !== '' && \preg_match('/fehl|Fehler|ungültig|nicht/i', $
 
                 <div>
                     <strong>Aktive Kategorie(n)</strong><br>
-                    <p style="margin:4px 0 8px; font-size:12px; color:rgba(0,0,0,.55);">Checkboxen zuverlässiger als Mehrfach-Select: jede markierte Kategorie wird gespeichert. Unterkategorien der Auswahl gelten automatisch als erlaubt. Für <strong>alle</strong> Kategorien: alle Häkchen entfernen und speichern.</p>
+                    <p style="margin:4px 0 8px; font-size:12px; color:rgba(0,0,0,.55);">Checkboxen zuverlässiger als Mehrfach-Select: jede markierte Kategorie wird gespeichert. Der Mikrofilter erscheint nur in den markierten Kategorien – Unterkategorien müssen einzeln markiert werden. Für <strong>alle</strong> Kategorien: alle Häkchen entfernen und speichern.</p>
                     
                     <?php if (!empty($catError)): ?>
                         <div style="padding:10px; background:#ffebeb; border:1px solid #ffcdcd; color:#d00; margin-bottom:10px; border-radius:4px;">

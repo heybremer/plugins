@@ -458,8 +458,7 @@ class Bootstrap extends Bootstrapper
                         if ($currentCategoryId <= 0) {
                             return;
                         }
-                        $db = $this->fkMicroShopDb();
-                        if (!$this->fkMicroCategoryIsAllowedInTree($db, $currentCategoryId, array_values($allowedIds))) {
+                        if (!isset($allowedIds[$currentCategoryId])) {
                             return;
                         }
                     }
@@ -1224,7 +1223,7 @@ class Bootstrap extends Bootstrapper
             );
             foreach ($rows as $row) {
                 $cid = (int)($row->kKategorie ?? 0);
-                if ($cid > 0 && $this->fkMicroCategoryIsAllowedInTree($db, $cid, \array_values($allowedIds))) {
+                if ($cid > 0 && isset($allowedIds[$cid])) {
                     return $cid;
                 }
             }
