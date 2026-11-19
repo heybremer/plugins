@@ -243,6 +243,12 @@ if ($isAjax && (
             if ($r['done'] && $lid !== 1) {
                 $svc->refreshPkwSerie(1);
             }
+            if ($r['done']) {
+                $db->executeQueryPrepared(
+                    'INSERT INTO twomosi_fk_opt_meta (dRefreshed, kSprache, cNote) VALUES (NOW(), :lid, :note)',
+                    ['lid' => $lid, 'note' => 'Stepwise Refresh']
+                );
+            }
             echo json_encode([
                 'ok'   => true,
                 'done' => $r['done'],
@@ -260,63 +266,6 @@ if ($isAjax && (
 
 if (Form::validateToken()) {
     try {
-        $snapshotService = null;
-        $getSnapshotService = function() use ($db, &$snapshotService) {
-            if ($snapshotService === null) {
-                $snapshotService = new \Plugin\FilterKonfiguratorSearch\Service\SnapshotService($db);
-            }
-            return $snapshotService;
-        };
-
-        // Step 1: Wohnmobil snapshots (hersteller, basis, modell)
-        if (!empty($_POST['fkSnapshotStepWm'])) {
-            $lid = (int)Shop::getLanguageID();
-            $getSnapshotService()->refreshWohnmobilSnapshots($lid);
-            if ($lid !== 1) $getSnapshotService()->refreshWohnmobilSnapshots(1);
-            $message = 'Schritt 1/4: Wohnmobil-Snapshots aktualisiert.';
-            if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['ok' => true, 'msg' => $message]); exit; }
-        }
-
-        // Step 2: PKW Hersteller + Modell snapshots
-        if (!empty($_POST['fkSnapshotStepPkwHerMod'])) {
-            $lid = (int)Shop::getLanguageID();
-            $getSnapshotService()->refreshPkwHerstellerModell($lid);
-            if ($lid !== 1) $getSnapshotService()->refreshPkwHerstellerModell(1);
-            $message = 'Schritt 2/4: PKW Hersteller & Modell-Snapshots aktualisiert.';
-            if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['ok' => true, 'msg' => $message]); exit; }
-        }
-
-        // Step 3: PKW Baujahr snapshot
-        if (!empty($_POST['fkSnapshotStepPkwBj'])) {
-            $lid = (int)Shop::getLanguageID();
-            $getSnapshotService()->refreshPkwBaujahr($lid);
-            if ($lid !== 1) $getSnapshotService()->refreshPkwBaujahr(1);
-            $message = 'Schritt 3/4: PKW Baujahr-Snapshots aktualisiert.';
-            if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['ok' => true, 'msg' => $message]); exit; }
-        }
-
-        // Step 4: PKW Serie snapshot (heaviest)
-        if (!empty($_POST['fkSnapshotStepPkwSerie'])) {
-            $lid = (int)Shop::getLanguageID();
-            $getSnapshotService()->refreshPkwSerie($lid);
-            if ($lid !== 1) $getSnapshotService()->refreshPkwSerie(1);
-            $db->executeQueryPrepared(
-                'INSERT INTO twomosi_fk_opt_meta (dRefreshed, kSprache, cNote) VALUES (NOW(), :lid, :note)
-                 ON DUPLICATE KEY UPDATE dRefreshed = NOW(), cNote = VALUES(cNote)',
-                ['lid' => (int)Shop::getLanguageID(), 'note' => 'Manual Stepwise Refresh']
-            );
-            $message = 'Schritt 4/4: PKW Serien-Snapshots aktualisiert. Alle Snapshots fertig!';
-            if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['ok' => true, 'msg' => $message]); exit; }
-        }
-
-        // Legacy: full refresh in one request (may timeout on large datasets)
-        if (!empty($_POST['fkRefreshOptionsSnapshot'])) {
-            $lid = (int)Shop::getLanguageID();
-            $svc = $getSnapshotService();
-            $svc->refreshAll($lid);
-            if ($lid !== 1) $svc->refreshAll(1);
-            $message = 'Snapshots erfolgreich aktualisiert (Segmente: PKW & Wohnmobil — inkl. PKW Baujahr & Serien).';
-        }
         if (!empty($_POST['fkClearStep4Cache'])) {
             $db->executeQuery('DELETE FROM twomosi_step4_cache');
             $message = 'Step-4-Cache wurde geleert.';
@@ -1099,7 +1048,6 @@ if ($tab === 'summary') {
                         <input type="checkbox" name="fkSub2Active" value="1" <?= (int)($banner->nSub2Active ?? 0) === 1 ? 'checked' : '' ?>>
                         Sub 2 — Button anzeigen (aktiv)
                     </label>
-                    <p style="margin:8px 0 0; font-size:12px; color:rgba(0,0,0,.55);">Eski düz metin yerine tek bir buton (başlık + yönlendirme).</p>
                     <div style="margin-top:10px; display:grid; gap:8px;">
                         <div>
                             <label for="fkSub2ButtonLabel">Button-Text</label><br>
@@ -1131,7 +1079,7 @@ if ($tab === 'summary') {
 
                 <div style="border:1px solid rgba(0,0,0,.08); border-radius:8px; padding:10px; margin-bottom:8px;">
                     <strong>Konfigurator-Tabs</strong>
-                    <p style="margin:6px 0 10px; font-size:12px; color:rgba(0,0,0,.55);">PKW kutusunu kaldırırsanız vitrinde yalnızca Wohnmobil akışı görünür. İkisini de kapatamazsınız (en az biri açık kalır).</p>
+                    <p style="margin:6px 0 10px; font-size:12px; color:rgba(0,0,0,.55);">Ohne PKW-Häkchen wird im Shop nur der Wohnmobil-Ablauf angezeigt. Mindestens ein Tab bleibt immer aktiv.</p>
                     <label style="display:flex; align-items:center; gap:8px;">
                         <input type="checkbox" name="fkSegmentWmActive" value="1" <?= (int)($banner->nSegmentWmActive ?? 1) === 1 ? 'checked' : '' ?>>
                         Wohnmobil-Tab / Workflow
