@@ -405,7 +405,8 @@ class FilterKonfiguratorController
                 if ($sitz !== '') {
                     $selections[] = ['value' => $sitz, 'names' => ['kompatible Sitze']];
                 }
-                if ($serie !== '') {
+                // PKW: die Serienliste ist das Ergebnis; der Step-4-Cache-Key enthält keine Serie.
+                if ($serie !== '' && !$isPkw) {
                     $selections[] = ['value' => $serie, 'names' => ['Serie']];
                 }
                 if ($isPkw && $baujahr !== '') {
