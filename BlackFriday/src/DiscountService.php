@@ -376,6 +376,46 @@ final class DiscountService
         $this->upsertTarget(true);
     }
 
+    /**
+     * Wawi-Sync (dbeS) schreibt tartikelkategorierabatt je Artikel neu; Aktionsrabatt sofort wieder ergänzen.
+     */
+    public function reapplyProduct(int $productID): void
+    {
+        if ($productID <= 0 || !self::isRunning($this->getSettings())) {
+            return;
+        }
+        $rows = $this->db->getObjects(
+            'SELECT ka.kArtikel, kg.kKundengruppe, r.kKategorie, r.fRabatt
+               FROM ' . self::T_RULE . ' r
+         INNER JOIN tkategorie rc ON rc.kKategorie = r.kKategorie
+         INNER JOIN tkategorie c
+                 ON c.kKategorie = r.kKategorie
+                 OR (r.nInclSub = 1 AND c.lft > rc.lft AND c.rght < rc.rght)
+         INNER JOIN tkategorieartikel ka ON ka.kKategorie = c.kKategorie AND ka.kArtikel = :a
+         CROSS JOIN tkundengruppe kg
+              WHERE r.nActive = 1 AND r.fRabatt > 0',
+            ['a' => $productID]
+        );
+        foreach ($rows as $row) {
+            $params = [
+                'a' => (int)$row->kArtikel,
+                'g' => (int)$row->kKundengruppe,
+                'c' => (int)$row->kKategorie,
+                'r' => (float)$row->fRabatt,
+            ];
+            foreach (['tartikelkategorierabatt', self::T_TARGET, self::T_APPLIED] as $table) {
+                $this->db->queryPrepared(
+                    'INSERT INTO ' . $table . ' (kArtikel, kKundengruppe, kKategorie, fRabatt)
+                     VALUES (:a, :g, :c, :r)
+                     ON DUPLICATE KEY UPDATE
+                        kKategorie = IF(fRabatt < VALUES(fRabatt), VALUES(kKategorie), kKategorie),
+                        fRabatt    = GREATEST(fRabatt, VALUES(fRabatt))',
+                    $params
+                );
+            }
+        }
+    }
+
     private function buildTarget(): void
     {
         $this->db->executeQuery('DELETE FROM ' . self::T_TARGET);

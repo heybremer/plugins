@@ -48,6 +48,13 @@ class Bootstrap extends Bootstrapper
         }
         $this->ensureAdminMenuEntry();
         $this->ensureLandingPage();
+        $dispatcher->hookInto(\HOOK_SYNC_ADDED_PRODUCT, function (array $args): void {
+            try {
+                $this->service()->reapplyProduct((int)($args['productID'] ?? 0));
+            } catch (\Throwable $e) {
+                \error_log('[BlackFriday] sync: ' . $e->getMessage());
+            }
+        });
         if ($this->isBackendRequest()) {
             return;
         }
