@@ -46,7 +46,7 @@ final class SeriesMetaRuntime
             'GT'    => ['label' => 'Serie GT', 'color' => '#f5f5f5', 'img' => 'https://bremer-sitzbezuege.de/mediafiles/seat/gt-serie2.webp'],
             'KC'    => ['label' => 'Serie KC', 'color' => '#f5f5f5', 'img' => 'https://bremer-sitzbezuege.de/mediafiles/seat/kc-serie.webp'],
             'C'     => ['label' => 'Serie C', 'color' => '#f5f5f5', 'img' => ''],
-            'D'     => ['label' => 'Serie D', 'color' => '#f5f5f5', 'img' => ''],
+            'D'     => ['label' => 'Serie D', 'color' => '#f5f5f5', 'img' => 'https://bremer-sitzbezuege.de/mediafiles/serie/D-Serie.webp'],
             'G'     => ['label' => 'Serie G', 'color' => '#f5f5f5', 'img' => ''],
             'DPL'   => ['label' => 'Serie DPL', 'color' => '#f5f5f5', 'img' => ''],
             'H'     => ['label' => 'Serie H', 'color' => '#f5f5f5', 'img' => ''],
