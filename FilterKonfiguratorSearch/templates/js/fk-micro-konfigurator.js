@@ -1032,11 +1032,30 @@
           clearSeriesLoading();
           var arr = Array.isArray(items) ? items : [];
           seriesCache = arr;
+          var serieKey = function (v) {
+            return String(v || '').replace(/[\s\-_]*Serie\s*$/i, '').replace(/[\s\-_]+/g, '').toLowerCase();
+          };
+          var seenSerie = {};
           var serieVals = uniqSorted(arr.map(function (it) { return it && it.serie ? it.serie : ''; }))
-            .filter(function (v) { return !isSerieHidden(v); });
+            .filter(function (v) {
+              var k = serieKey(v);
+              if (isSerieHidden(v) || seenSerie[k]) return false;
+              seenSerie[k] = true;
+              return true;
+            });
 
           var incomingSerie = String(state.serie || '');
-          var serieInList = incomingSerie && serieVals.some(function (item) { return item === incomingSerie; });
+          var serieInList = false;
+          if (incomingSerie) {
+            for (var ii = 0; ii < serieVals.length; ii++) {
+              if (serieKey(serieVals[ii]) === serieKey(incomingSerie)) {
+                incomingSerie = serieVals[ii];
+                state.serie = incomingSerie;
+                serieInList = true;
+                break;
+              }
+            }
+          }
           var allowPreset = String(state.forceSerieSelect || '') === '1' && String(state.mfPreset || '') === 'brand_click';
           var keepSerie = serieInList ? incomingSerie : ((allowPreset && incomingSerie) ? incomingSerie : '');
           var autoPicked = false;
@@ -1052,7 +1071,7 @@
             }
           }
           autoPickCatSerie = false;
-          if (keepSerie && !serieInList) {
+          if (keepSerie && serieVals.indexOf(keepSerie) === -1) {
             serieVals.unshift(keepSerie);
           }
           fillSelect(selSerie, serieVals, keepSerie);
