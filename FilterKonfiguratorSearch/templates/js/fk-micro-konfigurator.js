@@ -449,6 +449,11 @@
         gridSitz.appendChild(btn);
       });
       gridSitz.hidden = codes.length === 0;
+      var activeTile = gridSitz.querySelector('.is-active');
+      if (activeTile) {
+        var off = activeTile.offsetLeft - (gridSitz.clientWidth - activeTile.offsetWidth) / 2;
+        gridSitz.scrollLeft = Math.max(0, off);
+      }
     }
     if (selSitz) {
       try {
@@ -458,23 +463,25 @@
     }
     var statusDiv = $('#fkMicroStatus', root);
     var filterAfterNextSeriesLoad = false;
-    var updateSerieNav = setupSerieNav();
+    var updateSerieNav = setupScrollNav(gridSerie, '.fk-micro-serie-tile', 'Serien');
+    syncSitzGrid();
+    setupScrollNav(gridSitz, '.fk-micro-sitz-tile', 'Sitze');
 
-    function setupSerieNav() {
-      if (!gridSerie || !gridSerie.parentNode) return function () { };
+    function setupScrollNav(grid, tileSelector, noun) {
+      if (!grid || !grid.parentNode) return function () { };
       var wrap = document.createElement('div');
       wrap.className = 'fk-micro-serie-scroller';
-      gridSerie.parentNode.insertBefore(wrap, gridSerie);
-      wrap.appendChild(gridSerie);
+      grid.parentNode.insertBefore(wrap, grid);
+      wrap.appendChild(grid);
 
       function makeBtn(dir) {
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'fk-micro-serie-nav fk-micro-serie-nav--' + (dir < 0 ? 'prev' : 'next');
-        b.setAttribute('aria-label', dir < 0 ? 'Vorherige Serien' : 'Weitere Serien');
+        b.setAttribute('aria-label', (dir < 0 ? 'Vorherige ' : 'Weitere ') + noun);
         b.innerHTML = dir < 0 ? '&#8249;' : '&#8250;';
         b.addEventListener('click', function () {
-          gridSerie.scrollBy({ left: dir * Math.max(200, gridSerie.clientWidth * 0.8), behavior: 'smooth' });
+          grid.scrollBy({ left: dir * Math.max(200, grid.clientWidth * 0.8), behavior: 'smooth' });
         });
         wrap.appendChild(b);
         return b;
@@ -483,16 +490,16 @@
       var next = makeBtn(1);
 
       function update() {
-        var max = gridSerie.scrollWidth - gridSerie.clientWidth;
-        var hasTiles = !!gridSerie.querySelector('.fk-micro-serie-tile');
-        prev.hidden = !hasTiles || gridSerie.scrollLeft <= 4;
-        next.hidden = !hasTiles || gridSerie.scrollLeft >= max - 4;
+        var max = grid.scrollWidth - grid.clientWidth;
+        var hasTiles = !grid.hidden && !!grid.querySelector(tileSelector);
+        prev.hidden = !hasTiles || grid.scrollLeft <= 4;
+        next.hidden = !hasTiles || grid.scrollLeft >= max - 4;
       }
-      gridSerie.addEventListener('scroll', update, { passive: true });
+      grid.addEventListener('scroll', update, { passive: true });
       window.addEventListener('resize', update);
       if (window.MutationObserver) {
         new MutationObserver(function () { window.requestAnimationFrame(update); })
-          .observe(gridSerie, { childList: true });
+          .observe(grid, { childList: true, attributes: true, attributeFilter: ['hidden'] });
       }
       update();
       return update;

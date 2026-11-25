@@ -546,9 +546,24 @@
 }
 
 .fk-micro-sitz-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  position: relative;
+  display: flex;
   gap: 12px;
+  padding: 4px 4px 12px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--fk-micro-accent) transparent;
+}
+
+.fk-micro-sitz-grid::-webkit-scrollbar {
+  height: 4px;
+}
+
+.fk-micro-sitz-grid::-webkit-scrollbar-thumb {
+  background: var(--fk-micro-accent);
+  border-radius: 10px;
 }
 
 .fk-micro-sitz-grid[hidden] {
@@ -557,10 +572,12 @@
 
 .fk-micro-sitz-tile {
   display: flex;
+  flex: 0 0 150px;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  scroll-snap-align: start;
   padding: 10px 10px 12px;
   border: 1px solid var(--fk-micro-border);
   border-radius: 14px;
@@ -611,8 +628,11 @@
 
 @media (max-width: 480px) {
   .fk-micro-sitz-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
+  }
+
+  .fk-micro-sitz-tile {
+    flex-basis: 130px;
   }
 }
 
