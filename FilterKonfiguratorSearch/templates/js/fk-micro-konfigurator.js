@@ -233,6 +233,13 @@
 
   var SEAT_ORDER = ['3', '5', '4', '7', '6', '2', '1', '9', '10', '14', '8', '11', '12', '13'];
 
+  var SEAT_IMG_BASE = 'https://bremer-sitzbezuege.de/mediafiles/sitz/';
+  var SEAT_PHOTO = {
+    '1': '1-foto.jpg', '2': '2-foto.jpg', '3': '3-foto2.jpg', '4': '4-foto.jpg', '5': '5-foto.jpg',
+    '6': '6-foto2.jpg', '7': '7-foto.jpg', '8': '8-foto.jpg', '9': '9-foto2.jpg', '10': '10-foto.jpg',
+    '11': '11-foto2.jpg', '12': '12-foto.jpg', '13': '13-foto3.jpg', '14': '14-foto.jpg'
+  };
+
   function optionLabel(sel, value) {
     var v = String(value);
     if (sel && sel.id === 'fkMicroSitz') {
@@ -395,6 +402,60 @@
     var selSitz = $('#fkMicroSitz', root);
     var selSerie = $('#fkMicroSerie', root);
     var gridSerie = $('#fkMicroSerieGrid', root);
+
+    var gridSitz = null;
+    function syncSitzGrid() {
+      if (!selSitz) return;
+      if (!gridSitz) {
+        gridSitz = document.createElement('div');
+        gridSitz.className = 'fk-micro-sitz-grid';
+        gridSitz.setAttribute('role', 'listbox');
+        gridSitz.setAttribute('aria-label', 'Sitz auswählen');
+        selSitz.classList.add('fk-micro-sitz-select');
+        selSitz.parentNode.insertBefore(gridSitz, selSitz.nextSibling);
+      }
+      var current = String(selSitz.value || '');
+      var codes = [];
+      for (var i = 0; i < selSitz.options.length; i++) {
+        var v = selSitz.options[i].value;
+        if (v) codes.push(v);
+      }
+      gridSitz.innerHTML = '';
+      codes.forEach(function (code) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'fk-micro-sitz-tile' + (code === current ? ' is-active' : '');
+        btn.setAttribute('role', 'option');
+        btn.setAttribute('aria-selected', code === current ? 'true' : 'false');
+        var name = optionLabel(selSitz, code);
+        btn.title = name;
+        if (SEAT_PHOTO[code]) {
+          var img = document.createElement('img');
+          img.loading = 'lazy';
+          img.decoding = 'async';
+          img.src = SEAT_IMG_BASE + SEAT_PHOTO[code];
+          img.alt = '';
+          btn.appendChild(img);
+        }
+        var label = document.createElement('span');
+        label.className = 'fk-micro-sitz-name';
+        label.textContent = name;
+        btn.appendChild(label);
+        btn.addEventListener('click', function () {
+          if (String(selSitz.value || '') === code) return;
+          selSitz.value = code;
+          selSitz.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        gridSitz.appendChild(btn);
+      });
+      gridSitz.hidden = codes.length === 0;
+    }
+    if (selSitz) {
+      try {
+        new MutationObserver(syncSitzGrid).observe(selSitz, { childList: true });
+      } catch (_) { }
+      selSitz.addEventListener('change', syncSitzGrid);
+    }
     var statusDiv = $('#fkMicroStatus', root);
     var filterAfterNextSeriesLoad = false;
     var updateSerieNav = setupSerieNav();
@@ -1339,6 +1400,7 @@
       if (state.modell && selMod) selMod.value = state.modell;
       if (state.baujahr && selYear) selYear.value = state.baujahr;
       if (state.sitz && selSitz) selSitz.value = state.sitz;
+      syncSitzGrid();
       if (state.serie && selSerie) selSerie.value = state.serie;
       updateSelectionMarks();
       updateStatus(seriesCache.length);

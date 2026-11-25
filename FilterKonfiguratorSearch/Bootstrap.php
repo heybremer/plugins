@@ -100,6 +100,7 @@ class Bootstrap extends Bootstrapper
             if (\version_compare($assetVersion, '1.14.138', '<')) {
                 $assetVersion = '1.14.138';
             }
+            $assetVersion .= self::fkMicroAssetMtime();
             foreach ([
                 ['selector' => 'script[src*="fk-micro-konfigurator.js"]', 'attr' => 'src'],
                 ['selector' => 'script[src*="fk-liste-title.js"]', 'attr' => 'src'],
@@ -317,7 +318,7 @@ class Bootstrap extends Bootstrapper
             } catch (\Throwable $e) {
                 $ver = '1';
             }
-            $ver  = \preg_replace('/[^0-9A-Za-z._-]/', '', $ver) ?: '1';
+            $ver  = (\preg_replace('/[^0-9A-Za-z._-]/', '', $ver) ?: '1') . self::fkMicroAssetMtime();
             $base = \rtrim((string)Shop::getURL(), '/') . '/plugins/FilterKonfiguratorSearch/templates/';
             if ($doc->find('link[href*="fk-micro-filter.css"]')->length === 0) {
                 $doc->find('head')->append('<link rel="stylesheet" href="' . $base . 'css/fk-micro-filter.css?fkver=' . $ver . '">');
@@ -1093,6 +1094,19 @@ class Bootstrap extends Bootstrapper
     /**
      * Zeile kID=1 aus twomosi_fk_micro_scope (einzige Quelle, sobald das Dashboard einmal gespeichert hat).
      */
+    private static function fkMicroAssetMtime(): string
+    {
+        $t = 0;
+        foreach (['js/fk-micro-konfigurator.js', 'css/fk-micro-filter.css'] as $f) {
+            $m = @\filemtime(__DIR__ . '/templates/' . $f);
+            if ($m !== false && $m > $t) {
+                $t = $m;
+            }
+        }
+
+        return $t > 0 ? '-' . $t : '';
+    }
+
     private function fkMicroScopeRow(): ?object
     {
         static $loaded = false;
