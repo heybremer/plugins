@@ -404,6 +404,35 @@
     var gridSerie = $('#fkMicroSerieGrid', root);
 
     var gridSitz = null;
+    var sitzSummary = null;
+    var sitzExpanded = false;
+    function sitzImg(code) {
+      if (!SEAT_PHOTO[code]) return null;
+      var img = document.createElement('img');
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.src = SEAT_IMG_BASE + SEAT_PHOTO[code];
+      img.alt = '';
+      return img;
+    }
+    function renderSitzSummary(code) {
+      sitzSummary.innerHTML = '';
+      var img = sitzImg(code);
+      if (img) sitzSummary.appendChild(img);
+      var name = document.createElement('span');
+      name.className = 'fk-micro-sitz-summary-name';
+      name.textContent = optionLabel(selSitz, code);
+      sitzSummary.appendChild(name);
+      var change = document.createElement('button');
+      change.type = 'button';
+      change.className = 'fk-micro-sitz-change';
+      change.textContent = 'Ändern';
+      change.addEventListener('click', function () {
+        sitzExpanded = true;
+        syncSitzGrid();
+      });
+      sitzSummary.appendChild(change);
+    }
     function syncSitzGrid() {
       if (!selSitz) return;
       if (!gridSitz) {
@@ -413,6 +442,10 @@
         gridSitz.setAttribute('aria-label', 'Sitz auswählen');
         selSitz.classList.add('fk-micro-sitz-select');
         selSitz.parentNode.insertBefore(gridSitz, selSitz.nextSibling);
+        sitzSummary = document.createElement('div');
+        sitzSummary.className = 'fk-micro-sitz-summary';
+        sitzSummary.hidden = true;
+        selSitz.parentNode.insertBefore(sitzSummary, gridSitz);
       }
       var current = String(selSitz.value || '');
       var codes = [];
@@ -429,27 +462,31 @@
         btn.setAttribute('aria-selected', code === current ? 'true' : 'false');
         var name = optionLabel(selSitz, code);
         btn.title = name;
-        if (SEAT_PHOTO[code]) {
-          var img = document.createElement('img');
-          img.loading = 'lazy';
-          img.decoding = 'async';
-          img.src = SEAT_IMG_BASE + SEAT_PHOTO[code];
-          img.alt = '';
-          btn.appendChild(img);
-        }
+        var img = sitzImg(code);
+        if (img) btn.appendChild(img);
         var label = document.createElement('span');
         label.className = 'fk-micro-sitz-name';
         label.textContent = name;
         btn.appendChild(label);
         btn.addEventListener('click', function () {
-          if (String(selSitz.value || '') === code) return;
+          sitzExpanded = false;
+          if (String(selSitz.value || '') === code) {
+            syncSitzGrid();
+            return;
+          }
           selSitz.value = code;
           selSitz.dispatchEvent(new Event('change', { bubbles: true }));
         });
         gridSitz.appendChild(btn);
       });
+      var collapsed = !!current && codes.indexOf(current) !== -1 && !sitzExpanded;
+      var gridBox = gridSitz.parentNode && gridSitz.parentNode.classList.contains('fk-micro-serie-scroller')
+        ? gridSitz.parentNode : gridSitz;
       gridSitz.hidden = codes.length === 0;
-      var activeTile = gridSitz.querySelector('.is-active');
+      gridBox.hidden = collapsed || codes.length === 0;
+      sitzSummary.hidden = !collapsed;
+      if (collapsed) renderSitzSummary(current);
+      var activeTile = !collapsed && gridSitz.querySelector('.is-active');
       if (activeTile) {
         var off = activeTile.offsetLeft - (gridSitz.clientWidth - activeTile.offsetWidth) / 2;
         gridSitz.scrollLeft = Math.max(0, off);

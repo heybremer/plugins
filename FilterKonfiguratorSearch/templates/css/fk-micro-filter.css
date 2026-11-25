@@ -566,8 +566,59 @@
   border-radius: 10px;
 }
 
-.fk-micro-sitz-grid[hidden] {
+.fk-micro-sitz-grid[hidden],
+.fk-micro-sitz-summary[hidden],
+.fk-micro-serie-scroller[hidden] {
   display: none;
+}
+
+.fk-micro-sitz-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 520px;
+  padding: 8px 12px 8px 8px;
+  border: 2px solid var(--fk-micro-accent);
+  border-radius: 14px;
+  background: #f2f8f4;
+  color: #1f2a24;
+}
+
+.fk-micro-sitz-summary img {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.fk-micro-sitz-summary-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.fk-micro-sitz-change {
+  flex: 0 0 auto;
+  padding: 6px 14px;
+  border: 1px solid var(--fk-micro-accent);
+  border-radius: 999px;
+  background: #fff;
+  color: #1f2a24;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--fk-micro-transition);
+}
+
+.fk-micro-sitz-change:hover,
+.fk-micro-sitz-change:focus-visible {
+  background: var(--fk-micro-accent);
+  color: #fff;
 }
 
 .fk-micro-sitz-tile {
