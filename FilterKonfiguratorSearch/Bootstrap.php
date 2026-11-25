@@ -1595,12 +1595,15 @@ class Bootstrap extends Bootstrapper
                     ['cid' => $currentCategoryId, 'lid' => (int)Shop::getLanguageID() ?: 1]
                 );
                 $catName = $catRow !== null ? (string)$catRow->cName : '';
-                if (\preg_match('/serie/iu', $catName)) {
+                $catSeg = $this->fkMicroCategoryIsAllowedInTree($db, $currentCategoryId, [18, 19]) ? 'pkw'
+                    : ($this->fkMicroCategoryIsAllowedInTree($db, $currentCategoryId, [23, 24]) ? 'wohnmobil' : '');
+                if ($catSeg !== '') {
+                    $catSerieAttrs = ' data-fk-page-segment="' . $catSeg . '"';
+                }
+                if ($catSeg !== '' && \preg_match('/serie/iu', $catName)) {
                     $catSerie = \trim((string)\preg_replace('/[\s\-]*Serie\s*(\(\d+\))?\s*$/iu', '', $catName));
-                    $catSeg = $this->fkMicroCategoryIsAllowedInTree($db, $currentCategoryId, [19]) ? 'pkw'
-                        : ($this->fkMicroCategoryIsAllowedInTree($db, $currentCategoryId, [24]) ? 'wohnmobil' : '');
-                    if ($catSerie !== '' && $catSeg !== '') {
-                        $catSerieAttrs = ' data-fk-cat-serie="' . $esc($catSerie) . '" data-fk-cat-segment="' . $catSeg . '"';
+                    if ($catSerie !== '') {
+                        $catSerieAttrs .= ' data-fk-cat-serie="' . $esc($catSerie) . '" data-fk-cat-segment="' . $catSeg . '"';
                     }
                 }
             } catch (\Throwable $e) {
