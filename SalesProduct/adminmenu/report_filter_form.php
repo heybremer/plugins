@@ -29,7 +29,7 @@ $resetUrl = $spReportPublic
         <input type="hidden" name="sp_report" value="1">
         <?php
         foreach ($_GET as $gk => $gv) {
-            if (\in_array($gk, ['sp_report', 'sp_salesreport', 'token', 'sp_f_channel', 'sp_f_days', 'sp_f_q', 'sp_f_from', 'sp_f_to', 'days'], true)) {
+            if (\in_array($gk, ['sp_report', 'sp_salesreport', 'token', 'sp_f_channel', 'sp_f_days', 'sp_f_q', 'sp_f_from', 'sp_f_to', 'days', 'sp_p', 'sp_csv'], true)) {
                 continue;
             }
             if (\is_array($gv)) {
@@ -47,6 +47,7 @@ $resetUrl = $spReportPublic
                 <?php foreach ($filterChannels as $chOpt): ?>
                     <option value="<?= sp_h($chOpt) ?>"<?= $reportFilters['channel'] === $chOpt ? ' selected' : '' ?>><?= sp_h($chOpt) ?></option>
                 <?php endforeach; ?>
+                <option value="<?= sp_h(SP_UNASSIGNED) ?>"<?= $reportFilters['channel'] === SP_UNASSIGNED ? ' selected' : '' ?>>(nicht zugeordnet)</option>
             </select>
         </label>
         <label>
@@ -74,6 +75,7 @@ $resetUrl = $spReportPublic
         </label>
         <div class="filter-actions">
             <button type="submit">Filter anwenden</button>
+            <button type="submit" name="sp_csv" value="1" class="btn-csv">CSV</button>
             <?php if ($reportFilters['active']): ?>
                 <a href="<?= sp_h($resetUrl) ?>" class="btn-reset">Zurücksetzen</a>
             <?php endif; ?>

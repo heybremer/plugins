@@ -564,6 +564,24 @@ if (!empty($_GET['sp_export'])) {
     exit;
 }
 
+$reportSecurityMsg = '';
+if (\strcasecmp((string)($_SERVER['REQUEST_METHOD'] ?? ''), 'POST') === 0
+    && isset($_POST['sp_report_security_save'])
+    && \JTL\Helpers\Form::validateToken()
+) {
+    $newPw = (string)($_POST['sp_report_new_password'] ?? '');
+    if ($newPw !== '') {
+        $reportSecurityMsg = sp_set_report_password($newPw)
+            ? 'Rapor-Passwort gespeichert.'
+            : 'Passwort nicht gespeichert (mindestens 8 Zeichen).';
+    }
+    sp_set_report_token_nopw(!empty($_POST['sp_report_token_nopw']));
+    if ($reportSecurityMsg === '') {
+        $reportSecurityMsg = 'Einstellungen gespeichert.';
+    }
+}
+$reportPwDefault = sp_report_password_is_default();
+$reportTokenNoPw = sp_report_token_nopw();
 $reportToken = sp_get_report_token(!empty($_GET['sp_new_token']));
 $exportUrl = '?sp_export=1';
 $reclassifyUrl = '?sp_reclassify=1';
@@ -693,6 +711,23 @@ if (\is_array($pu) && isset($pu['path'])) {
                         </p>
                     </li>
                 </ul>
+                <h6 class="mt-3 mb-2">Rapor-Zugang</h6>
+                <?php if ($reportSecurityMsg !== ''): ?>
+                    <div class="alert alert-info py-1 small"><?= sp_h($reportSecurityMsg) ?></div>
+                <?php endif; ?>
+                <?php if ($reportPwDefault): ?>
+                    <div class="alert alert-warning py-1 small">Der Rapor nutzt noch das Standard-Passwort. Bitte ein eigenes Passwort setzen.</div>
+                <?php endif; ?>
+                <form method="post" class="d-flex flex-wrap gap-2 align-items-center small">
+                    <?= \JTL\Helpers\Form::getTokenInput() ?>
+                    <input type="password" name="sp_report_new_password" class="form-control form-control-sm" style="max-width:240px"
+                           placeholder="Neues Passwort (min. 8 Zeichen)" autocomplete="new-password" minlength="8">
+                    <label class="mb-0">
+                        <input type="checkbox" name="sp_report_token_nopw" value="1"<?= $reportTokenNoPw ? ' checked' : '' ?>>
+                        Token-Link ohne Passwort öffnen
+                    </label>
+                    <button type="submit" name="sp_report_security_save" value="1" class="btn btn-sm btn-secondary">Speichern</button>
+                </form>
             </div>
         </div>
 
@@ -785,7 +820,7 @@ if (\is_array($pu) && isset($pu['path'])) {
                 <?php else: ?>
                     <?php foreach ($pChannels as $pc): ?>
                         <tr>
-                            <td><code><?= sp_h($pc['channel']) ?></code></td>
+                            <td><code><?= sp_h(sp_channel_display($pc['channel'])) ?></code></td>
                             <td class="text-center"><?= (int)$pc['today']['n'] ?: '—' ?></td>
                             <td class="text-center text-nowrap"><?= $pc['today']['r'] > 0 ? sp_h(sp_format_money($pc['today']['r'], 'EUR')) : '—' ?></td>
                             <td class="text-center"><?= (int)$pc['yesterday']['n'] ?: '—' ?></td>

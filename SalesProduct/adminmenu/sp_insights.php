@@ -65,7 +65,7 @@ if (!function_exists('sp_load_insights')) {
     function sp_load_insights(\JTL\DB\DbInterface $db): array
     {
         $out = ['conv' => [], 'touch' => [], 'campaigns' => [], 'landing' => [], 'storno' => [], 'errors' => []];
-        $valid = '(b.cStatus IS NULL OR b.cStatus <> -1)';
+        $valid = 'COALESCE(b.cStatus, 0) >= 0';
 
         // 1) Konversion nach Herkunft (30 Tage, ohne Bots)
         try {
@@ -169,12 +169,77 @@ if (!function_exists('sp_load_insights')) {
     }
 }
 
+if (!function_exists('sp_load_visits_and_costs')) {
+    /**
+     * Besuche pro Kanal (eigener Zähler, max. 30 Tage) + Kosten/ROAS (aktueller + letzter Monat).
+     *
+     * @return array{since:?string,visits:list<array{ch:string,v:int,n:int,f:float}>,months:list<string>,costs:list<array{mo:string,ch:string,cost:float,rev:float,n:int}>,error:string}
+     */
+    function sp_load_visits_and_costs(\JTL\DB\DbInterface $db): array
+    {
+        $valid = 'COALESCE(b.cStatus, 0) >= 0';
+        $visitRows = [];
+        $since = null;
+        $error = '';
+        try {
+            $s = $db->getSingleObject('SELECT MIN(dDay) AS d FROM twomosi_sales_visits WHERE dDay >= CURDATE() - INTERVAL 30 DAY');
+            $since = $s !== null && $s->d !== null ? (string)$s->d : null;
+            if ($since !== null) {
+                $v = [];
+                foreach ($db->getObjects('SELECT cChannel, SUM(nVisits) AS n FROM twomosi_sales_visits WHERE dDay >= :d GROUP BY cChannel', ['d' => $since]) as $r) {
+                    $v[(string)$r->cChannel] = (int)$r->n;
+                }
+                $o = [];
+                foreach ($db->getObjects(
+                    "SELECT a.cChannel, COUNT(*) AS n, COALESCE(SUM(b.fGesamtsumme),0) AS f
+                       FROM twomosi_sales_attribution a JOIN tbestellung b ON b.kBestellung = a.kBestellung
+                      WHERE b.dErstellt >= :d AND $valid GROUP BY a.cChannel",
+                    ['d' => $since]
+                ) as $r) {
+                    $o[(string)$r->cChannel] = ['n' => (int)$r->n, 'f' => (float)$r->f];
+                }
+                foreach (\array_unique(\array_merge(\array_keys($v), \array_keys($o))) as $ch) {
+                    $visitRows[] = ['ch' => (string)$ch, 'v' => $v[$ch] ?? 0, 'n' => $o[$ch]['n'] ?? 0, 'f' => $o[$ch]['f'] ?? 0.0];
+                }
+                \usort($visitRows, static fn ($a, $b) => $b['v'] <=> $a['v']);
+            }
+        } catch (\Throwable $e) {
+            // Tabelle noch nicht vorhanden → wird beim ersten Besuch angelegt.
+        }
+
+        $months = [\date('Y-m'), \date('Y-m', \strtotime('first day of last month'))];
+        $costRows = [];
+        try {
+            foreach ($months as $mo) {
+                $rev = [];
+                foreach ($db->getObjects(
+                    "SELECT a.cChannel, COALESCE(SUM(b.fGesamtsumme),0) AS f, COUNT(*) AS n
+                       FROM twomosi_sales_attribution a JOIN tbestellung b ON b.kBestellung = a.kBestellung
+                      WHERE DATE_FORMAT(b.dErstellt,'%Y-%m') = :m AND $valid GROUP BY a.cChannel",
+                    ['m' => $mo]
+                ) as $r) {
+                    $rev[(string)$r->cChannel] = ['f' => (float)$r->f, 'n' => (int)$r->n];
+                }
+                foreach ($db->getObjects('SELECT cChannel, fCost FROM twomosi_sales_cost WHERE cMonth = :m', ['m' => $mo]) as $r) {
+                    $c = (float)$r->fCost;
+                    $f = (float)($rev[(string)$r->cChannel]['f'] ?? 0.0);
+                    $n = (int)($rev[(string)$r->cChannel]['n'] ?? 0);
+                    $costRows[] = ['mo' => $mo, 'ch' => (string)$r->cChannel, 'cost' => $c, 'rev' => $f, 'n' => $n];
+                }
+            }
+        } catch (\Throwable $e) {
+            $error = 'Kosten-Auswertung: ' . $e->getMessage();
+        }
+
+        return ['since' => $since, 'visits' => $visitRows, 'months' => $months, 'costs' => $costRows, 'error' => $error];
+    }
+}
+
 if (!function_exists('sp_render_visits_and_costs')) {
     /** Besuche pro Kanal (eigener Zähler) + Kosten/ROAS. */
     function sp_render_visits_and_costs(\JTL\DB\DbInterface $db): void
     {
         $msg = '';
-        $valid = '(b.cStatus IS NULL OR b.cStatus <> -1)';
         $channels = ['google_ads', 'bing_ads', 'meta_ads', 'chatgpt_ads', 'email', 'utm_campaign', 'other'];
         try {
             $db->executeQuery(
@@ -227,59 +292,13 @@ if (!function_exists('sp_render_visits_and_costs')) {
             $msg = $msg !== '' ? $msg : 'Wochenreport: ' . $e->getMessage();
         }
         $reportEmail = (string)($mailRow->cValue ?? '');
-
-        // Besuche pro Kanal (eigener Zähler, ab Erfassungsbeginn, max. 30 Tage)
-        $visitRows = [];
-        $since = null;
-        try {
-            $s = $db->getSingleObject('SELECT MIN(dDay) AS d FROM twomosi_sales_visits WHERE dDay >= CURDATE() - INTERVAL 30 DAY');
-            $since = $s !== null && $s->d !== null ? (string)$s->d : null;
-            if ($since !== null) {
-                $v = [];
-                foreach ($db->getObjects('SELECT cChannel, SUM(nVisits) AS n FROM twomosi_sales_visits WHERE dDay >= :d GROUP BY cChannel', ['d' => $since]) as $r) {
-                    $v[(string)$r->cChannel] = (int)$r->n;
-                }
-                $o = [];
-                foreach ($db->getObjects(
-                    "SELECT a.cChannel, COUNT(*) AS n, COALESCE(SUM(b.fGesamtsumme),0) AS f
-                       FROM twomosi_sales_attribution a JOIN tbestellung b ON b.kBestellung = a.kBestellung
-                      WHERE b.dErstellt >= :d AND $valid GROUP BY a.cChannel",
-                    ['d' => $since]
-                ) as $r) {
-                    $o[(string)$r->cChannel] = ['n' => (int)$r->n, 'f' => (float)$r->f];
-                }
-                foreach (\array_unique(\array_merge(\array_keys($v), \array_keys($o))) as $ch) {
-                    $visitRows[] = ['ch' => $ch, 'v' => $v[$ch] ?? 0, 'n' => $o[$ch]['n'] ?? 0, 'f' => $o[$ch]['f'] ?? 0.0];
-                }
-                \usort($visitRows, static fn ($a, $b) => $b['v'] <=> $a['v']);
-            }
-        } catch (\Throwable $e) {
-            // Tabelle noch nicht vorhanden → wird beim ersten Besuch angelegt.
-        }
-
-        // Kosten / ROAS (aktueller + letzter Monat)
-        $months = [\date('Y-m'), \date('Y-m', \strtotime('first day of last month'))];
-        $costRows = [];
-        try {
-            foreach ($months as $mo) {
-                $rev = [];
-                foreach ($db->getObjects(
-                    "SELECT a.cChannel, COALESCE(SUM(b.fGesamtsumme),0) AS f, COUNT(*) AS n
-                       FROM twomosi_sales_attribution a JOIN tbestellung b ON b.kBestellung = a.kBestellung
-                      WHERE DATE_FORMAT(b.dErstellt,'%Y-%m') = :m AND $valid GROUP BY a.cChannel",
-                    ['m' => $mo]
-                ) as $r) {
-                    $rev[(string)$r->cChannel] = ['f' => (float)$r->f, 'n' => (int)$r->n];
-                }
-                foreach ($db->getObjects('SELECT cChannel, fCost FROM twomosi_sales_cost WHERE cMonth = :m', ['m' => $mo]) as $r) {
-                    $c = (float)$r->fCost;
-                    $f = (float)($rev[(string)$r->cChannel]['f'] ?? 0.0);
-                    $n = (int)($rev[(string)$r->cChannel]['n'] ?? 0);
-                    $costRows[] = ['mo' => $mo, 'ch' => (string)$r->cChannel, 'cost' => $c, 'rev' => $f, 'n' => $n];
-                }
-            }
-        } catch (\Throwable $e) {
-            $msg = $msg !== '' ? $msg : 'Kosten-Auswertung: ' . $e->getMessage();
+        $vc = sp_load_visits_and_costs($db);
+        $since = $vc['since'];
+        $visitRows = $vc['visits'];
+        $months = $vc['months'];
+        $costRows = $vc['costs'];
+        if ($vc['error'] !== '' && $msg === '') {
+            $msg = $vc['error'];
         }
         $money = static fn (float $v): string => \number_format($v, 2, ',', '.') . ' €';
         ?>
@@ -445,6 +464,131 @@ if (!function_exists('sp_render_insights')) {
         </div>
         <?php if ($d['errors'] !== []): ?>
             <p class="text-muted small">Auswertungs-Hinweis: <?= sp_h(\implode(' | ', $d['errors'])) ?></p>
+        <?php endif; ?>
+        <?php
+    }
+}
+
+if (!function_exists('sp_render_insights_plain')) {
+    /** Nur-Lese-Variante für den HTML-Rapor (ohne Bootstrap, ohne Formulare). */
+    function sp_render_insights_plain(\JTL\DB\DbInterface $db): void
+    {
+        $vc = sp_load_visits_and_costs($db);
+        $d = sp_load_insights($db);
+        $money = static fn (float $v): string => \number_format($v, 0, ',', '.') . ' €';
+        $pct = static fn (?float $v): string => $v === null ? '—' : \number_format($v, 2, ',', '.') . ' %';
+        ?>
+        <h2>Marketing-Auswertung</h2>
+        <div class="grid">
+            <div class="card">
+                <h2>Besuche &amp; Konversion pro Kanal <span class="muted">(eigener Zähler<?= $vc['since'] !== null ? ', seit ' . sp_h($vc['since']) : '' ?>)</span></h2>
+                <?php if ($vc['visits'] === []): ?>
+                    <p class="muted">Noch keine Besuchsdaten.</p>
+                <?php else: ?>
+                    <table>
+                        <thead><tr><th>Kanal</th><th class="num">Besuche</th><th class="num">Best.</th><th class="num">Umsatz</th><th class="num">Konv.</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($vc['visits'] as $r): ?>
+                            <tr>
+                                <td><code><?= sp_h($r['ch']) ?></code></td>
+                                <td class="num"><?= (int)$r['v'] ?></td>
+                                <td class="num"><?= (int)$r['n'] ?></td>
+                                <td class="num"><?= sp_h($money((float)$r['f'])) ?></td>
+                                <td class="num"><?= sp_h($pct($r['v'] > 0 ? $r['n'] * 100 / $r['v'] : null)) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </div>
+            <div class="card">
+                <h2>Werbekosten &amp; ROAS</h2>
+                <?php if ($vc['costs'] === []): ?>
+                    <p class="muted">Keine Kosten erfasst (Eingabe im Admin-Dashboard).</p>
+                <?php else: ?>
+                    <table>
+                        <thead><tr><th>Monat</th><th>Kanal</th><th class="num">Kosten</th><th class="num">Umsatz</th><th class="num">ROAS</th><th class="num">€/Best.</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($vc['costs'] as $r): ?>
+                            <tr>
+                                <td><?= sp_h($r['mo']) ?></td>
+                                <td><code><?= sp_h($r['ch']) ?></code></td>
+                                <td class="num"><?= sp_h($money($r['cost'])) ?></td>
+                                <td class="num"><?= sp_h($money($r['rev'])) ?></td>
+                                <td class="num"><?= $r['cost'] > 0 ? sp_h(\number_format($r['rev'] / $r['cost'], 2, ',', '.')) . 'x' : '—' ?></td>
+                                <td class="num"><?= $r['n'] > 0 ? sp_h($money($r['cost'] / $r['n'])) : '—' ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </div>
+            <div class="card">
+                <h2>Konversion nach Herkunft <span class="muted">(30 Tage, Referrer)</span></h2>
+                <table>
+                    <thead><tr><th>Herkunft</th><th class="num">Besucher</th><th class="num">Best.</th><th class="num">Umsatz</th><th class="num">Konv.</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($d['conv'] as $r): ?>
+                        <tr>
+                            <td><?= sp_h((string)$r['group']) ?></td>
+                            <td class="num"><?= (int)$r['visits'] ?></td>
+                            <td class="num"><?= (int)$r['orders'] ?></td>
+                            <td class="num"><?= sp_h($money((float)$r['revenue'])) ?></td>
+                            <td class="num"><?= sp_h($pct($r['rate'])) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card">
+                <h2>First- vs. Last-Touch <span class="muted">(90 Tage)</span></h2>
+                <table>
+                    <thead><tr><th>Kanal</th><th class="num">First-Touch</th><th class="num">Last-Touch</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($d['touch'] as $r): ?>
+                        <tr><td><code><?= sp_h((string)$r['channel']) ?></code></td><td class="num"><?= (int)$r['first'] ?></td><td class="num"><?= (int)$r['last'] ?></td></tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card">
+                <h2>Top-Kampagnen / Quellen <span class="muted">(90 Tage)</span></h2>
+                <table>
+                    <thead><tr><th>Kanal</th><th>Quelle / Kampagne</th><th class="num">Best.</th><th class="num">Umsatz</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($d['campaigns'] as $r): ?>
+                        <tr>
+                            <td><code><?= sp_h((string)$r->cChannel) ?></code></td>
+                            <td class="muted"><?= sp_h((string)$r->d) ?></td>
+                            <td class="num"><?= (int)$r->n ?></td>
+                            <td class="num"><?= sp_h($money((float)$r->f)) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card">
+                <h2>Top-Landing-Pages <span class="muted">(90 Tage)</span></h2>
+                <?php if ($d['landing'] === []): ?>
+                    <p class="muted">Noch keine Daten.</p>
+                <?php else: ?>
+                    <table>
+                        <thead><tr><th>Seite</th><th class="num">Best.</th><th class="num">Umsatz</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($d['landing'] as $r): ?>
+                            <tr>
+                                <td class="muted"><?= sp_h((string)$r->lp) ?></td>
+                                <td class="num"><?= (int)$r->n ?></td>
+                                <td class="num"><?= sp_h($money((float)$r->f)) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php if ($d['errors'] !== [] || $vc['error'] !== ''): ?>
+            <p class="muted">Auswertungs-Hinweis: <?= sp_h(\implode(' | ', \array_filter(\array_merge($d['errors'], [$vc['error']])))) ?></p>
         <?php endif; ?>
         <?php
     }
