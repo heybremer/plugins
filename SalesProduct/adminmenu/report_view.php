@@ -38,7 +38,14 @@ $daily = sp_load_daily_revenue($dbReport, $reportFilters, 30);
 $periodChannelStats = sp_load_period_channel_stats($dbReport, $reportFilters);
 $periodTotals = $periodChannelStats['totals'];
 $periodChannels = $periodChannelStats['byChannel'];
-$channelTable = sp_load_channel_table($dbReport, $reportFilters);
+$channelFilters = $reportFilters;
+$channelLabel = $scopeLabel;
+if (sp_scope_range($reportFilters) === [null, null]) {
+    $channelFilters['dateFrom'] = '2026-06-01';
+    $channelLabel = 'ab Juni 2026 · Haziran sonrası'
+        . (($reportFilters['channel'] ?? '') !== '' ? ' · Kanal ' . sp_channel_display($reportFilters['channel']) : '');
+}
+$channelTable = sp_load_channel_table($dbReport, $channelFilters);
 $topProductsLimit = 10;
 $topProductsBlocks = [
     ['title' => 'Filterzeitraum', 'sub' => $scopeLabel, 'items' => sp_load_top_products($dbReport, $topProductsLimit, 'scope', $reportFilters)],
@@ -268,7 +275,7 @@ if (!\headers_sent()) {
     </div>
 </div>
 
-<h2>Umsatz nach Kanal <span class="muted">(<?= sp_h($scopeLabel) ?>)</span></h2>
+<h2>Umsatz nach Kanal <span class="muted">(<?= sp_h($channelLabel) ?>)</span></h2>
 <div class="section">
     <div class="table-wrap">
         <table>
