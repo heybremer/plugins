@@ -148,7 +148,7 @@ if (!\headers_sent()) {
         tr.is-storno td.keep { text-decoration: none; }
         .num { text-align: right; white-space: nowrap; }
         .text-center { text-align: center; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+        .grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; margin-bottom: 1rem; }
         .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
         .card {
             background: var(--card);
