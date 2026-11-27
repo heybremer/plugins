@@ -69,7 +69,7 @@ img { border:0; outline:none; text-decoration:none; }
               {foreach $Position->WarenkorbPosEigenschaftArr as $WKPosEigenschaft}
                 <div style="font-size:12px;color:#777777;">{$WKPosEigenschaft->cEigenschaftName}: {$WKPosEigenschaft->cEigenschaftWertName}</div>
               {/foreach}
-              {if $Einstellungen.kaufabwicklung.bestellvorgang_lieferstatus_anzeigen === 'Y' && $Position->cLieferstatus}<div style="font-size:12px;color:#777777;">{$mt.delivery}: {$Position->cLieferstatus}</div>{/if}
+              {if $Einstellungen.kaufabwicklung.bestellvorgang_lieferstatus_anzeigen === 'Y' && $Position->cLieferstatus}<div style="font-size:12px;color:#777777;">{$mt.delivery}: {$Position->cLieferstatus}</div>{/if}{if $mt.kind === 'shipped' && !empty($Position->Artikel->cURLFull)}<div style="font-size:12px;margin-top:2px;"><a href="{$Position->Artikel->cURLFull}#tab-votes" style="color:{$mtc.accent};">{$mt.review}</a></div>{/if}
               {if $Einstellungen.kaufabwicklung.bestellvorgang_einzelpreise_anzeigen === 'Y' && isset($Position->cEinzelpreisLocalized)}<div style="font-size:12px;color:#999999;">{$mt.price}: {$Position->cEinzelpreisLocalized[$NettoPreise]}</div>{/if}
             {else}
               <strong>{$Position->cName}</strong>{if !empty($Position->cHinweis)} <span style="color:#777777;font-size:12px;">{$Position->cHinweis}</span>{/if}
@@ -81,6 +81,7 @@ img { border:0; outline:none; text-decoration:none; }
         </tr>
       {/foreach}
     </table>
+    {if $mt.kind !== 'partshipped'}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:14px;margin-top:6px;">
       {if $Einstellungen.global.global_steuerpos_anzeigen !== 'N'}
         {foreach $Bestellung->Steuerpositionen as $Steuerposition}
@@ -98,6 +99,7 @@ img { border:0; outline:none; text-decoration:none; }
         <tr><td align="right" style="padding:4px 0;"><strong>{$mt.open_amount}:</strong></td><td align="right" width="110" style="padding:4px 0;"><strong>{if isset($totalLocalized)}{$totalLocalized}{else}{$Bestellung->WarensummeLocalized[0]}{/if}</strong></td></tr>
       {/if}
     </table>
+    {/if}
   </td></tr>
 
   <tr><td class="mt-pad" style="padding:26px 40px 0;font-family:Helvetica,Arial,sans-serif;">
@@ -141,9 +143,9 @@ img { border:0; outline:none; text-decoration:none; }
         {if $mt.kind === 'confirmation'}<td class="mt-col" width="50%" style="padding:10px 0;color:#777777;">{$mt.delivery}: <strong style="color:#2b2b2b;">{if isset($Bestellung->cEstimatedDeliveryEx)}{$Bestellung->cEstimatedDeliveryEx}{else}{$Bestellung->cEstimatedDelivery|default:'-'}{/if}</strong></td>{/if}
       </tr>
     </table>
-    {if $mt.kind === 'shipped' && !empty($Bestellung->oLieferschein_arr)}
+    {if ($mt.kind === 'shipped' || $mt.kind === 'partshipped') && !empty($Bestellung->oLieferschein_arr)}
       {foreach $Bestellung->oLieferschein_arr as $oLieferschein}{foreach $oLieferschein->oVersand_arr as $oVersand}
-        {if $oVersand->getIdentCode()|strlen > 0}
+        {if $oVersand->getIdentCode()|strlen > 0 && ($mt.kind === 'shipped' || !$oLieferschein->getEmailVerschickt())}
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;background:#f7f7f7;border:1px solid #e0e0e0;font-size:13px;">
             <tr><td style="padding:12px 16px;line-height:21px;">
               <div style="font-family:Georgia,'Times New Roman',serif;font-size:16px;color:{$mtc.accent};margin-bottom:4px;">{$mt.tracking}</div>
@@ -172,6 +174,16 @@ img { border:0; outline:none; text-decoration:none; }
     {if !empty($Zahlungsart->cHinweisText)}<div style="margin-top:14px;font-size:13px;line-height:20px;">{$Zahlungsart->cHinweisText}</div>{/if}
     {/if}
   </td></tr>
+
+  {if $mt.kind !== 'cancelled' && $mtc.promo_url && ($mtc.promo_title || $mtc.promo_text)}
+  <tr><td class="mt-pad" style="padding:22px 40px 0;font-family:Helvetica,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid {$mtc.accent};"><tr><td align="center" style="padding:18px 20px;">
+      {if $mtc.promo_title}<div style="font-family:Georgia,'Times New Roman',serif;font-size:18px;color:{$mtc.accent};margin-bottom:6px;">{$mtc.promo_title}</div>{/if}
+      {if $mtc.promo_text}<div style="font-size:14px;line-height:22px;color:#555555;margin-bottom:12px;">{$mtc.promo_text}</div>{/if}
+      <a href="{$mtc.promo_url}" style="display:inline-block;padding:10px 24px;background:{$mtc.accent};font-size:14px;color:#ffffff;text-decoration:none;">{if $mtc.promo_btn}{$mtc.promo_btn}{else}{$mt.visit}{/if}</a>
+    </td></tr></table>
+  </td></tr>
+  {/if}
 
   <tr><td class="mt-pad" style="padding:22px 40px 8px;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:22px;color:#555555;">
     <strong style="color:#2b2b2b;">{$mt.next}</strong><br>{$mt.next_text}

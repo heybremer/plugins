@@ -43,6 +43,20 @@ final class Labels
                 'next'      => 'Viel Freude mit Ihrer Ware!',
                 'next_text' => 'Wir wünschen Ihnen viel Freude mit Ihrer Ware und bedanken uns für Ihren Einkauf und Ihr Vertrauen.',
             ],
+            'partshipped' => [
+                'step'      => '3',
+                'title'     => 'Teile Ihrer Bestellung sind unterwegs',
+                'intro'     => 'der Versandstatus Ihrer Bestellung hat sich geändert. Folgende Positionen wurden jetzt versandt:',
+                'next'      => 'Wie geht es weiter?',
+                'next_text' => 'Über den weiteren Verlauf Ihrer Bestellung informieren wir Sie jeweils gesondert.',
+            ],
+            'cancelled' => [
+                'step'      => '0',
+                'title'     => 'Ihre Bestellung wurde storniert',
+                'intro'     => 'Ihre Bestellung wurde soeben storniert. Falls Sie Fragen haben, melden Sie sich gerne bei uns.',
+                'next'      => 'Wir helfen Ihnen gern weiter',
+                'next_text' => 'Antworten Sie einfach auf diese E-Mail oder besuchen Sie unseren Shop.',
+            ],
         ];
     }
 
@@ -65,6 +79,20 @@ final class Labels
                 'intro'     => 'your order has been shipped today. You can track your shipment below.',
                 'next'      => 'Enjoy your purchase!',
                 'next_text' => 'We hope you enjoy your purchase and thank you for your trust.',
+            ],
+            'partshipped' => [
+                'step'      => '3',
+                'title'     => 'Part of your order is on its way',
+                'intro'     => 'the shipping status of your order has changed. The following items have now been shipped:',
+                'next'      => 'What happens next?',
+                'next_text' => 'We will keep you informed about the progress of your order.',
+            ],
+            'cancelled' => [
+                'step'      => '0',
+                'title'     => 'Your order has been cancelled',
+                'intro'     => 'your order has just been cancelled. If you have any questions, please get in touch.',
+                'next'      => 'We are happy to help',
+                'next_text' => 'Simply reply to this e-mail or visit our shop.',
             ],
         ];
     }
@@ -115,6 +143,7 @@ final class Labels
             'phone'        => 'Telefon',
             'mail'         => 'E-Mail',
             'vat_id'       => 'USt-IdNr.',
+            'review'       => 'Artikel bewerten',
             'tracking'     => 'Sendungsverfolgung',
             'track_no'     => 'Tracking-Nummer',
             'track_hint'   => 'Hinweis',
@@ -167,6 +196,7 @@ final class Labels
             'phone'        => 'Phone',
             'mail'         => 'E-mail',
             'vat_id'       => 'VAT ID',
+            'review'       => 'Review item',
             'tracking'     => 'Shipment tracking',
             'track_no'     => 'Tracking number',
             'track_hint'   => 'Note',

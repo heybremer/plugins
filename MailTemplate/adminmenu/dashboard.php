@@ -73,6 +73,8 @@ $kinds = [
     'confirmation' => 'Bestellbestätigung',
     'paid'         => 'Zahlungseingang',
     'shipped'      => 'Versandbestätigung',
+    'partshipped'  => 'Teilversand',
+    'cancelled'    => 'Stornierung',
 ];
 $kind = isset($kinds[(string)($_GET['mt_kind'] ?? '')]) ? (string)$_GET['mt_kind'] : 'confirmation';
 ?>
@@ -110,6 +112,8 @@ $kind = isset($kinds[(string)($_GET['mt_kind'] ?? '')]) ? (string)$_GET['mt_kind
             <div class="mb-3 small">
                 <label class="me-3"><input type="checkbox" name="apply_paid" value="1"<?= $cfg['apply_paid'] === '1' ? ' checked' : '' ?>> auch für Zahlungseingang</label>
                 <label class="me-3"><input type="checkbox" name="apply_shipped" value="1"<?= $cfg['apply_shipped'] === '1' ? ' checked' : '' ?>> auch für Versandbestätigung</label>
+                <label class="me-3"><input type="checkbox" name="apply_partshipped" value="1"<?= $cfg['apply_partshipped'] === '1' ? ' checked' : '' ?>> auch für Teilversand</label>
+                <label class="me-3"><input type="checkbox" name="apply_cancelled" value="1"<?= $cfg['apply_cancelled'] === '1' ? ' checked' : '' ?>> auch für Stornierung</label>
                 <label><input type="checkbox" name="show_images" value="1"<?= $cfg['show_images'] === '1' ? ' checked' : '' ?>> Artikelbilder anzeigen</label>
             </div>
 
@@ -162,6 +166,23 @@ $kind = isset($kinds[(string)($_GET['mt_kind'] ?? '')]) ? (string)$_GET['mt_kind
                 <div class="col-12">
                     <label class="form-label" for="mt_note">Persönliche Nachricht (optional)</label>
                     <textarea class="form-control" id="mt_note" name="note" rows="2" maxlength="600"><?= mtH($cfg['note']) ?></textarea>
+                </div>
+                <div class="col-12"><h6 class="mt-2 mb-0">Aktionsblock (optional, nicht bei Stornierung)</h6></div>
+                <div class="col-md-4">
+                    <label class="form-label" for="mt_pt">Titel</label>
+                    <input class="form-control" type="text" id="mt_pt" name="promo_title" maxlength="100" value="<?= mtH($cfg['promo_title']) ?>">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="mt_ptx">Text</label>
+                    <input class="form-control" type="text" id="mt_ptx" name="promo_text" maxlength="300" value="<?= mtH($cfg['promo_text']) ?>">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="mt_pb">Button-Text</label>
+                    <input class="form-control" type="text" id="mt_pb" name="promo_btn" maxlength="40" value="<?= mtH($cfg['promo_btn']) ?>">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="mt_pu">Button-Link (https)</label>
+                    <input class="form-control" type="text" id="mt_pu" name="promo_url" maxlength="500" value="<?= mtH($cfg['promo_url']) ?>">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="mt_smail">Support-E-Mail (Fußbereich)</label>

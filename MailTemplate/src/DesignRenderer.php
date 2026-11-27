@@ -53,6 +53,8 @@ final class DesignRenderer implements RendererInterface
             \MAILTEMPLATE_BESTELLBESTAETIGUNG => ['confirmation', 'enabled'],
             \MAILTEMPLATE_BESTELLUNG_BEZAHLT  => ['paid', 'apply_paid'],
             \MAILTEMPLATE_BESTELLUNG_VERSANDT => ['shipped', 'apply_shipped'],
+            \MAILTEMPLATE_BESTELLUNG_TEILVERSANDT => ['partshipped', 'apply_partshipped'],
+            \MAILTEMPLATE_BESTELLUNG_STORNO => ['cancelled', 'apply_cancelled'],
         ];
         if (!isset($kinds[$template->getID()])) {
             return;

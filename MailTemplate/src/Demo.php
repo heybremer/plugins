@@ -60,7 +60,7 @@ final class Demo
                 'cStrasse' => 'Beispielweg', 'cHausnummer' => '3', 'cAdressZusatz' => '', 'cPLZ' => '20095',
                 'cOrt' => 'Hamburg', 'cBundesland' => '', 'angezeigtesLand' => 'Deutschland',
             ]),
-            'oLieferschein_arr' => $kind === 'shipped' ? [$o(['oVersand_arr' => [self::shipment()]])] : [],
+            'oLieferschein_arr' => \in_array($kind, ['shipped', 'partshipped'], true) ? [self::delivery($pos[0])] : [],
             'cEstimatedDelivery' => '3-5 Werktage',
             'cEstimatedDeliveryEx' => '02.12.2026 - 04.12.2026',
         ]);
@@ -99,6 +99,30 @@ final class Demo
         }
 
         return '';
+    }
+
+    private static function delivery(object $first): object
+    {
+        $item             = clone $first;
+        $item->nAusgeliefert = 1;
+
+        return new class ($item, self::shipment()) {
+            /** @var list<object> */
+            public array $oPosition_arr;
+            /** @var list<object> */
+            public array $oVersand_arr;
+
+            public function __construct(object $item, object $shipment)
+            {
+                $this->oPosition_arr = [$item];
+                $this->oVersand_arr  = [$shipment];
+            }
+
+            public function getEmailVerschickt(): bool
+            {
+                return false;
+            }
+        };
     }
 
     private static function shipment(): object

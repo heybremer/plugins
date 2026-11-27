@@ -63,7 +63,7 @@ img { border:0; outline:none; text-decoration:none; }
             {foreach $Position->WarenkorbPosEigenschaftArr as $WKPosEigenschaft}
               <div style="font-size:12px;color:#888888;padding-left:26px;">{$WKPosEigenschaft->cEigenschaftName}: {$WKPosEigenschaft->cEigenschaftWertName}</div>
             {/foreach}
-            {if $Einstellungen.kaufabwicklung.bestellvorgang_lieferstatus_anzeigen === 'Y' && $Position->cLieferstatus}<div style="font-size:12px;color:#888888;padding-left:26px;">{$mt.delivery}: {$Position->cLieferstatus}</div>{/if}
+            {if $Einstellungen.kaufabwicklung.bestellvorgang_lieferstatus_anzeigen === 'Y' && $Position->cLieferstatus}<div style="font-size:12px;color:#888888;padding-left:26px;">{$mt.delivery}: {$Position->cLieferstatus}</div>{/if}{if $mt.kind === 'shipped' && !empty($Position->Artikel->cURLFull)}<div style="font-size:12px;margin-top:2px;"><a href="{$Position->Artikel->cURLFull}#tab-votes" style="color:{$mtc.accent};">{$mt.review}</a></div>{/if}
           {else}
             <strong style="font-weight:600;">{$Position->cName}</strong>{if !empty($Position->cHinweis)} <span style="color:#888888;font-size:12px;">{$Position->cHinweis}</span>{/if}
           {/if}
@@ -73,6 +73,7 @@ img { border:0; outline:none; text-decoration:none; }
       </tr>
     {/foreach}
     </table>
+    {if $mt.kind !== 'partshipped'}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:14px;margin-top:8px;">
       {if $Einstellungen.global.global_steuerpos_anzeigen !== 'N'}
         {foreach $Bestellung->Steuerpositionen as $Steuerposition}
@@ -90,6 +91,7 @@ img { border:0; outline:none; text-decoration:none; }
         <tr><td style="padding:3px 0;font-weight:600;">{$mt.open_amount}</td><td align="right" style="padding:3px 0;font-weight:600;">{if isset($totalLocalized)}{$totalLocalized}{else}{$Bestellung->WarensummeLocalized[0]}{/if}</td></tr>
       {/if}
     </table>
+    {/if}
   </td></tr>
 
   <tr><td class="mt-pad" style="padding:26px 0 0;">
@@ -127,9 +129,9 @@ img { border:0; outline:none; text-decoration:none; }
 
   <tr><td class="mt-pad" style="padding:10px 0 0;font-size:13px;line-height:21px;color:#333333;">
     {if $mt.kind === 'confirmation'}<div style="padding:10px 0;border-top:1px solid #dddddd;"><span style="color:#888888;">{$mt.delivery}:</span> {if isset($Bestellung->cEstimatedDeliveryEx)}{$Bestellung->cEstimatedDeliveryEx}{else}{$Bestellung->cEstimatedDelivery|default:'-'}{/if}</div>{/if}
-    {if $mt.kind === 'shipped' && !empty($Bestellung->oLieferschein_arr)}
+    {if ($mt.kind === 'shipped' || $mt.kind === 'partshipped') && !empty($Bestellung->oLieferschein_arr)}
       {foreach $Bestellung->oLieferschein_arr as $oLieferschein}{foreach $oLieferschein->oVersand_arr as $oVersand}
-        {if $oVersand->getIdentCode()|strlen > 0}
+        {if $oVersand->getIdentCode()|strlen > 0 && ($mt.kind === 'shipped' || !$oLieferschein->getEmailVerschickt())}
           <div style="margin-top:6px;padding:14px 18px;border:1px solid #111111;font-size:13px;line-height:21px;">
             <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:{$mtc.accent};padding-bottom:6px;">{$mt.tracking}</div>
             {$mt.track_no}: <a href="{$oVersand->getLogistikVarUrl()}" style="color:#111111;font-family:'Courier New',monospace;">{$oVersand->getIdentCode()}</a>
@@ -158,6 +160,16 @@ img { border:0; outline:none; text-decoration:none; }
     {if !empty($Zahlungsart->cHinweisText)}<div style="margin-top:10px;">{$Zahlungsart->cHinweisText}</div>{/if}
     {/if}
   </td></tr>
+
+  {if $mt.kind !== 'cancelled' && $mtc.promo_url && ($mtc.promo_title || $mtc.promo_text)}
+  <tr><td class="mt-pad" style="padding:22px 0 0;font-size:14px;line-height:23px;">
+    <div style="border-top:1px solid #dddddd;padding-top:18px;">
+      {if $mtc.promo_title}<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:{$mtc.accent};padding-bottom:6px;">{$mtc.promo_title}</div>{/if}
+      {if $mtc.promo_text}<div style="color:#555555;">{$mtc.promo_text}</div>{/if}
+      <a href="{$mtc.promo_url}" style="color:#111111;text-decoration:underline;">{if $mtc.promo_btn}{$mtc.promo_btn}{else}{$mt.visit}{/if} &rarr;</a>
+    </div>
+  </td></tr>
+  {/if}
 
   <tr><td class="mt-pad" style="padding:22px 0 8px;font-size:14px;line-height:23px;color:#555555;">
     {$mt.next_text}

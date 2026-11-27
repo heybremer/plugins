@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <jtlshopplugin>
     <Name>MailTemplate</Name>
     <Description>Bestellbestaetigung-, Zahlungs- und Versand-Mail im neuen Design: 3 Vorlagen (Classic, Modern, Minimal), Auswahl im Admin-Dashboard.</Description>
@@ -8,7 +8,7 @@
     <ShopVersion>5.2.0</ShopVersion>
     <PluginID>MailTemplate</PluginID>
     <CreateDate>2026-11-27</CreateDate>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Bootstrap>Plugin\MailTemplate\Bootstrap</Bootstrap>
     <Install>
         <Adminmenu>

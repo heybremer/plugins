@@ -31,7 +31,7 @@ a { color:inherit; }
 
   <tr><td class="mt-pad" align="center" style="background:{$mtc.accent};border-radius:16px 16px 0 0;padding:36px 36px 30px;">
     <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-      <td align="center" width="56" height="56" style="width:56px;height:56px;border-radius:28px;background:#ffffff;color:{$mtc.accent};font-size:30px;line-height:56px;font-weight:bold;">&#10003;</td>
+      <td align="center" width="56" height="56" style="width:56px;height:56px;border-radius:28px;background:#ffffff;color:{$mtc.accent};font-size:30px;line-height:56px;font-weight:bold;">{if $mt.kind === 'cancelled'}&#10005;{else}&#10003;{/if}</td>
     </tr></table>
     <h1 class="mt-h1" style="margin:18px 0 8px;font-size:28px;line-height:34px;color:#ffffff;font-weight:bold;">{$mt.title}</h1>
     <p style="margin:0;font-size:15px;line-height:22px;color:#ffffff;opacity:.9;">{if $mtc.tagline}{$mtc.tagline}{else}{$mt.order_no}{/if}</p>
@@ -46,6 +46,7 @@ a { color:inherit; }
     {if $mtc.note}<p style="margin:14px 0 0;padding:12px 16px;background:{$mtc.accent_tint};border-left:4px solid {$mtc.accent};font-size:14px;line-height:22px;color:#374151;">{$mtc.note}</p>{/if}
   </td></tr>
 
+  {if $mt.kind !== 'cancelled'}
   <tr><td class="mt-pad" style="background:#ffffff;padding:22px 36px 6px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
       <td align="center" width="25%" style="font-size:12px;color:{if $mt.step >= 1}#111827{else}#9ca3af{/if};"><div style="width:30px;height:30px;line-height:30px;border-radius:15px;font-weight:bold;margin:0 auto 6px; background:{if $mt.step >= 1}{$mtc.accent}{else}#e5e7eb{/if};color:{if $mt.step >= 1}#ffffff{else}#6b7280{/if};">1</div>{if $mt.step == 1}<strong>{$mt.step_1}</strong>{else}{$mt.step_1}{/if}</td>
@@ -54,6 +55,8 @@ a { color:inherit; }
       <td align="center" width="25%" style="font-size:12px;color:{if $mt.step >= 4}#111827{else}#9ca3af{/if};"><div style="width:30px;height:30px;line-height:30px;border-radius:15px;font-weight:bold;margin:0 auto 6px; background:{if $mt.step >= 4}{$mtc.accent}{else}#e5e7eb{/if};color:{if $mt.step >= 4}#ffffff{else}#6b7280{/if};">4</div>{if $mt.step == 4}<strong>{$mt.step_4}</strong>{else}{$mt.step_4}{/if}</td>
     </tr></table>
   </td></tr>
+
+  {/if}
 
   <tr><td class="mt-pad" style="background:#ffffff;padding:20px 36px 4px;">
     <h2 style="margin:0 0 10px;font-size:16px;color:#111827;">{$mt.items}</h2>
@@ -76,7 +79,7 @@ a { color:inherit; }
                 {foreach $Position->WarenkorbPosEigenschaftArr as $WKPosEigenschaft}
                   <div style="font-size:12px;color:#6b7280;">{$WKPosEigenschaft->cEigenschaftName}: {$WKPosEigenschaft->cEigenschaftWertName}</div>
                 {/foreach}
-                {if $Einstellungen.kaufabwicklung.bestellvorgang_lieferstatus_anzeigen === 'Y' && $Position->cLieferstatus}<div style="font-size:12px;color:#6b7280;">{$mt.delivery}: {$Position->cLieferstatus}</div>{/if}
+                {if $Einstellungen.kaufabwicklung.bestellvorgang_lieferstatus_anzeigen === 'Y' && $Position->cLieferstatus}<div style="font-size:12px;color:#6b7280;">{$mt.delivery}: {$Position->cLieferstatus}</div>{/if}{if $mt.kind === 'shipped' && !empty($Position->Artikel->cURLFull)}<div style="font-size:12px;margin-top:2px;"><a href="{$Position->Artikel->cURLFull}#tab-votes" style="color:{$mtc.accent};">{$mt.review}</a></div>{/if}
                 {if $Einstellungen.kaufabwicklung.bestellvorgang_einzelpreise_anzeigen === 'Y' && isset($Position->cEinzelpreisLocalized)}<div style="font-size:12px;color:#9ca3af;">{$Position->cEinzelpreisLocalized[$NettoPreise]} / Stk.</div>{/if}
               {else}
                 <strong>{$Position->cName}</strong>{if !empty($Position->cHinweis)} <span style="color:#6b7280;font-size:12px;">{$Position->cHinweis}</span>{/if}
@@ -90,6 +93,7 @@ a { color:inherit; }
     </table>
   </td></tr>
 
+  {if $mt.kind !== 'partshipped'}
   <tr><td class="mt-pad" style="background:#ffffff;padding:8px 36px 26px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{$mtc.accent_tint};border-radius:12px;">
       <tr><td style="padding:16px 20px;">
@@ -116,6 +120,8 @@ a { color:inherit; }
       </table>
     {/if}
   </td></tr>
+
+  {/if}
 
   <tr><td class="mt-pad" style="background:#ffffff;padding:0 36px 10px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
@@ -167,9 +173,9 @@ a { color:inherit; }
       </tr>
       {/if}
     </table>
-    {if $mt.kind === 'shipped' && !empty($Bestellung->oLieferschein_arr)}
+    {if ($mt.kind === 'shipped' || $mt.kind === 'partshipped') && !empty($Bestellung->oLieferschein_arr)}
       {foreach $Bestellung->oLieferschein_arr as $oLieferschein}{foreach $oLieferschein->oVersand_arr as $oVersand}
-        {if $oVersand->getIdentCode()|strlen > 0}
+        {if $oVersand->getIdentCode()|strlen > 0 && ($mt.kind === 'shipped' || !$oLieferschein->getEmailVerschickt())}
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px;background:{$mtc.accent_tint};border-radius:12px;">
             <tr><td style="padding:16px 20px;font-size:13px;line-height:21px;color:#374151;">
               <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:{$mtc.accent};font-weight:bold;margin-bottom:6px;">{$mt.tracking}</div>
@@ -200,6 +206,16 @@ a { color:inherit; }
     {if !empty($Zahlungsart->cHinweisText)}<div style="margin-top:12px;font-size:13px;line-height:20px;color:#374151;">{$Zahlungsart->cHinweisText}</div>{/if}
     {/if}
   </td></tr>
+
+  {if $mt.kind !== 'cancelled' && $mtc.promo_url && ($mtc.promo_title || $mtc.promo_text)}
+  <tr><td class="mt-pad" style="background:#ffffff;padding:14px 36px 0;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{$mtc.accent_tint};border-radius:12px;"><tr><td align="center" style="padding:20px 22px;">
+      {if $mtc.promo_title}<p style="margin:0 0 6px;font-size:16px;font-weight:bold;color:#111827;">{$mtc.promo_title}</p>{/if}
+      {if $mtc.promo_text}<p style="margin:0 0 14px;font-size:14px;line-height:22px;color:#4b5563;">{$mtc.promo_text}</p>{/if}
+      <a href="{$mtc.promo_url}" style="display:inline-block;padding:10px 22px;border-radius:8px;border:2px solid {$mtc.accent};font-size:14px;font-weight:bold;color:{$mtc.accent};text-decoration:none;">{if $mtc.promo_btn}{$mtc.promo_btn}{else}{$mt.visit}{/if}</a>
+    </td></tr></table>
+  </td></tr>
+  {/if}
 
   <tr><td class="mt-pad" align="center" style="background:#ffffff;padding:22px 36px 8px;">
     <p style="margin:0 0 4px;font-size:15px;font-weight:bold;color:#111827;">{$mt.next}</p>

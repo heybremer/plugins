@@ -43,7 +43,7 @@ final class TestMail
         if (!isset(Config::DESIGNS[$design])) {
             return 'Unbekanntes Design.';
         }
-        if (!\in_array($kind, ['confirmation', 'paid', 'shipped'], true)) {
+        if (!\in_array($kind, ['confirmation', 'paid', 'shipped', 'partshipped', 'cancelled'], true)) {
             $kind = 'confirmation';
         }
         $mailer = Shop::Container()->getMailer();

@@ -31,6 +31,9 @@ final class Designer
         }
         $accent = $cfg['accent'] !== '' ? $cfg['accent'] : Config::DESIGNS[$design]['accent'];
         $h      = static fn(string $v): string => \htmlspecialchars($v, \ENT_QUOTES, 'UTF-8');
+        if ($kind === 'partshipped') {
+            self::usePartialPositions($smarty);
+        }
         $smarty->assign('mt', Labels::get($lang, $kind));
         $smarty->assign('mtc', [
             'accent'       => $accent,
@@ -42,10 +45,53 @@ final class Designer
             'support_phone' => $h($cfg['support_phone']),
             'logo'         => $h($cfg['logo_url']),
             'images'       => ($cfg['show_images'] ?? '1') === '1',
+            'promo_title'  => $h($cfg['promo_title'] ?? ''),
+            'promo_text'   => $h($cfg['promo_text'] ?? ''),
+            'promo_btn'    => $h($cfg['promo_btn'] ?? ''),
+            'promo_url'    => $h($cfg['promo_url'] ?? ''),
             'year'         => \date('Y'),
         ]);
 
         return $smarty->fetch('string:' . $src);
+    }
+
+    /**
+     * Teilversand: Positionsliste = die in dieser Mail versandten Lieferschein-Positionen.
+     */
+    private static function usePartialPositions(object $smarty): void
+    {
+        $order = $smarty->getTemplateVars('Bestellung');
+        if (!\is_object($order) || empty($order->oLieferschein_arr)) {
+            return;
+        }
+        $byArt = [];
+        foreach ((array)($order->Positionen ?? []) as $p) {
+            if (\is_object($p)) {
+                $byArt[(string)($p->cArtNr ?? '')] = $p;
+            }
+        }
+        $rows = [];
+        foreach ($order->oLieferschein_arr as $ls) {
+            if (!\is_object($ls) || (\method_exists($ls, 'getEmailVerschickt') && $ls->getEmailVerschickt())) {
+                continue;
+            }
+            foreach ((array)($ls->oPosition_arr ?? []) as $p) {
+                $row                = clone $p;
+                $row->nAnzahl       = (int)($p->nAusgeliefert ?? $p->nAnzahl ?? 1);
+                $orig               = $byArt[(string)($p->cArtNr ?? '')] ?? null;
+                $row->Artikel       = $p->Artikel ?? ($orig->Artikel ?? null);
+                $row->cEinzelpreisLocalized = null;
+                $row->cGesamtpreisLocalized = [0 => '', 1 => ''];
+                unset($row->cEinzelpreisLocalized);
+                $rows[] = $row;
+            }
+        }
+        if ($rows === []) {
+            return;
+        }
+        $clone            = clone $order;
+        $clone->Positionen = $rows;
+        $smarty->assign('Bestellung', $clone);
     }
 
     /** Mischt Farbe $a mit $b (Anteil $t von $b). */
