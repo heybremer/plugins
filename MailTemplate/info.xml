@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jtlshopplugin>
+    <Name>MailTemplate</Name>
+    <Description>Bestellbestaetigung-Mail im neuen Design: 3 Vorlagen (Classic, Modern, Minimal), Auswahl im Admin-Dashboard.</Description>
+    <Author>Womosi</Author>
+    <URL>https://womosi.de</URL>
+    <XMLVersion>100</XMLVersion>
+    <ShopVersion>5.2.0</ShopVersion>
+    <PluginID>MailTemplate</PluginID>
+    <CreateDate>2026-11-27</CreateDate>
+    <Version>1.0.0</Version>
+    <Bootstrap>Plugin\MailTemplate\Bootstrap</Bootstrap>
+    <Install>
+        <Adminmenu>
+            <Customlink sort="1">
+                <Name>Mail-Design</Name>
+                <Filename>dashboard.php</Filename>
+            </Customlink>
+        </Adminmenu>
+    </Install>
+</jtlshopplugin>
