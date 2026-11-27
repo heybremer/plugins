@@ -12,13 +12,15 @@ use JTL\Shop;
  */
 final class Demo
 {
-    public static function render(string $design, string $lang): string
+    public static function render(string $design, string $lang, string $kind = 'confirmation'): string
     {
         $mailer = Shop::Container()->getMailer();
         $smarty = $mailer->getRenderer()->getSmarty();
         $o = static fn(array $a): \stdClass => (object)$a;
 
+        $img = self::sampleImage();
         $kunde = $o([
+
             'cVorname' => 'Max', 'cNachname' => 'Mustermann', 'cFirma' => '', 'cStrasse' => 'Musterstraße',
             'cHausnummer' => '12', 'cAdressZusatz' => '', 'cPLZ' => '28195', 'cOrt' => 'Bremen',
             'cBundesland' => '', 'angezeigtesLand' => 'Deutschland', 'cMail' => 'max@example.com', 'cUSTID' => '',
@@ -31,12 +33,13 @@ final class Demo
                     $o(['cEigenschaftName' => 'Farbe', 'cEigenschaftWertName' => 'Anthrazit']),
                     $o(['cEigenschaftName' => 'Serie', 'cEigenschaftWertName' => 'C-Serie']),
                 ],
+                'Artikel' => $o(['cVorschaubildURL' => $img]),
                 'cEinzelpreisLocalized' => [0 => '129,90 €', 1 => '109,16 €'],
                 'cGesamtpreisLocalized' => [0 => '129,90 €', 1 => '109,16 €'],
             ]),
             $o([
                 'nPosTyp' => 1, 'cName' => 'Armlehnenbezug Fiat Ducato', 'cArtNr' => 'FD-ARM-02', 'nAnzahl' => 2,
-                'cLieferstatus' => '', 'WarenkorbPosEigenschaftArr' => [],
+                'cLieferstatus' => '', 'WarenkorbPosEigenschaftArr' => [], 'Artikel' => $o(['cVorschaubildURL' => $img]),
                 'cEinzelpreisLocalized' => [0 => '19,95 €', 1 => '16,76 €'],
                 'cGesamtpreisLocalized' => [0 => '39,90 €', 1 => '33,53 €'],
             ]),
@@ -57,6 +60,7 @@ final class Demo
                 'cStrasse' => 'Beispielweg', 'cHausnummer' => '3', 'cAdressZusatz' => '', 'cPLZ' => '20095',
                 'cOrt' => 'Hamburg', 'cBundesland' => '', 'angezeigtesLand' => 'Deutschland',
             ]),
+            'oLieferschein_arr' => $kind === 'shipped' ? [$o(['oVersand_arr' => [self::shipment()]])] : [],
             'cEstimatedDelivery' => '3-5 Werktage',
             'cEstimatedDeliveryEx' => '02.12.2026 - 04.12.2026',
         ]);
@@ -73,8 +77,47 @@ final class Demo
             ->assign('Verfuegbarkeit_arr', null)
             ->assign('Zahlungsart', null);
 
-        $html = Designer::render($design, $smarty, $lang, Config::all());
+        $html = Designer::render($design, $smarty, $lang, Config::all(), $kind);
 
         return \str_replace(['[AKZ]', '[LEGAL_DATA]'], ['', ''], $html);
+    }
+
+    /** Echtes Artikelbild aus dem Shop (sonst leer -> Bild wird ausgeblendet). */
+    private static function sampleImage(): string
+    {
+        try {
+            $row = Shop::Container()->getDB()->getSingleObject(
+                'SELECT p.kArtikel, s.cSeo FROM tartikelpict p
+                  JOIN tseo s ON s.cKey = \'kArtikel\' AND s.kKey = p.kArtikel AND s.kSprache = 1
+                 ORDER BY p.kArtikelPict DESC LIMIT 1'
+            );
+            if ($row !== null && (string)$row->cSeo !== '') {
+                return Shop::getURL() . '/media/image/product/' . (int)$row->kArtikel . '/sm/' . $row->cSeo . '.jpg';
+            }
+        } catch (\Throwable $e) {
+            // kein Beispielbild
+        }
+
+        return '';
+    }
+
+    private static function shipment(): object
+    {
+        return new class {
+            public function getIdentCode(): string
+            {
+                return '00340434161094042557';
+            }
+
+            public function getLogistikVarUrl(): string
+            {
+                return 'https://www.dhl.de/de/privatkunden/pakete-empfangen/verfolgen.html';
+            }
+
+            public function getHinweis(): string
+            {
+                return '';
+            }
+        };
     }
 }

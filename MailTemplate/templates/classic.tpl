@@ -63,6 +63,7 @@ img { border:0; outline:none; text-decoration:none; }
       {foreach $Bestellung->Positionen as $Position}
         <tr>
           <td valign="top" style="padding:12px 8px 12px 0;border-bottom:1px solid #e9e9e9;line-height:20px;">
+            {if $mtc.images && $Position->nPosTyp == 1 && !empty($Position->Artikel->cVorschaubildURL)}<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td valign="top" style="padding-right:12px;"><img src="{$Position->Artikel->cVorschaubildURL}" width="56" height="56" alt="" style="display:block;width:56px;height:56px;object-fit:cover;border:1px solid #e6e6e6;"></td><td valign="top" style="font-size:14px;line-height:20px;">{/if}
             {if $Position->nPosTyp == 1}
               <strong>{$Position->cName}</strong>{if $Position->cArtNr} <span style="color:#999999;font-size:12px;">({$Position->cArtNr})</span>{/if}
               {foreach $Position->WarenkorbPosEigenschaftArr as $WKPosEigenschaft}
@@ -73,6 +74,7 @@ img { border:0; outline:none; text-decoration:none; }
             {else}
               <strong>{$Position->cName}</strong>{if !empty($Position->cHinweis)} <span style="color:#777777;font-size:12px;">{$Position->cHinweis}</span>{/if}
             {/if}
+            {if $mtc.images && $Position->nPosTyp == 1 && !empty($Position->Artikel->cVorschaubildURL)}</td></tr></table>{/if}
           </td>
           <td valign="top" align="center" style="padding:12px 6px;border-bottom:1px solid #e9e9e9;">{$Position->nAnzahl}</td>
           <td valign="top" align="right" style="padding:12px 0;border-bottom:1px solid #e9e9e9;white-space:nowrap;">{$Position->cGesamtpreisLocalized[$NettoPreise]}</td>
@@ -136,11 +138,24 @@ img { border:0; outline:none; text-decoration:none; }
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #e6e6e6;border-bottom:1px solid #e6e6e6;">
       <tr>
         <td class="mt-col" width="50%" style="padding:10px 0;color:#777777;">{$mt.payment}: <strong style="color:#2b2b2b;">{$Bestellung->cZahlungsartName}</strong></td>
-        <td class="mt-col" width="50%" style="padding:10px 0;color:#777777;">{$mt.delivery}: <strong style="color:#2b2b2b;">{if isset($Bestellung->cEstimatedDeliveryEx)}{$Bestellung->cEstimatedDeliveryEx}{else}{$Bestellung->cEstimatedDelivery|default:'-'}{/if}</strong></td>
+        {if $mt.kind === 'confirmation'}<td class="mt-col" width="50%" style="padding:10px 0;color:#777777;">{$mt.delivery}: <strong style="color:#2b2b2b;">{if isset($Bestellung->cEstimatedDeliveryEx)}{$Bestellung->cEstimatedDeliveryEx}{else}{$Bestellung->cEstimatedDelivery|default:'-'}{/if}</strong></td>{/if}
       </tr>
     </table>
-    {if $mt_mod === 'za_ueberweisung_jtl'}
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;background:#f7f7f7;border:1px solid #e0e0e0;font-size:13px;">
+    {if $mt.kind === 'shipped' && !empty($Bestellung->oLieferschein_arr)}
+      {foreach $Bestellung->oLieferschein_arr as $oLieferschein}{foreach $oLieferschein->oVersand_arr as $oVersand}
+        {if $oVersand->getIdentCode()|strlen > 0}
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;background:#f7f7f7;border:1px solid #e0e0e0;font-size:13px;">
+            <tr><td style="padding:12px 16px;line-height:21px;">
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:16px;color:{$mtc.accent};margin-bottom:4px;">{$mt.tracking}</div>
+              {$mt.track_no}: <a href="{$oVersand->getLogistikVarUrl()}" style="color:{$mtc.accent};font-weight:bold;">{$oVersand->getIdentCode()}</a>
+              {if $oVersand->getHinweis()|strlen > 0}<br>{$mt.track_hint}: {$oVersand->getHinweis()}{/if}
+            </td></tr>
+          </table>
+        {/if}
+      {/foreach}{/foreach}
+    {/if}
+    {if $mt.kind === 'confirmation'}
+    {if $mt_mod === 'za_ueberweisung_jtl'}      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;background:#f7f7f7;border:1px solid #e0e0e0;font-size:13px;">
         <tr><td colspan="2" style="padding:12px 16px 6px;font-family:Georgia,'Times New Roman',serif;font-size:16px;color:{$mtc.accent};">{$mt.transfer}</td></tr>
         <tr><td style="padding:3px 16px;width:38%;color:#777777;">{$mt.holder}</td><td style="padding:3px 16px;"><strong>{$Firma->cKontoinhaber}</strong></td></tr>
         <tr><td style="padding:3px 16px;color:#777777;">{$mt.bank}</td><td style="padding:3px 16px;"><strong>{$Firma->cBank}</strong></td></tr>
@@ -155,6 +170,7 @@ img { border:0; outline:none; text-decoration:none; }
       <p style="margin:16px 0 0;font-size:13px;line-height:20px;">{$mt.paypal}: {$Einstellungen.zahlungsarten.zahlungsart_paypal_empfaengermail}</p>
     {/if}
     {if !empty($Zahlungsart->cHinweisText)}<div style="margin-top:14px;font-size:13px;line-height:20px;">{$Zahlungsart->cHinweisText}</div>{/if}
+    {/if}
   </td></tr>
 
   <tr><td class="mt-pad" style="padding:22px 40px 8px;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:22px;color:#555555;">

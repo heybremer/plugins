@@ -14,8 +14,13 @@ final class Designer
      * @param object               $smarty JTL\Smarty\MailSmarty
      * @param array<string,string> $cfg    Config::all()
      */
-    public static function render(string $design, object $smarty, string $lang, array $cfg): string
-    {
+    public static function render(
+        string $design,
+        object $smarty,
+        string $lang,
+        array $cfg,
+        string $kind = 'confirmation'
+    ): string {
         if (!isset(Config::DESIGNS[$design])) {
             $design = 'modern';
         }
@@ -26,7 +31,7 @@ final class Designer
         }
         $accent = $cfg['accent'] !== '' ? $cfg['accent'] : Config::DESIGNS[$design]['accent'];
         $h      = static fn(string $v): string => \htmlspecialchars($v, \ENT_QUOTES, 'UTF-8');
-        $smarty->assign('mt', Labels::get($lang));
+        $smarty->assign('mt', Labels::get($lang, $kind));
         $smarty->assign('mtc', [
             'accent'       => $accent,
             'accent_dark'  => self::mix($accent, '#000000', 0.25),
@@ -36,6 +41,7 @@ final class Designer
             'support_mail' => $h($cfg['support_mail']),
             'support_phone' => $h($cfg['support_phone']),
             'logo'         => $h($cfg['logo_url']),
+            'images'       => ($cfg['show_images'] ?? '1') === '1',
             'year'         => \date('Y'),
         ]);
 

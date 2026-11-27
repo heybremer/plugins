@@ -57,6 +57,7 @@ img { border:0; outline:none; text-decoration:none; }
     {foreach $Bestellung->Positionen as $Position}
       <tr>
         <td valign="top" style="padding:14px 0;border-bottom:1px solid #eeeeee;font-size:14px;line-height:21px;">
+          {if $mtc.images && $Position->nPosTyp == 1 && !empty($Position->Artikel->cVorschaubildURL)}<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td valign="top" style="padding-right:12px;"><img src="{$Position->Artikel->cVorschaubildURL}" width="52" height="52" alt="" style="display:block;width:52px;height:52px;object-fit:cover;border:1px solid #e6e6e6;"></td><td valign="top" style="font-size:14px;line-height:20px;">{/if}
           {if $Position->nPosTyp == 1}
             <span style="color:#888888;">{$Position->nAnzahl}&times;</span>&nbsp; <strong style="font-weight:600;">{$Position->cName}</strong>{if $Position->cArtNr} <span style="color:#aaaaaa;font-size:12px;">{$Position->cArtNr}</span>{/if}
             {foreach $Position->WarenkorbPosEigenschaftArr as $WKPosEigenschaft}
@@ -66,6 +67,7 @@ img { border:0; outline:none; text-decoration:none; }
           {else}
             <strong style="font-weight:600;">{$Position->cName}</strong>{if !empty($Position->cHinweis)} <span style="color:#888888;font-size:12px;">{$Position->cHinweis}</span>{/if}
           {/if}
+          {if $mtc.images && $Position->nPosTyp == 1 && !empty($Position->Artikel->cVorschaubildURL)}</td></tr></table>{/if}
         </td>
         <td valign="top" align="right" style="padding:14px 0 14px 12px;border-bottom:1px solid #eeeeee;font-size:14px;white-space:nowrap;">{$Position->cGesamtpreisLocalized[$NettoPreise]}</td>
       </tr>
@@ -124,9 +126,20 @@ img { border:0; outline:none; text-decoration:none; }
   </td></tr>
 
   <tr><td class="mt-pad" style="padding:10px 0 0;font-size:13px;line-height:21px;color:#333333;">
-    <div style="padding:10px 0;border-top:1px solid #dddddd;"><span style="color:#888888;">{$mt.delivery}:</span> {if isset($Bestellung->cEstimatedDeliveryEx)}{$Bestellung->cEstimatedDeliveryEx}{else}{$Bestellung->cEstimatedDelivery|default:'-'}{/if}</div>
-    {if $mt_mod === 'za_ueberweisung_jtl'}
-      <div style="margin-top:6px;padding:16px 18px;border:1px solid #111111;">
+    {if $mt.kind === 'confirmation'}<div style="padding:10px 0;border-top:1px solid #dddddd;"><span style="color:#888888;">{$mt.delivery}:</span> {if isset($Bestellung->cEstimatedDeliveryEx)}{$Bestellung->cEstimatedDeliveryEx}{else}{$Bestellung->cEstimatedDelivery|default:'-'}{/if}</div>{/if}
+    {if $mt.kind === 'shipped' && !empty($Bestellung->oLieferschein_arr)}
+      {foreach $Bestellung->oLieferschein_arr as $oLieferschein}{foreach $oLieferschein->oVersand_arr as $oVersand}
+        {if $oVersand->getIdentCode()|strlen > 0}
+          <div style="margin-top:6px;padding:14px 18px;border:1px solid #111111;font-size:13px;line-height:21px;">
+            <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:{$mtc.accent};padding-bottom:6px;">{$mt.tracking}</div>
+            {$mt.track_no}: <a href="{$oVersand->getLogistikVarUrl()}" style="color:#111111;font-family:'Courier New',monospace;">{$oVersand->getIdentCode()}</a>
+            {if $oVersand->getHinweis()|strlen > 0}<br>{$mt.track_hint}: {$oVersand->getHinweis()}{/if}
+          </div>
+        {/if}
+      {/foreach}{/foreach}
+    {/if}
+    {if $mt.kind === 'confirmation'}
+    {if $mt_mod === 'za_ueberweisung_jtl'}      <div style="margin-top:6px;padding:16px 18px;border:1px solid #111111;">
         <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:{$mtc.accent};padding-bottom:8px;">{$mt.transfer}</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;line-height:21px;">
           <tr><td width="38%" style="color:#888888;">{$mt.holder}</td><td>{$Firma->cKontoinhaber}</td></tr>
@@ -143,6 +156,7 @@ img { border:0; outline:none; text-decoration:none; }
       <p style="margin:8px 0 0;">{$mt.paypal}: {$Einstellungen.zahlungsarten.zahlungsart_paypal_empfaengermail}</p>
     {/if}
     {if !empty($Zahlungsart->cHinweisText)}<div style="margin-top:10px;">{$Zahlungsart->cHinweisText}</div>{/if}
+    {/if}
   </td></tr>
 
   <tr><td class="mt-pad" style="padding:22px 0 8px;font-size:14px;line-height:23px;color:#555555;">

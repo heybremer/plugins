@@ -12,6 +12,7 @@ require_once __DIR__ . '/src/Labels.php';
 require_once __DIR__ . '/src/Designer.php';
 require_once __DIR__ . '/src/DesignRenderer.php';
 require_once __DIR__ . '/src/Demo.php';
+require_once __DIR__ . '/src/TestMail.php';
 
 /**
  * Ersetzt das HTML der Bestellbestaetigung durch eines von 3 Designs (Auswahl im Admin).

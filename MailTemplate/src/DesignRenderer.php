@@ -49,18 +49,24 @@ final class DesignRenderer implements RendererInterface
     public function renderTemplate(TemplateInterface $template, int $languageID): void
     {
         $this->inner->renderTemplate($template, $languageID);
-        if ($template->getID() !== \MAILTEMPLATE_BESTELLBESTAETIGUNG) {
+        $kinds = [
+            \MAILTEMPLATE_BESTELLBESTAETIGUNG => ['confirmation', 'enabled'],
+            \MAILTEMPLATE_BESTELLUNG_BEZAHLT  => ['paid', 'apply_paid'],
+            \MAILTEMPLATE_BESTELLUNG_VERSANDT => ['shipped', 'apply_shipped'],
+        ];
+        if (!isset($kinds[$template->getID()])) {
             return;
         }
+        [$kind, $flag] = $kinds[$template->getID()];
         try {
             $cfg = Config::all();
-            if ($cfg['enabled'] !== '1' || \trim((string)$template->getHTML()) === '') {
+            if ($cfg['enabled'] !== '1' || $cfg[$flag] !== '1' || \trim((string)$template->getHTML()) === '') {
                 return;
             }
             $smarty = $this->inner->getSmarty();
             $lang   = $smarty->getTemplateVars('int_lang');
             $iso    = \is_object($lang) && \method_exists($lang, 'getIso639') ? (string)$lang->getIso639() : 'de';
-            $html   = Designer::render($cfg['design'], $smarty, $iso, $cfg);
+            $html   = Designer::render($cfg['design'], $smarty, $iso, $cfg, $kind);
             if (\mb_strlen($html) < 500 || \stripos($html, '</html>') === false) {
                 return;
             }

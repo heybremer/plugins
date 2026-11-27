@@ -48,10 +48,10 @@ a { color:inherit; }
 
   <tr><td class="mt-pad" style="background:#ffffff;padding:22px 36px 6px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-      <td align="center" width="25%" style="font-size:12px;color:#111827;"><div style="width:30px;height:30px;line-height:30px;border-radius:15px;background:{$mtc.accent};color:#ffffff;font-weight:bold;margin:0 auto 6px;">1</div><strong>{$mt.step_1}</strong></td>
-      <td align="center" width="25%" style="font-size:12px;color:#9ca3af;"><div style="width:30px;height:30px;line-height:30px;border-radius:15px;background:#e5e7eb;color:#6b7280;font-weight:bold;margin:0 auto 6px;">2</div>{$mt.step_2}</td>
-      <td align="center" width="25%" style="font-size:12px;color:#9ca3af;"><div style="width:30px;height:30px;line-height:30px;border-radius:15px;background:#e5e7eb;color:#6b7280;font-weight:bold;margin:0 auto 6px;">3</div>{$mt.step_3}</td>
-      <td align="center" width="25%" style="font-size:12px;color:#9ca3af;"><div style="width:30px;height:30px;line-height:30px;border-radius:15px;background:#e5e7eb;color:#6b7280;font-weight:bold;margin:0 auto 6px;">4</div>{$mt.step_4}</td>
+      <td align="center" width="25%" style="font-size:12px;color:{if $mt.step >= 1}#111827{else}#9ca3af{/if};"><div style="width:30px;height:30px;line-height:30px;border-radius:15px;font-weight:bold;margin:0 auto 6px; background:{if $mt.step >= 1}{$mtc.accent}{else}#e5e7eb{/if};color:{if $mt.step >= 1}#ffffff{else}#6b7280{/if};">1</div>{if $mt.step == 1}<strong>{$mt.step_1}</strong>{else}{$mt.step_1}{/if}</td>
+      <td align="center" width="25%" style="font-size:12px;color:{if $mt.step >= 2}#111827{else}#9ca3af{/if};"><div style="width:30px;height:30px;line-height:30px;border-radius:15px;font-weight:bold;margin:0 auto 6px; background:{if $mt.step >= 2}{$mtc.accent}{else}#e5e7eb{/if};color:{if $mt.step >= 2}#ffffff{else}#6b7280{/if};">2</div>{if $mt.step == 2}<strong>{$mt.step_2}</strong>{else}{$mt.step_2}{/if}</td>
+      <td align="center" width="25%" style="font-size:12px;color:{if $mt.step >= 3}#111827{else}#9ca3af{/if};"><div style="width:30px;height:30px;line-height:30px;border-radius:15px;font-weight:bold;margin:0 auto 6px; background:{if $mt.step >= 3}{$mtc.accent}{else}#e5e7eb{/if};color:{if $mt.step >= 3}#ffffff{else}#6b7280{/if};">3</div>{if $mt.step == 3}<strong>{$mt.step_3}</strong>{else}{$mt.step_3}{/if}</td>
+      <td align="center" width="25%" style="font-size:12px;color:{if $mt.step >= 4}#111827{else}#9ca3af{/if};"><div style="width:30px;height:30px;line-height:30px;border-radius:15px;font-weight:bold;margin:0 auto 6px; background:{if $mt.step >= 4}{$mtc.accent}{else}#e5e7eb{/if};color:{if $mt.step >= 4}#ffffff{else}#6b7280{/if};">4</div>{if $mt.step == 4}<strong>{$mt.step_4}</strong>{else}{$mt.step_4}{/if}</td>
     </tr></table>
   </td></tr>
 
@@ -68,6 +68,7 @@ a { color:inherit; }
       <tr>
         <td valign="top" style="padding:12px 0;border-top:1px solid #eef0f4;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+            {if $mtc.images && $Position->nPosTyp == 1 && !empty($Position->Artikel->cVorschaubildURL)}<td valign="top" width="64" style="width:64px;padding-right:10px;"><img src="{$Position->Artikel->cVorschaubildURL}" width="54" height="54" alt="" style="display:block;width:54px;height:54px;border-radius:8px;border:1px solid #eef0f4;object-fit:cover;"></td>{/if}
             <td valign="top" width="44" style="width:44px;"><div style="min-width:34px;padding:4px 0;border-radius:8px;background:{$mtc.accent_tint};color:{$mtc.accent};font-weight:bold;font-size:13px;text-align:center;">{$Position->nAnzahl}&times;</div></td>
             <td valign="top" style="font-size:14px;line-height:20px;color:#111827;">
               {if $Position->nPosTyp == 1}
@@ -159,11 +160,28 @@ a { color:inherit; }
         <td style="padding:8px 0;border-top:1px solid #eef0f4;">{$mt.payment}</td>
         <td align="right" style="padding:8px 0;border-top:1px solid #eef0f4;"><strong>{$Bestellung->cZahlungsartName}</strong></td>
       </tr>
+      {if $mt.kind === 'confirmation'}
       <tr>
         <td style="padding:8px 0;border-top:1px solid #eef0f4;">{$mt.delivery}</td>
         <td align="right" style="padding:8px 0;border-top:1px solid #eef0f4;"><strong>{if isset($Bestellung->cEstimatedDeliveryEx)}{$Bestellung->cEstimatedDeliveryEx}{else}{$Bestellung->cEstimatedDelivery|default:'-'}{/if}</strong></td>
       </tr>
+      {/if}
     </table>
+    {if $mt.kind === 'shipped' && !empty($Bestellung->oLieferschein_arr)}
+      {foreach $Bestellung->oLieferschein_arr as $oLieferschein}{foreach $oLieferschein->oVersand_arr as $oVersand}
+        {if $oVersand->getIdentCode()|strlen > 0}
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px;background:{$mtc.accent_tint};border-radius:12px;">
+            <tr><td style="padding:16px 20px;font-size:13px;line-height:21px;color:#374151;">
+              <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:{$mtc.accent};font-weight:bold;margin-bottom:6px;">{$mt.tracking}</div>
+              {$mt.track_no}: <a href="{$oVersand->getLogistikVarUrl()}" style="color:{$mtc.accent};font-weight:bold;">{$oVersand->getIdentCode()}</a>
+              {if $oVersand->getHinweis()|strlen > 0}<br>{$mt.track_hint}: {$oVersand->getHinweis()}{/if}
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px;"><tr><td style="background:{$mtc.accent};border-radius:8px;"><a href="{$oVersand->getLogistikVarUrl()}" style="display:inline-block;padding:10px 20px;font-size:14px;font-weight:bold;color:#ffffff;text-decoration:none;">{$mt.tracking} &rarr;</a></td></tr></table>
+            </td></tr>
+          </table>
+        {/if}
+      {/foreach}{/foreach}
+    {/if}
+    {if $mt.kind === 'confirmation'}
     {if $mt_mod === 'za_ueberweisung_jtl'}
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px;border:1px dashed {$mtc.accent};border-radius:12px;font-size:13px;color:#374151;">
         <tr><td colspan="2" style="padding:12px 16px 4px;font-weight:bold;color:{$mtc.accent};">{$mt.transfer}</td></tr>
@@ -180,6 +198,7 @@ a { color:inherit; }
       <p style="margin:14px 0 0;font-size:13px;line-height:20px;color:#374151;">{$mt.paypal}: {$Einstellungen.zahlungsarten.zahlungsart_paypal_empfaengermail}</p>
     {/if}
     {if !empty($Zahlungsart->cHinweisText)}<div style="margin-top:12px;font-size:13px;line-height:20px;color:#374151;">{$Zahlungsart->cHinweisText}</div>{/if}
+    {/if}
   </td></tr>
 
   <tr><td class="mt-pad" align="center" style="background:#ffffff;padding:22px 36px 8px;">

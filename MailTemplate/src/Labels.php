@@ -9,9 +9,64 @@ final class Labels
     /**
      * @return array<string, string>
      */
-    public static function get(string $lang): array
+    public static function get(string $lang, string $kind = 'confirmation'): array
     {
-        return \stripos($lang, 'en') === 0 ? self::en() : self::de();
+        $en     = \stripos($lang, 'en') === 0;
+        $labels = $en ? self::en() : self::de();
+        $labels['kind'] = $kind;
+        $labels['step'] = '1';
+        $over = $en ? self::kindEn() : self::kindDe();
+        if (isset($over[$kind])) {
+            $labels = \array_merge($labels, $over[$kind]);
+        }
+
+        return $labels;
+    }
+
+    /**
+     * @return array<string, array<string, string>>
+     */
+    private static function kindDe(): array
+    {
+        return [
+            'paid'    => [
+                'step'      => '2',
+                'title'     => 'Zahlung eingegangen',
+                'intro'     => 'die Zahlung für Ihre Bestellung ist bei uns eingegangen. Vielen Dank! Hier nochmals Ihre Übersicht.',
+                'next'      => 'Wie geht es weiter?',
+                'next_text' => 'Wir bereiten Ihre Bestellung jetzt für den Versand vor und informieren Sie, sobald sie unterwegs ist.',
+            ],
+            'shipped' => [
+                'step'      => '3',
+                'title'     => 'Ihre Bestellung ist unterwegs!',
+                'intro'     => 'Ihre Bestellung wurde heute an Sie versandt. Hier können Sie die Sendung verfolgen.',
+                'next'      => 'Viel Freude mit Ihrer Ware!',
+                'next_text' => 'Wir wünschen Ihnen viel Freude mit Ihrer Ware und bedanken uns für Ihren Einkauf und Ihr Vertrauen.',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, array<string, string>>
+     */
+    private static function kindEn(): array
+    {
+        return [
+            'paid'    => [
+                'step'      => '2',
+                'title'     => 'Payment received',
+                'intro'     => 'we have received the payment for your order. Thank you! Here is your summary once more.',
+                'next'      => 'What happens next?',
+                'next_text' => 'We are now preparing your order for shipping and will let you know as soon as it is on its way.',
+            ],
+            'shipped' => [
+                'step'      => '3',
+                'title'     => 'Your order is on its way!',
+                'intro'     => 'your order has been shipped today. You can track your shipment below.',
+                'next'      => 'Enjoy your purchase!',
+                'next_text' => 'We hope you enjoy your purchase and thank you for your trust.',
+            ],
+        ];
     }
 
     /**
@@ -60,6 +115,9 @@ final class Labels
             'phone'        => 'Telefon',
             'mail'         => 'E-Mail',
             'vat_id'       => 'USt-IdNr.',
+            'tracking'     => 'Sendungsverfolgung',
+            'track_no'     => 'Tracking-Nummer',
+            'track_hint'   => 'Hinweis',
         ];
     }
 
@@ -109,6 +167,9 @@ final class Labels
             'phone'        => 'Phone',
             'mail'         => 'E-mail',
             'vat_id'       => 'VAT ID',
+            'tracking'     => 'Shipment tracking',
+            'track_no'     => 'Tracking number',
+            'track_hint'   => 'Note',
         ];
     }
 }

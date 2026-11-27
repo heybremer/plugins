@@ -33,6 +33,9 @@ final class Config
     /** @var array<string, string> */
     private const DEFAULTS = [
         'enabled'       => '1',
+        'apply_paid'    => '1',
+        'apply_shipped' => '1',
+        'show_images'   => '1',
         'design'        => 'modern',
         'accent'        => '',
         'tagline'       => '',
@@ -99,6 +102,9 @@ final class Config
         $mail   = \trim((string)($in['support_mail'] ?? ''));
         $clean  = [
             'enabled'       => !empty($in['enabled']) ? '1' : '0',
+            'apply_paid'    => !empty($in['apply_paid']) ? '1' : '0',
+            'apply_shipped' => !empty($in['apply_shipped']) ? '1' : '0',
+            'show_images'   => !empty($in['show_images']) ? '1' : '0',
             'design'        => isset(self::DESIGNS[$design]) ? $design : self::DEFAULTS['design'],
             'accent'        => \preg_match('/^#[0-9a-fA-F]{6}$/', $accent) ? \strtolower($accent) : '',
             'tagline'       => \mb_substr(\trim((string)($in['tagline'] ?? '')), 0, 120),
